@@ -73,9 +73,6 @@ events to drive turn-taking; measure with stamps we take ourselves, at one layer
 
 ## Text-to-speech
 
-Not surveyed yet. It needs one before Increment 2, and it needs to answer a
-question the STT survey doesn't:
-
 **The bench's voice is an input to the system under test.** Whatever we
 synthesize gets transcribed by *their* speech-to-text. A voice that their stack
 mishears turns every scenario into a test of our synthesis, and a finding
@@ -83,8 +80,37 @@ produced that way is about us, not them. Naturalness matters less than being
 reliably heard; the probe is whether the target's flow behaves the same for a
 synthesized caller as for a human one.
 
-The related constraint: synthesis has to land in the transport's frame format,
-at the transport's rate, streaming — not as a finished file.
+The constraint that decides it: **synthesis must emit streaming, headerless
+mulaw at 8000 natively** — the transport's frame format (measured,
+[drivers.md](drivers.md)). A provider that only outputs WAV or 16kHz forces a
+resampling stage, which adds latency and one more place to be wrong.
+
+Survey (searched 2026-07-15; vendor TTFB claims, not measured by us):
+
+| option | claimed TTFB | native mulaw@8k | note |
+|---|---|---|---|
+| Deepgram Aura-2 | ~90ms | yes (`encoding=mulaw`, `sample_rate=8000`, no container) | has a Twilio-specific integration doc |
+| ElevenLabs Flash v2.5 | ~75ms | check output formats | latency leader claim |
+| Inworld Realtime TTS-2 | — | yes (8kHz MULAW/ALAW, PSTN-native) | tops the AA Realtime TTS Arena per vendor |
+| Cartesia Sonic | — | streaming-first | telephony-positioned |
+
+Sub-200ms TTFB is the widely-cited target for natural turn-taking.
+
+## The one-vendor observation
+
+**Deepgram covers both directions plus turn detection under one API key.** Its
+`/v1/listen` STT ingests exactly what our `TransportEvent` audio carries —
+`encoding=mulaw&sample_rate=8000`, headerless — so the adapter strips base64
+(already done) and forwards raw bytes. Its Aura-2 TTS emits the same format.
+Its Flux STT bundles end-of-turn detection (the turn-taking hard part;
+[references.md](references.md) has the local-model alternative, smart-turn).
+
+That is one signup instead of two or three, and one integration seam to probe
+instead of several. It is a **maintainer decision** — creating an account and a
+key is a spend/signup gate, not an agent default. The STT/TTS contracts are
+built to keep providers swappable regardless of which way this goes; the point
+of naming Deepgram is that it is the cheapest path to a *working* Increment 2,
+not a lock-in.
 
 ## Our own transcription of our own recordings
 

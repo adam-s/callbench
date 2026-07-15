@@ -182,10 +182,22 @@ Related research: [Reference-Guided Verdict — LLMs-as-Judges for free-form
 QA](https://arxiv.org/pdf/2408.09235) (giving the judge a reference answer, which
 is what a rubric does).
 
-## Speech
+## Speech — STT, TTS, and the one-vendor path
 
-Provider survey, benchmarks, and the 8kHz-telephony finding live in
-[speech.md](speech.md) rather than here.
+Full provider survey, benchmarks, the 8kHz-telephony finding, and the TTS table
+live in [speech.md](speech.md). The load-bearing integration facts:
+
+- **Deepgram ingests our exact bytes.** `/v1/listen` with
+  `encoding=mulaw&sample_rate=8000` takes the raw headerless mulaw that our
+  `TransportEvent` audio already carries — strip base64 (done in the adapter),
+  forward. Documented specifically for Twilio Media Streams.
+- **Deepgram Aura-2 emits the same format** natively (no resampling stage), and
+  **Flux** bundles end-of-turn detection — so one vendor and one key can cover
+  STT + TTS + turn-taking. A maintainer signup decision, not an agent default.
+- Sources: [Twilio + Deepgram STT](https://deepgram.com/learn/deepgram-twilio-streaming),
+  [Deepgram TTS for Twilio](https://developers.deepgram.com/docs/twilio-and-deepgram-tts),
+  [low-latency TTS survey](https://gradium.ai/content/best-low-latency-tts-apis-2026),
+  [phone-agent TTS ranking](https://inworld.ai/resources/best-voice-ai-for-ai-phone-agents).
 
 ## Web Audio and the visualization
 
