@@ -222,6 +222,11 @@ the system will read it.
 
 ## Standing rules for every increment
 
+- **Read [references.md](references.md) before building the seam.** Most of what
+  this project needs is solved in public — the turn-detector, the barge-in
+  primitive, the whole evaluation architecture — and some of it by people who
+  studied the problem longer than we will. Taking the solved thing is the
+  default; re-deriving it is the choice that needs a reason.
 - Probe before building. A silent empty result is a re-probe signal.
 - Every fixed behavior gets a regression test; every frozen interface gets a
   contract test.

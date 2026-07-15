@@ -69,6 +69,7 @@ what else improves — the full set is in [AGENTS.md](AGENTS.md).
 ```text
 AGENTS.md            principles and policy for coding agents (start here)
 docs/                brief, architecture, plan, probes, drivers, speech, ui
+docs/references.md   prior art per concept — read before building a seam
 docs/contracts/      what each increment froze
 .agents/             skills and references (.claude/skills symlinks here)
 packages/            per-increment packages; none before its increment

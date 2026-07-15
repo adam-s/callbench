@@ -31,16 +31,33 @@ import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { join } from 'node:path';
-import { WebSocketServer } from 'ws';
+import { WebSocket, WebSocketServer } from 'ws';
 
 const PORT = 8788;
 const API = 'https://api.twilio.com/2010-04-01';
+
+const MEDIA_PATH = '/media';
+const READY_PATH = '/__ready';
 
 /** Caps. Each one independently ends the probe. */
 const MAX_SECONDS = 45;
 const MAX_FRAMES = 400;
 const TUNNEL_WAIT_MS = 25_000;
 const ANSWER_WAIT_MS = 40_000;
+
+/**
+ * How long to wait for the tunnel to actually carry a WebSocket.
+ *
+ * Measured, not guessed: a cloudflared quick tunnel prints its public URL about
+ * 24s BEFORE the edge will route to it, answering HTTP 530 in the meantime.
+ * Dialing on the printed URL cost one real call — Twilio's handshake hit the
+ * 530, raised error 31920, and ended the call after 1 second.
+ *
+ * So the probe proves the tunnel works before it spends a ring on somebody's
+ * phone. A fixed sleep would be a guess about someone else's infrastructure;
+ * polling is the same wait with a fact at the end of it.
+ */
+const TUNNEL_READY_MS = 60_000;
 
 type Raw = { at: number; dir: 'in'; text: string };
 
@@ -106,6 +123,39 @@ function startTunnel(): Promise<{ host: string; stop: () => void }> {
 	});
 }
 
+/**
+ * Poll the tunnel from outside until a real WebSocket upgrade succeeds.
+ * Returns seconds waited, or null if it never came up.
+ */
+async function waitForTunnel(host: string): Promise<number | null> {
+	const started = Date.now();
+	while (Date.now() - started < TUNNEL_READY_MS) {
+		const open = await new Promise<boolean>((resolve) => {
+			const ws = new WebSocket(`wss://${host}${READY_PATH}`);
+			const finish = (ok: boolean) => {
+				try {
+					ws.close();
+				} catch {
+					/* already closed */
+				}
+				resolve(ok);
+			};
+			const t = setTimeout(() => finish(false), 4000);
+			ws.on('open', () => {
+				clearTimeout(t);
+				finish(true);
+			});
+			ws.on('error', () => {
+				clearTimeout(t);
+				finish(false);
+			});
+		});
+		if (open) return (Date.now() - started) / 1000;
+		await new Promise((r) => setTimeout(r, 2000));
+	}
+	return null;
+}
+
 async function main(): Promise<void> {
 	const sid = required('TWILIO_ACCOUNT_SID');
 	const token = required('TWILIO_AUTH_TOKEN');
@@ -129,11 +179,18 @@ async function main(): Promise<void> {
 	const raws: Raw[] = [];
 	let closed = false;
 
-	// 1. WebSocket server
+	// 1. WebSocket server. Two paths: READY_PATH answers the readiness probe
+	// below, MEDIA_PATH is the real stream. They must not be confused — a
+	// readiness connection arriving on the media path would look like Twilio
+	// answering and start the capture clock early.
 	const http = createServer();
 	const wss = new WebSocketServer({ server: http });
 	const gotConnection = new Promise<void>((resolve) => {
-		wss.on('connection', (socket) => {
+		wss.on('connection', (socket, req) => {
+			if (req.url !== MEDIA_PATH) {
+				socket.close(); // readiness probe; not the call
+				return;
+			}
 			console.log('media: websocket connected');
 			resolve();
 			socket.on('message', (data) => {
@@ -152,10 +209,22 @@ async function main(): Promise<void> {
 	await new Promise<void>((r) => http.listen(PORT, r));
 	console.log(`local  : ws://localhost:${PORT}`);
 
-	// 2. Tunnel
+	// 2. Tunnel — and then WAIT for it to actually carry traffic.
 	const tunnel = await startTunnel();
-	const wsUrl = `wss://${tunnel.host}/media`;
+	const wsUrl = `wss://${tunnel.host}${MEDIA_PATH}`;
 	console.log(`tunnel : ${wsUrl}`);
+
+	const readyAfter = await waitForTunnel(tunnel.host);
+	if (readyAfter === null) {
+		tunnel.stop();
+		wss.close();
+		http.close();
+		throw new Error(
+			`Tunnel never carried a WebSocket within ${TUNNEL_READY_MS / 1000}s. Not dialing — ` +
+				'a call into a dead tunnel is a wasted ring on a real phone.',
+		);
+	}
+	console.log(`ready  : tunnel carried a WebSocket after ${readyAfter.toFixed(1)}s`);
 
 	// 3. One call
 	const twiml = `<Response><Connect><Stream url="${wsUrl}"/></Connect></Response>`;

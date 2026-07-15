@@ -67,25 +67,33 @@ meaning anything.
 
 1. **Plan first.** Scope the work and its "done when" gate before starting.
    Don't build what the maintainer hasn't asked for.
-2. **Probe before building.** When behavior is uncertain, write an empirical
-   probe and observe — facts, then code. Unverified assumptions stay labelled
-   until a probe confirms them; a claimed *limit* or *blocker* is an assumption
-   too (measure before asserting the ceiling). When extracting from an external
-   surface (a media stream, an API, an audio frame), capture its real shape
-   before writing the parser, and treat a silent empty/zero result as a
-   re-probe signal — assumption drift, not "nothing there".
-3. **Pin what you fix.** Every fixed behavior gets a regression test; every
+2. **Look for the solved version before writing your own.** Most problems worth
+   solving here have been solved in public — by vendors, by open source, by
+   people who published a paper about it. Search before designing; taking the
+   solved thing is the default, and re-deriving it is the choice that needs a
+   reason. A primitive the platform already provides beats a mechanism you built
+   because you didn't check.
+3. **Probe before building.** When behavior is uncertain, write an empirical
+   probe and observe — facts, then code. This outranks the rule above: someone
+   else's documentation is a claim, and a claim is what a probe is for.
+   Unverified assumptions stay labelled until a probe confirms them; a claimed
+   *limit* or *blocker* is an assumption too (measure before asserting the
+   ceiling). When extracting from an external surface (a media stream, an API,
+   an audio frame), capture its real shape before writing the parser, and treat
+   a silent empty/zero result as a re-probe signal — assumption drift, not
+   "nothing there".
+4. **Pin what you fix.** Every fixed behavior gets a regression test; every
    locked-down interface gets a contract test.
-4. **Red-team at checkpoints.** Review the production code, then the tests,
+5. **Red-team at checkpoints.** Review the production code, then the tests,
    then mutate to confirm the suite actually bites.
-5. **Record, generalized.** Accepted tradeoffs are recorded where the knowledge
+6. **Record, generalized.** Accepted tradeoffs are recorded where the knowledge
    lives (a code comment, a doc). A rule added here must generalize — if you
    can name the failing instance in the rule, it's a fact, not a rule. **A
    decision that supersedes a recorded rule ends the record in the same
    breath** — update or banner every place the old rule is written before the
    work moves on, because a superseded rule left standing will be faithfully
    obeyed by the next agent that reads it.
-6. **Close the loop on yourself.** At a cycle's end, evaluate the cycle from
+7. **Close the loop on yourself.** At a cycle's end, evaluate the cycle from
    its evidence and fix the instructions, docs, and utilities that caused
    friction — each fix in its correct home, pruning at least as much guidance
    as it adds. Procedure: the `self-improve` skill; runs only when invoked.
