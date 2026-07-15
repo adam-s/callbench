@@ -45,8 +45,10 @@ reaching the shop.
 - **The loopback needs a second number with a TwiML endpoint answering it, not a
   personal handset.** The dial probe established why: a cell screens an unknown
   caller to voicemail, and Twilio still reports the call `completed` — a loopback
-  that answers nondeterministically, or not at all, teaches nothing. This is a
-  purchase, and therefore a maintainer decision.
+  that answers nondeterministically, or not at all, teaches nothing.
+  **Purchased 2026-07-15** with maintainer approval (`callbench-simulator` in
+  the account; details in [drivers.md](drivers.md)) — the simulator (Increment
+  3) answers it, which is how that increment folds back into this one.
 - Requires a public tunnel so the provider can reach the local server for TwiML
   and the media WebSocket.
 - **Probe first**: capture the real frame shape, encoding, and event sequence

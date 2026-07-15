@@ -129,10 +129,11 @@ Two findings that outlive this probe:
   voicemail and a listening human are the same status.
 - **A personal cell is not a loopback answering endpoint.** Screening and
   voicemail make it nondeterministic, which is the opposite of what Increment 1
-  needs. The plan's "trivial answering endpoint" wants a second owned number
-  with a TwiML app behind it — a purchase to raise with the maintainer when
-  Increment 1 starts. This screening does not apply to the target, which is
-  on-net (above).
+  needs. **Resolved 2026-07-15**: the maintainer approved and the second number
+  was purchased through the API — `+1 (504) 217-7595`, friendly name
+  `callbench-simulator`, $1.15/mo read from the pricing API. It is now
+  `CALLBENCH_LOOPBACK_NUMBER`; the simulator answers it. This screening does
+  not apply to the target, which is on-net (above).
 
 **Timing caveat.** The probe's per-state elapsed figures come from its own wall
 clock at 2s poll intervals — they record when the script *observed* a
