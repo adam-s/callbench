@@ -26,6 +26,34 @@ import type { ScenarioReport } from './scenario.ts';
  * control in the UI, so it travels WITH the record rather than being inferred. */
 export type RunTarget = 'simulator' | 'system-under-test';
 
+/**
+ * A reference to the run's audio recording — not the samples, which live in a
+ * sibling file. The waveform is drawn CLIENT-SIDE from this file at render time
+ * (ui.md: the replay pipeline measures nothing, it renders the file), so no
+ * peaks are stored here. What IS stored is enough to serve the file, place it on
+ * the session clock, refuse it if it drifted, and say honestly how it was made:
+ *
+ *   - `sha256` freezes the audio the same way the transcript hash freezes the
+ *     turns — the serving route refuses a file whose bytes no longer match.
+ *   - `synthetic` is provenance, not decoration. A live call's audio is a real
+ *     capture (`null`); a simulator run has no microphone, so its audio is
+ *     SYNTHESIZED from the turn text (e.g. `'macos-say'`) and the UI labels it as
+ *     such. Calling synthesized audio a recording would be the kind of quiet
+ *     fabrication the freeze invariant exists to prevent.
+ */
+export interface RunAudio {
+	/** Filename within the run directory (served, never an absolute path). */
+	readonly file: string;
+	readonly sampleRate: number;
+	readonly channels: number;
+	readonly durationMs: number;
+	/** SHA-256 of the audio file's bytes — the serving route refuses on drift. */
+	readonly sha256: string;
+	/** How the audio was produced. `null` = a real capture from a live call; a
+	 * string names the synthesis path for a target with no real audio. */
+	readonly synthetic: string | null;
+}
+
 export interface RunArtifact {
 	/** Contract version — bumped if this shape changes, so a reader can refuse an
 	 * artifact it does not understand rather than mis-parse it. */
@@ -44,6 +72,9 @@ export interface RunArtifact {
 	readonly report: ScenarioReport;
 	/** Wall-clock epoch when the run was recorded. */
 	readonly createdEpochMs: number;
+	/** The run's audio recording, if any. Absent for a text-only run (the offline
+	 * simulator has no audio); present for a synthesized or live-captured call. */
+	readonly audio?: RunAudio;
 	/**
 	 * Integrity hash over everything EXCEPT the transcript (which self-verifies
 	 * via its own hash). The transcript's `verifyFrozen` catches drift in the
@@ -51,7 +82,8 @@ export interface RunArtifact {
 	 * a verdict's reasoning rewritten, a doctored `counts` — would drift silently,
 	 * because the report's own `hash` is only a copy of the transcript hash, not a
 	 * hash of the report body. `bodyHash` closes that: it is recomputed and
-	 * refused at load, so no displayed figure can drift from what was frozen.
+	 * refused at load, so no displayed figure (and no audio reference) can drift
+	 * from what was frozen.
 	 */
 	readonly bodyHash: string;
 }
@@ -74,7 +106,7 @@ export function runIdOf(transcript: FrozenTranscript): string {
 function computeBodyHash(
 	fields: Pick<
 		RunArtifact,
-		'artifactVersion' | 'scenario' | 'runId' | 'target' | 'createdEpochMs' | 'report'
+		'artifactVersion' | 'scenario' | 'runId' | 'target' | 'createdEpochMs' | 'report' | 'audio'
 	>,
 ): string {
 	return createHash('sha256')
@@ -86,6 +118,9 @@ function computeBodyHash(
 				target: fields.target,
 				createdEpochMs: fields.createdEpochMs,
 				report: fields.report,
+				// `?? null` so an absent audio hashes identically to an explicit null —
+				// a text-only run has one stable body hash either way.
+				audio: fields.audio ?? null,
 			}),
 		)
 		.digest('hex');
@@ -113,6 +148,7 @@ export function buildRunArtifact(
 	transcript: FrozenTranscript,
 	report: ScenarioReport,
 	createdEpochMs: number,
+	audio?: RunAudio,
 ): RunArtifact {
 	if (report.hash !== transcript.hash) {
 		throw new Error(
@@ -137,6 +173,7 @@ export function buildRunArtifact(
 		target,
 		createdEpochMs,
 		report,
+		...(audio ? { audio } : {}),
 	};
 	return { ...core, transcript, bodyHash: computeBodyHash(core) };
 }
@@ -204,6 +241,7 @@ export function parseRunArtifact(text: string): RunArtifact {
 		target: parsed.target as RunTarget,
 		createdEpochMs: parsed.createdEpochMs as number,
 		report: parsed.report,
+		audio: parsed.audio,
 	});
 	if (expected !== parsed.bodyHash) {
 		throw new Error(

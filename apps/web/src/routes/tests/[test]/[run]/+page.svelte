@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { Transport } from '$lib/audio/transport.svelte.ts';
+	import PlaybackControls from '$lib/components/PlaybackControls.svelte';
+	import Waveform, { type WaveSpan } from '$lib/components/Waveform.svelte';
 	import { shortRun, whereOf } from '$lib/types.ts';
 	import type { PageData } from './$types';
 	let { data }: { data: PageData } = $props();
@@ -24,6 +27,46 @@
 			by: v.judgedBy,
 		})),
 	]);
+
+	// The audio replay engine. Only wired for a replayable (simulator) run that
+	// actually has audio; a system-under-test run never reaches this branch.
+	const hasAudio = $derived(data.replayable && data.audio !== null);
+	const transport = new Transport();
+
+	// Load whenever the run's audio changes (SvelteKit reuses this component across
+	// [run] navigations). load() reuses the element/graph — no teardown here.
+	$effect(() => {
+		if (data.audio) transport.load(data.audio.url, data.audio.durationMs / 1000);
+	});
+
+	// Destroy ONLY on unmount. This effect reads nothing reactive, so it runs once
+	// and its cleanup fires only when the component is torn down — not on every
+	// navigation, which would close the AudioContext mid-session.
+	$effect(() => () => transport.destroy());
+
+	// Finding spans on the waveform — the shape of the call and the claims about it
+	// as one picture.
+	const waveSpans = $derived<WaveSpan[]>(
+		findings
+			.filter((f) => f.span !== null)
+			.map((f) => ({
+				startMs: f.span!.startMs,
+				endMs: f.span!.endMs,
+				outcome: f.outcome,
+				assertion: f.assertion,
+			})),
+	);
+
+	// The turn under the playhead right now — highlighted so the transcript scrolls
+	// in lockstep with playback. Reads the one clock (transport.t), in ms.
+	const playingTurn = $derived.by(() => {
+		const ms = transport.t * 1000;
+		return data.turns.findIndex((t) => ms >= t.startMs && ms < t.endMs);
+	});
+
+	function hear(span: { startMs: number; endMs: number }) {
+		transport.playRegion(span.startMs / 1000, span.endMs / 1000);
+	}
 </script>
 
 <div class="crumbs">
@@ -37,11 +80,19 @@
 	{data.counts.FAIL} · INCONCLUSIVE {data.counts.INCONCLUSIVE}
 </p>
 
-{#if data.replayable}
-	<p class="fence-note">
-		Simulator run — replayable. Audio playback and the click-a-finding-to-hear-it gesture arrive
-		with the audio engine (next increment). Nobody's line rings.
-	</p>
+{#if hasAudio && data.audio}
+	<Waveform {transport} peaks={data.audio.peaks} durationMs={data.audio.durationMs} spans={waveSpans} />
+	<div class="player">
+		<PlaybackControls {transport} />
+	</div>
+	{#if data.audio.synthetic}
+		<p class="fence-note">
+			Simulator run — the audio is synthesized from the turn text ({data.audio.synthetic}), a stand-in
+			for a real call recording. Click any finding's ▶ to hear its moment. Nobody's line rings.
+		</p>
+	{/if}
+{:else if data.replayable}
+	<p class="fence-note">Simulator run — replayable, but this run has no audio recording.</p>
 {:else}
 	<p class="fence-note">
 		System-under-test run — view only. No replay or re-run control exists for a stranger's line;
@@ -53,11 +104,16 @@
 <ul class="findings">
 	{#each findings as f (f.kind + f.assertion)}
 		<li>
-			<a class="frow" href="/tests/{data.scenario}/{data.runId}/{f.assertion}">
-				<span class="pill {f.outcome}">{f.outcome}</span>
-				<span class="fname mono">{f.assertion}</span>
-				<span class="fwhere muted mono">{whereOf(f)}</span>
-			</a>
+			<div class="frow">
+				{#if hasAudio && f.span}
+					<button class="hear" title="Hear this span" aria-label="Hear this span" onclick={() => hear(f.span!)}>▶</button>
+				{/if}
+				<a class="flink" href="/tests/{data.scenario}/{data.runId}/{f.assertion}">
+					<span class="pill {f.outcome}">{f.outcome}</span>
+					<span class="fname mono">{f.assertion}</span>
+					<span class="fwhere muted mono">{whereOf(f)}</span>
+				</a>
+			</div>
 			<p class="fdetail">
 				{f.detail}
 				{#if f.by}<span class="muted"> — judged by {f.by}</span>{/if}
@@ -70,7 +126,7 @@
 <p class="sub">Verbatim, with session-clock timings. Every finding above traces to a span here.</p>
 <ol class="transcript">
 	{#each data.turns as turn, i (i)}
-		<li class="turn {turn.speaker}">
+		<li class="turn {turn.speaker}" class:playing={i === playingTurn}>
 			<span class="who">{turn.speaker === 'bench' ? 'BENCH' : 'AGENT'}</span>
 			<span class="text">{turn.text}</span>
 			<span class="time muted mono">
@@ -82,6 +138,9 @@
 </ol>
 
 <style>
+	.player {
+		margin: 0.6rem 0 0.25rem;
+	}
 	.findings {
 		list-style: none;
 		margin: 0 0 1rem;
@@ -95,12 +154,32 @@
 		display: flex;
 		align-items: center;
 		gap: 0.6rem;
+	}
+	.hear {
+		flex: none;
+		width: 1.5rem;
+		height: 1.5rem;
+		border-radius: 50%;
+		border: 1px solid var(--border);
+		background: var(--surface);
+		color: var(--accent);
+		cursor: pointer;
+		font-size: 0.6rem;
+		line-height: 1;
+	}
+	.hear:hover {
+		background: var(--surface-2);
+	}
+	.flink {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
 		color: inherit;
 	}
-	.frow:hover {
+	.flink:hover {
 		text-decoration: none;
 	}
-	.frow:hover .fname {
+	.flink:hover .fname {
 		text-decoration: underline;
 	}
 	.fname {
@@ -110,7 +189,7 @@
 		font-size: 0.78rem;
 	}
 	.fdetail {
-		margin: 0.3rem 0 0;
+		margin: 0.3rem 0 0 2.1rem;
 		color: var(--ink-2);
 		font-size: 0.9rem;
 	}
@@ -118,7 +197,6 @@
 		list-style: none;
 		margin: 0;
 		padding: 0;
-		counter-reset: turn;
 	}
 	.turn {
 		display: grid;
@@ -127,12 +205,16 @@
 		align-items: baseline;
 		padding: 0.4rem 0.6rem;
 		border-radius: 6px;
+		transition: background 0.1s;
 	}
 	.turn.bench {
 		background: color-mix(in srgb, var(--bench) 8%, transparent);
 	}
 	.turn.target {
 		background: color-mix(in srgb, var(--target) 8%, transparent);
+	}
+	.turn.playing {
+		outline: 2px solid var(--accent);
 	}
 	.who {
 		font-family: var(--mono);

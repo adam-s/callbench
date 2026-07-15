@@ -1,13 +1,35 @@
+import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { defineConfig } from 'vitest/config';
 
+/**
+ * Two projects, because two worlds run under one gate:
+ *   - `node`: everything server-side and pure — the packages, the scripts, and
+ *     the web app's server logic. Plain node, no DOM, no Svelte compiler.
+ *   - `dom`: the browser-side audio engine (a `.svelte.ts` module using Svelte 5
+ *     runes). It needs the Svelte plugin to compile `$state`/`$effect` and a DOM
+ *     environment; its tests are named `*.dom.test.ts` and are excluded from the
+ *     node project so they never run without the compiler.
+ */
 export default defineConfig({
 	test: {
-		environment: 'node',
-		// apps/web server-side logic is plain Node (fs + workspace packages), so it
-		// runs under this same node environment. Its tested modules import shared
-		// types by RELATIVE path, never `$lib/*`, so no SvelteKit alias is needed
-		// here; component/DOM tests, when they arrive, get their own jsdom project.
-		include: ['packages/**/*.test.ts', 'scripts/**/*.test.mjs', 'apps/web/src/**/*.test.ts'],
-		exclude: ['**/node_modules/**', '**/dist/**', '**/.svelte-kit/**'],
+		projects: [
+			{
+				test: {
+					name: 'node',
+					environment: 'node',
+					include: ['packages/**/*.test.ts', 'scripts/**/*.test.mjs', 'apps/web/src/**/*.test.ts'],
+					exclude: ['**/node_modules/**', '**/dist/**', '**/.svelte-kit/**', '**/*.dom.test.ts'],
+				},
+			},
+			{
+				plugins: [svelte()],
+				test: {
+					name: 'dom',
+					environment: 'jsdom',
+					include: ['apps/web/src/**/*.dom.test.ts'],
+					exclude: ['**/node_modules/**', '**/dist/**', '**/.svelte-kit/**'],
+				},
+			},
+		],
 	},
 });

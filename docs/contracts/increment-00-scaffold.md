@@ -83,7 +83,11 @@ request to build the UI in view, not silently:
 - `typecheck` now ends with `pnpm --filter @callbench/web check`, which runs
   `svelte-kit sync && svelte-check` — the UI's typecheck equivalent (plain `tsc`
   cannot see `.svelte` files or the generated route types).
-- The Vitest glob gained `apps/web/src/**/*.test.ts`.
+- The Vitest glob gained `apps/web/src/**/*.test.ts`. Vitest also gained a second
+  project (Increment 6): a `dom` project (environment `jsdom`, the Svelte plugin)
+  running `apps/web/src/**/*.dom.test.ts` for the runes-based audio engine; the
+  `node` project excludes `*.dom.test.ts` so it never runs them without the
+  compiler.
 - Biome ignores `**/.svelte-kit` (generated) and `**/*.svelte` (see Stack).
 
 What the widening protects, restated so it is not lost: a package or app outside

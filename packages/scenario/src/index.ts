@@ -4,6 +4,7 @@ export {
 	parseRunArtifact,
 	RUN_FILENAME,
 	type RunArtifact,
+	type RunAudio,
 	type RunTarget,
 	readRunArtifact,
 	runIdOf,

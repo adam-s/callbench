@@ -1,12 +1,62 @@
 <script lang="ts">
+	import { Transport } from '$lib/audio/transport.svelte.ts';
+	import PlaybackControls from '$lib/components/PlaybackControls.svelte';
+	import Waveform, { type WaveSpan } from '$lib/components/Waveform.svelte';
 	import { shortRun, whereOf } from '$lib/types.ts';
 	import type { PageData } from './$types';
 	let { data }: { data: PageData } = $props();
 
 	// The turn the finding cites — the one the reader should land on. INCONCLUSIVE
-	// cites no span, so there is nothing to highlight, which is itself the point:
-	// the finding could not be evaluated because the flow never reached it.
+	// cites no span, so there is nothing to highlight, which is itself the point.
 	const citedTurn = $derived(data.finding.span?.turnIndex ?? null);
+	const cited = $derived(
+		data.finding.span
+			? { startMs: data.finding.span.startMs, endMs: data.finding.span.endMs }
+			: null,
+	);
+
+	const hasAudio = $derived(data.audio !== null);
+	const transport = new Transport();
+
+	// A stable identity for THIS finding — so navigating to another finding in the
+	// same session re-fires the auto-play instead of being suppressed by a guard
+	// that never resets.
+	const findingKey = $derived(`${data.runId}/${data.finding.assertion}`);
+
+	// Load whenever the run's audio changes. load() reuses the element/graph.
+	$effect(() => {
+		if (data.audio) transport.load(data.audio.url, data.audio.durationMs / 1000);
+	});
+
+	// THE CENTERPIECE, completed: land on a finding and hear its moment. Play the
+	// cited span once per finding (keyed on findingKey, so a second finding also
+	// auto-plays). Autoplay may be blocked by the browser until a gesture; the
+	// waveform, playhead, and controls are present regardless, so a blocked
+	// autoplay degrades to "press play", not a dead page (the engine's wall-clock
+	// fallback keeps the playhead honest).
+	let autoplayedKey: string | null = null;
+	$effect(() => {
+		if (data.audio && cited && autoplayedKey !== findingKey) {
+			autoplayedKey = findingKey;
+			transport.playRegion(cited.startMs / 1000, cited.endMs / 1000);
+		}
+	});
+
+	// Destroy ONLY on unmount (no reactive reads → cleanup fires once, on teardown).
+	$effect(() => () => transport.destroy());
+
+	const waveSpans = $derived<WaveSpan[]>(
+		cited
+			? [
+					{
+						startMs: cited.startMs,
+						endMs: cited.endMs,
+						outcome: data.finding.outcome,
+						assertion: data.finding.assertion,
+					},
+				]
+			: [],
+	);
 </script>
 
 <div class="crumbs">
@@ -28,11 +78,21 @@
 		This finding cites no span — it could not be evaluated (the flow never reached the point it
 		would judge), so there is no moment to land on. That absence is the finding.
 	</p>
+{:else if hasAudio && data.audio}
+	<div class="hearbar">
+		<Waveform {transport} peaks={data.audio.peaks} durationMs={data.audio.durationMs} spans={waveSpans} {cited} />
+		<div class="player">
+			<PlaybackControls {transport} />
+			<button class="again" onclick={() => cited && transport.playRegion(cited.startMs / 1000, cited.endMs / 1000)}>
+				▶ Hear this moment
+			</button>
+		</div>
+		{#if data.audio.synthetic}
+			<p class="fence-note">Audio synthesized from the turn text ({data.audio.synthetic}); a stand-in until a live recording.</p>
+		{/if}
+	</div>
 {:else}
-	<p class="sub" style="margin-top:1.25rem">
-		The cited moment is highlighted below. Playing it back arrives with the audio engine (next
-		increment); the span and its place in the call are the evidence today.
-	</p>
+	<p class="sub" style="margin-top:1.25rem">The cited moment is highlighted below.</p>
 {/if}
 
 <ol class="transcript">
@@ -47,7 +107,29 @@
 
 <style>
 	.detail {
-		margin-bottom: 0.5rem;
+		margin-bottom: 0.75rem;
+	}
+	.hearbar {
+		margin-bottom: 1.25rem;
+	}
+	.player {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		margin-top: 0.6rem;
+	}
+	.again {
+		flex: none;
+		border: 1px solid var(--border);
+		background: var(--surface);
+		color: var(--accent);
+		border-radius: var(--radius);
+		padding: 0.35rem 0.7rem;
+		cursor: pointer;
+		font-size: 0.85rem;
+	}
+	.again:hover {
+		background: var(--surface-2);
 	}
 	.transcript {
 		list-style: none;

@@ -1,6 +1,11 @@
 import { error } from '@sveltejs/kit';
-import { canReplay, loadRun } from '$lib/server/runs.ts';
+import { canReplay, loadRun, readRunAudio } from '$lib/server/runs.ts';
+import { peaksFromWav } from '$lib/server/waveform.ts';
 import type { PageServerLoad } from './$types';
+
+/** How many columns of waveform envelope to precompute. A fixed count keeps the
+ * page payload bounded regardless of call length; the canvas stretches them. */
+const WAVE_COLUMNS = 900;
 
 /**
  * One run: the full frozen transcript and the report over it. Loading
@@ -25,6 +30,28 @@ export const load: PageServerLoad = ({ params }) => {
 		error(500, 'this run could not be loaded: the evidence is corrupt or drifted from its hash.');
 	}
 
+	// Audio (if any): the peaks are computed from the SAME verified bytes the audio
+	// route serves, server-side, so the client never fetches audio to draw the
+	// waveform (which the dial fence forbids). A run with no audio simply has none.
+	let audio: {
+		url: string;
+		durationMs: number;
+		synthetic: string | null;
+		peaks: ReadonlyArray<readonly [number, number]>;
+	} | null = null;
+	// Gated on canReplay, matching the finding page: a system-under-test run never
+	// even loads its recording into the page, let alone offers a control. Only a
+	// simulator run reaches the audio here.
+	if (canReplay(artifact.target) && artifact.audio) {
+		const { bytes } = readRunAudio(params.test, params.run);
+		audio = {
+			url: `/tests/${params.test}/${params.run}/audio`,
+			durationMs: artifact.audio.durationMs,
+			synthetic: artifact.audio.synthetic,
+			peaks: peaksFromWav(bytes, WAVE_COLUMNS),
+		};
+	}
+
 	return {
 		scenario: artifact.scenario,
 		runId: artifact.runId,
@@ -34,6 +61,7 @@ export const load: PageServerLoad = ({ params }) => {
 		results: artifact.report.results,
 		verdicts: artifact.report.verdicts,
 		counts: artifact.report.counts,
+		audio,
 		// The fence, decided server-side and passed as a fact: only a simulator run
 		// exposes a replay control, and even then replay is a browser-side playback
 		// of a frozen recording — no path here reaches a phone.

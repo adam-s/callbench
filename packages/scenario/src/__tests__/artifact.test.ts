@@ -89,6 +89,29 @@ describe('loading refuses drifted or unknown artifacts', () => {
 		void bodyHash;
 		expect(() => parseRunArtifact(JSON.stringify(withoutHash))).toThrow(/not a well-formed run/);
 	});
+
+	it('refuses when the AUDIO reference is edited (audio is covered by the body hash)', async () => {
+		const transcript = driveSimulator(windshieldQuote);
+		const report = await assess(windshieldQuote, transcript, {
+			runner: scriptedRunner,
+			cache: new MapCache(),
+		});
+		const withAudio = buildRunArtifact('windshield-quote', 'simulator', transcript, report, 1, {
+			file: 'call.wav',
+			sampleRate: 8000,
+			channels: 1,
+			durationMs: 12345,
+			sha256: 'a'.repeat(64),
+			synthetic: 'macos-say',
+		});
+		// The clean artifact loads.
+		expect(() => parseRunArtifact(serializeRunArtifact(withAudio))).not.toThrow();
+		// Point the audio at a different file / hash — a swap the transcript hash
+		// can't see. Only the body hash catches it.
+		const tampered = JSON.parse(serializeRunArtifact(withAudio)) as typeof withAudio;
+		(tampered.audio as { sha256: string }).sha256 = 'b'.repeat(64);
+		expect(() => parseRunArtifact(JSON.stringify(tampered))).toThrow(/body hash does not match/);
+	});
 });
 
 describe('building refuses colliding assertion names (path→identity)', () => {

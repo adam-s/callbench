@@ -25,7 +25,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { canReplay, listRuns, listScenarios, loadRun } from '../runs.ts';
+import { canReplay, listRuns, listScenarios, loadRun, readRunAudio } from '../runs.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 // apps/web/src/lib/server/__tests__ → apps/web/fixtures/runs
@@ -134,6 +134,35 @@ describe('the fence predicate', () => {
 	it('permits replay for a simulator run only', () => {
 		expect(canReplay('simulator')).toBe(true);
 		expect(canReplay('system-under-test')).toBe(false);
+	});
+});
+
+describe('serving audio verifies the frozen hash', () => {
+	it('returns WAV bytes for a fixture run and refuses if the file drifts', () => {
+		const runId = readdirSync(join(FIXTURES, 'windshield-quote'))[0]!;
+		const { bytes, contentType } = readRunAudio('windshield-quote', runId, FIXTURES);
+		expect(contentType).toBe('audio/wav');
+		expect(bytes.length).toBeGreaterThan(1000);
+		expect(bytes.toString('ascii', 0, 4)).toBe('RIFF');
+	});
+
+	it('refuses to serve audio whose bytes drifted from the frozen sha256', () => {
+		// Copy a fixture run into tmp, then corrupt the WAV while keeping run.json.
+		const runId = readdirSync(join(FIXTURES, 'windshield-quote'))[0]!;
+		const dir = mkdtempSync(join(tmpdir(), 'callbench-audio-'));
+		mkdirSync(join(dir, 'windshield-quote', runId), { recursive: true });
+		const src = join(FIXTURES, 'windshield-quote', runId);
+		writeFileSync(
+			join(dir, 'windshield-quote', runId, 'run.json'),
+			readFileSync(join(src, 'run.json')),
+		);
+		const wav = readFileSync(join(src, 'call.wav'));
+		wav[100] = (wav[100]! + 7) & 0xff; // flip a sample byte
+		writeFileSync(join(dir, 'windshield-quote', runId, 'call.wav'), wav);
+		expect(() => readRunAudio('windshield-quote', runId, dir)).toThrow(
+			/drifted from its frozen hash/,
+		);
+		rmSync(dir, { recursive: true, force: true });
 	});
 });
 

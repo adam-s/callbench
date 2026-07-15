@@ -18,6 +18,7 @@
  * offers replays a frozen recording in the browser; it never reaches a phone.
  */
 
+import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import {
@@ -156,6 +157,39 @@ export function listScenarios(runsDir = defaultRunsDir()): ScenarioSummary[] {
 			};
 		})
 		.filter((s) => s.runCount > 0);
+}
+
+/**
+ * Read a run's audio for serving, VERIFYING it against the frozen hash first.
+ * The bytes come off disk (an fs read — not a network call, so the dial fence is
+ * untouched); if they no longer match `audio.sha256`, the file drifted from what
+ * was frozen and is refused rather than served. The audio filename comes from
+ * the artifact, not the URL, and is checked to be a single segment, so this can
+ * never read a sibling path.
+ */
+export function readRunAudio(
+	scenario: string,
+	runId: string,
+	runsDir = defaultRunsDir(),
+): { bytes: Buffer; contentType: string } {
+	const artifact = loadRun(scenario, runId, runsDir);
+	if (!artifact.audio) {
+		throw new Error(`run ${scenario}/${runId} has no audio`);
+	}
+	assertSafeSegment('audio file', artifact.audio.file);
+	const root = resolve(runsDir);
+	const file = resolve(root, scenario, runId, artifact.audio.file);
+	if (file !== join(root, scenario, runId, artifact.audio.file)) {
+		throw new Error(`refusing to read audio outside the run directory for ${scenario}/${runId}`);
+	}
+	const bytes = readFileSync(file);
+	const sha = createHash('sha256').update(bytes).digest('hex');
+	if (sha !== artifact.audio.sha256) {
+		throw new Error(
+			`refusing to serve audio for ${scenario}/${runId}: the file drifted from its frozen hash.`,
+		);
+	}
+	return { bytes, contentType: 'audio/wav' };
 }
 
 /**

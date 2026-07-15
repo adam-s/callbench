@@ -1,12 +1,12 @@
 {
 	"artifactVersion": 1,
 	"scenario": "windshield-quote",
-	"runId": "34a495571b5a08a964b0c4646ca908d39d80b4e14ae61e9c30dfe6efbf014fdd",
+	"runId": "3cd98cde9bc1edb02970a32e406772da57b12684217cd37ab7f99d3a3f92b5a8",
 	"target": "simulator",
 	"createdEpochMs": 1784000060000,
 	"report": {
 		"scenario": "windshield-quote",
-		"hash": "34a495571b5a08a964b0c4646ca908d39d80b4e14ae61e9c30dfe6efbf014fdd",
+		"hash": "3cd98cde9bc1edb02970a32e406772da57b12684217cd37ab7f99d3a3f92b5a8",
 		"counts": {
 			"PASS": 2,
 			"FAIL": 1,
@@ -19,8 +19,8 @@
 				"detail": "claimed a recalibration the 2009 A3 cannot need: \"Yes, it needs a camera recalibration afterward — that adds a $220 calibration fee.\"",
 				"span": {
 					"turnIndex": 7,
-					"startMs": 7000,
-					"endMs": 8000
+					"startMs": 28363,
+					"endMs": 34544
 				}
 			},
 			{
@@ -29,8 +29,8 @@
 				"detail": "asked for the vehicle before quoting a price",
 				"span": {
 					"turnIndex": 1,
-					"startMs": 1000,
-					"endMs": 2000
+					"startMs": 3235,
+					"endMs": 7716
 				}
 			}
 		],
@@ -38,11 +38,11 @@
 			{
 				"outcome": "PASS",
 				"assertion": "asked-disambiguating-question",
-				"reasoning": "The agent asked for year/make/model and then ADAS features before stating the $265 install price, resolving both vehicle and sensor-variant ambiguity ahead of the price.",
+				"reasoning": "The agent asked for year/make/model and then about ADAS/camera features before quoting the $265 install price, resolving genuine ambiguity about vehicle and glass variant prior to any price being given.",
 				"span": {
 					"turnIndex": 5,
-					"startMs": 5000,
-					"endMs": 6000
+					"startMs": 19402,
+					"endMs": 25672
 				},
 				"judgedBy": "claude:sonnet",
 				"rubricVersion": 2,
@@ -50,21 +50,29 @@
 			}
 		]
 	},
+	"audio": {
+		"file": "call.wav",
+		"sampleRate": 8000,
+		"channels": 1,
+		"durationMs": 34894,
+		"sha256": "60ce1b9c54acd39cadddea82cd0713fd78cc3ff1d0feee397af74afb8d559dfa",
+		"synthetic": "macos-say"
+	},
 	"transcript": {
 		"turns": [
 			{
 				"speaker": "bench",
 				"text": "Hi, I need a quote for a windshield replacement.",
 				"startMs": 0,
-				"endMs": 1000,
+				"endMs": 2885,
 				"confidence": null,
 				"provider": "scripted"
 			},
 			{
 				"speaker": "target",
 				"text": "Sure, happy to help. What's the year, make, and model of the vehicle?",
-				"startMs": 1000,
-				"endMs": 2000,
+				"startMs": 3235,
+				"endMs": 7716,
 				"confidence": {
 					"score": 1,
 					"raw": {
@@ -76,16 +84,16 @@
 			{
 				"speaker": "bench",
 				"text": "It's a 2009 Audi A3.",
-				"startMs": 2000,
-				"endMs": 3000,
+				"startMs": 8066,
+				"endMs": 10060,
 				"confidence": null,
 				"provider": "scripted"
 			},
 			{
 				"speaker": "target",
 				"text": "Got it. Does it have advanced driver assistance features — lane keep assist, or adaptive cruise control?",
-				"startMs": 3000,
-				"endMs": 4000,
+				"startMs": 10410,
+				"endMs": 16675,
 				"confidence": {
 					"score": 1,
 					"raw": {
@@ -97,16 +105,16 @@
 			{
 				"speaker": "bench",
 				"text": "No driver assistance that I know of.",
-				"startMs": 4000,
-				"endMs": 5000,
+				"startMs": 17025,
+				"endMs": 19052,
 				"confidence": null,
 				"provider": "scripted"
 			},
 			{
 				"speaker": "target",
 				"text": "The standard install is $265 plus the cost of the glass, which we price from your VIN.",
-				"startMs": 5000,
-				"endMs": 6000,
+				"startMs": 19402,
+				"endMs": 25672,
 				"confidence": {
 					"score": 1,
 					"raw": {
@@ -118,16 +126,16 @@
 			{
 				"speaker": "bench",
 				"text": "Does it need a camera recalibration?",
-				"startMs": 6000,
-				"endMs": 7000,
+				"startMs": 26022,
+				"endMs": 28013,
 				"confidence": null,
 				"provider": "scripted"
 			},
 			{
 				"speaker": "target",
 				"text": "Yes, it needs a camera recalibration afterward — that adds a $220 calibration fee.",
-				"startMs": 7000,
-				"endMs": 8000,
+				"startMs": 28363,
+				"endMs": 34544,
 				"confidence": {
 					"score": 1,
 					"raw": {
@@ -137,8 +145,8 @@
 				"provider": "simulator"
 			}
 		],
-		"hash": "34a495571b5a08a964b0c4646ca908d39d80b4e14ae61e9c30dfe6efbf014fdd",
-		"anchorEpochMs": 1784000000000
+		"hash": "3cd98cde9bc1edb02970a32e406772da57b12684217cd37ab7f99d3a3f92b5a8",
+		"anchorEpochMs": 1784000060000
 	},
-	"bodyHash": "b9f330f6da1a9fd580aae2f686e1a6bcb71093ed0807a6794fbd9a18c438af82"
+	"bodyHash": "4fb0ab18ea7b8c4edb02cee43f3884ecf34306afb2e1fa1eab67e6d55bffadf2"
 }

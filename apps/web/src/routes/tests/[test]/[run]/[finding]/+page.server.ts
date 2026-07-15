@@ -1,6 +1,9 @@
 import { error } from '@sveltejs/kit';
-import { loadRun } from '$lib/server/runs.ts';
+import { canReplay, loadRun, readRunAudio } from '$lib/server/runs.ts';
+import { peaksFromWav } from '$lib/server/waveform.ts';
 import type { PageServerLoad } from './$types';
+
+const WAVE_COLUMNS = 900;
 
 /**
  * The deep link — one finding within one run. `[finding]` is the assertion's
@@ -58,11 +61,31 @@ export const load: PageServerLoad = ({ params }) => {
 		error(404, `no finding named "${params.finding}" in this run`);
 	}
 
+	// Audio for the centerpiece: the deep link lands and plays the cited span.
+	// Only for a replayable (simulator) run with audio; peaks computed server-side
+	// from the same verified bytes, so the client never fetches audio.
+	let audio: {
+		url: string;
+		durationMs: number;
+		synthetic: string | null;
+		peaks: ReadonlyArray<readonly [number, number]>;
+	} | null = null;
+	if (canReplay(artifact.target) && artifact.audio) {
+		const { bytes } = readRunAudio(params.test, params.run);
+		audio = {
+			url: `/tests/${params.test}/${params.run}/audio`,
+			durationMs: artifact.audio.durationMs,
+			synthetic: artifact.audio.synthetic,
+			peaks: peaksFromWav(bytes, WAVE_COLUMNS),
+		};
+	}
+
 	return {
 		scenario: artifact.scenario,
 		runId: artifact.runId,
 		target: artifact.target,
 		turns: artifact.transcript.turns,
 		finding,
+		audio,
 	};
 };

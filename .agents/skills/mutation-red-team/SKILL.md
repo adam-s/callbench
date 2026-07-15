@@ -195,9 +195,27 @@ engine, the rich dataviz, and the live-run surfaces are ahead.
     load instead of surfacing it as `broken`. Corrupt evidence vanishes from
     every navigational surface (against append-only / surface-interventions); the
     broken-surfacing test fails.
-  Still owed once the audio arrives: point a finding's deep link at the wrong
-  span; derive a displayed figure from the browser's `AnalyserNode` rather than
-  the frozen record (the replay-pipeline-measures-nothing rule).
+- **Increment 6 (audio centerpiece) — verified CAUGHT:** the run-audio contract
+  (`artifact.ts` `RunAudio` + bodyHash coverage), the serving path
+  (`runs.ts readRunAudio`, `waveform.ts`), and the ported engine
+  (`transport.svelte.ts`, tested in the jsdom project). Each mutation failed its
+  suite:
+  - **Serve audio without the hash check** — bypass the `sha256` compare in
+    `readRunAudio`. A WAV that drifted from its frozen hash would be served; the
+    audio-drift test fails.
+  - **Drop audio from the body hash** — remove `audio` from `computeBodyHash`.
+    A swapped `audio.file`/`sha256` in run.json would go undetected; the
+    audio-reference tamper test fails.
+  - **Accept a non-PCM16 WAV** — neuter the format check in `parsePcm16Wav`. A
+    RIFF/WAVE file in another format would be mis-decoded into a wrong picture
+    instead of refused; the non-PCM16 test fails.
+  - **Make destroy() non-reinitializable** — remove the state reset in the
+    engine's `destroy()`. A run/finding reused across navigation resumes a closed
+    AudioContext and plays silently (the centerpiece breaks on the 2nd view); the
+    jsdom "rebuilds a fresh AudioContext after destroy" test fails.
+  Still owed: point a finding's deep link at the wrong span; derive a DISPLAYED
+  figure from the browser's `AnalyserNode` and feed it back into a report (the
+  replay-pipeline-measures-nothing rule — the engine must stay render-only).
 - **Increment 6 (hybrid tester):** probe-point enforcement — let the persona
   skip a probe and see whether the run still reports success.
 - **Increment 7 (live run):** **the dial gate** — remove the human checkpoint;
