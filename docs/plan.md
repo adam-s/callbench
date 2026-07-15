@@ -65,7 +65,7 @@ the contract, the measured frame format, the clock and its layer, and the
 timing baseline (~180ms one-way, ~360ms round trip, replicated across two
 runs).
 
-## Increment 2 — Speech in, speech out
+## Increment 2 — Speech in, speech out 🟡 (contracts frozen; live exchange pending a dial)
 
 **Done when** the loopback call holds a scripted two-turn exchange: the harness
 speaks, hears the reply, and both land in the transcript with confidence
@@ -85,7 +85,10 @@ signals attached.
 - The confidence signal is load-bearing: it is what INCONCLUSIVE is built on
   later. A transcript that can't say "I didn't hear that" can't abstain.
 
-Freezes: STT/TTS contracts, the turn shape, the transcript format and its hash.
+Frozen: [contracts/increment-02-speech.md](contracts/increment-02-speech.md) —
+the transcript center (hash+freeze), the STT/TTS/turn contracts, and the
+TTS→wire→STT pipeline proven end to end. The live two-turn Twilio exchange is
+pending an approved loopback dial and lands with the simulator (Increment 3).
 
 ## Increment 3 — The target simulator
 

@@ -19,7 +19,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 # role -> source file. The one place the fleet is enumerated.
-declare -a ROLES=("stt" "llm")
+declare -a ROLES=("stt" "tts" "llm")
 file_for() { echo "$1.py"; }
 app_for() { echo "callbench-$1"; }
 

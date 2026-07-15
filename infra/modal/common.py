@@ -57,22 +57,30 @@ HF_CACHE = modal.Volume.from_name("callbench-hf-cache", create_if_missing=True)
 HF_CACHE_PATH = "/root/.cache/huggingface"
 
 
-def cuda_image(*pip: str) -> modal.Image:
-    """CUDA + Python base with hf_transfer enabled, plus the given pip installs.
+def cuda_image(*pip: str, apt: tuple[str, ...] = ()) -> modal.Image:
+    """CUDA + Python base with hf_transfer enabled, plus the given installs.
 
     The base pins match the maintainer's proven-working combo (CUDA 12.8.1);
-    endpoints add their own model runtime (vllm, faster-whisper, a TTS lib).
+    endpoints add their own model runtime (vllm, faster-whisper, a TTS lib) via
+    `pip`, and any system packages (e.g. espeak-ng for a G2P TTS) via `apt`.
 
     `add_local_python_source("common")` bundles THIS module into every image, so
     an endpoint's `from common import ...` resolves inside the container. Modal
     1.5.2 mounts only the entrypoint file by default; the single-source-of-truth
     split means the shared module has to travel explicitly, and the shared image
     builder is exactly the one place that guarantees it for every endpoint.
+
+    add_local_* MUST be the last build step (Modal errors otherwise), which is
+    why `apt` is a parameter here rather than something an endpoint chains after
+    cuda_image() — the builder owns every step so the local bundle stays last.
     """
+    img = modal.Image.from_registry(
+        "nvidia/cuda:12.8.1-devel-ubuntu22.04", add_python="3.12"
+    ).entrypoint([])  # drop the base image's entrypoint so Modal runs ours
+    if apt:
+        img = img.apt_install(*apt)
     return (
-        modal.Image.from_registry("nvidia/cuda:12.8.1-devel-ubuntu22.04", add_python="3.12")
-        .entrypoint([])  # drop the base image's entrypoint so Modal runs ours
-        .uv_pip_install("huggingface_hub[hf_transfer]", *pip)
+        img.uv_pip_install("huggingface_hub[hf_transfer]", *pip)
         .env({"HF_HUB_ENABLE_HF_TRANSFER": "1"})
         .add_local_python_source("common")
     )

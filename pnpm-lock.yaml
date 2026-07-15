@@ -27,6 +27,12 @@ importers:
       '@callbench/transport':
         specifier: workspace:*
         version: link:packages/transport
+      '@callbench/tts':
+        specifier: workspace:*
+        version: link:packages/tts
+      '@callbench/turn':
+        specifier: workspace:*
+        version: link:packages/turn
       '@types/node':
         specifier: ^24.13.3
         version: 24.13.3
@@ -86,6 +92,32 @@ importers:
       '@types/ws':
         specifier: ^8.18.1
         version: 8.18.1
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/tts:
+    dependencies:
+      '@callbench/transport':
+        specifier: workspace:*
+        version: link:../transport
+    devDependencies:
+      '@types/node':
+        specifier: ^24.13.3
+        version: 24.13.3
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/turn:
+    dependencies:
+      '@callbench/transport':
+        specifier: workspace:*
+        version: link:../transport
+    devDependencies:
+      '@types/node':
+        specifier: ^24.13.3
+        version: 24.13.3
       typescript:
         specifier: 5.9.3
         version: 5.9.3
