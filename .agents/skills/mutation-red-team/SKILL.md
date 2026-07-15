@@ -111,9 +111,12 @@ mutations it owes this catalog. Do not run these until the code exists.
   assertion that depends on that defect must fail. If the suite stays green, the
   assertions are not reading what they claim to read — and the simulator's whole
   purpose is defeated, since a target that can't be made wrong proves nothing.
-- **Increment 4 (scenarios/assertions/judge):** **the three-state collapse** —
-  make INCONCLUSIVE return FAIL, then separately make it return PASS. Both must
-  be CAUGHT. A suite that survives either one cannot detect the bench lying,
+- **Increment 4 (scenarios/assertions/judge) — three-state collapse, verified
+  CAUGHT:** in `packages/assert/src/outcome.ts`, change the `inconclusive`
+  constructor to return `'PASS'`, then separately `'FAIL'`. Each must fail the
+  suite (6 tests each at landing). A single constructor is the only way to build
+  an INCONCLUSIVE result precisely so this mutation has one place to bite. Both
+  must be CAUGHT. A suite that survives either one cannot detect the bench lying,
   which is the single worst thing this repo can do. Also: the report's
   hash-mismatch refusal (bypass it and see if anything fails). And the judge:
   - **Cache key drops a component** — remove the judged content (or the rubric,

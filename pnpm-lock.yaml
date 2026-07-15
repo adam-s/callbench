@@ -15,6 +15,9 @@ importers:
       '@biomejs/biome':
         specifier: 2.5.4
         version: 2.5.4
+      '@callbench/assert':
+        specifier: workspace:*
+        version: link:packages/assert
       '@callbench/shared':
         specifier: workspace:*
         version: link:packages/shared
@@ -48,6 +51,19 @@ importers:
       vitest:
         specifier: ^4.1.0
         version: 4.1.10(@types/node@24.13.3)(vite@8.1.4(@types/node@24.13.3))
+
+  packages/assert:
+    dependencies:
+      '@callbench/transcript':
+        specifier: workspace:*
+        version: link:../transcript
+    devDependencies:
+      '@types/node':
+        specifier: ^24.13.3
+        version: 24.13.3
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
 
   packages/shared:
     devDependencies:

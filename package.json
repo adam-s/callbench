@@ -6,7 +6,7 @@
 		"lint": "biome check .",
 		"lint:fix": "biome check --write .",
 		"test": "vitest run",
-		"typecheck": "tsc -p packages/shared/tsconfig.json && tsc -p packages/transport/tsconfig.json && tsc -p packages/transcript/tsconfig.json && tsc -p packages/stt/tsconfig.json && tsc -p packages/tts/tsconfig.json && tsc -p packages/turn/tsconfig.json && tsc -p packages/simulator/tsconfig.json && tsc -p scripts/tsconfig.json"
+		"typecheck": "tsc -p packages/shared/tsconfig.json && tsc -p packages/transport/tsconfig.json && tsc -p packages/transcript/tsconfig.json && tsc -p packages/stt/tsconfig.json && tsc -p packages/tts/tsconfig.json && tsc -p packages/turn/tsconfig.json && tsc -p packages/simulator/tsconfig.json && tsc -p packages/assert/tsconfig.json && tsc -p scripts/tsconfig.json"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.5.4",
@@ -20,7 +20,8 @@
 		"@callbench/stt": "workspace:*",
 		"@callbench/tts": "workspace:*",
 		"@callbench/turn": "workspace:*",
-		"@callbench/simulator": "workspace:*"
+		"@callbench/simulator": "workspace:*",
+		"@callbench/assert": "workspace:*"
 	},
 	"packageManager": "pnpm@10.34.5",
 	"dependencies": {
