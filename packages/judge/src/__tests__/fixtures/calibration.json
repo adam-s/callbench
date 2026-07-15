@@ -1,0 +1,86 @@
+{
+	"rubric": {
+		"name": "asked-disambiguating-question",
+		"version": 2,
+		"criterion": "Did the agent ask a question that would resolve a genuine ambiguity about the vehicle or the glass (year, trim, sensor/camera variant, OEM vs aftermarket) BEFORE giving any price? A generic greeting is not such a question; asking for the VIN or the year/make/model counts. Procedure: (1) If the excerpt contains no price at all, the \"before a price\" condition has not been reached — answer INCONCLUSIVE, because the excerpt cannot show whether a question would precede a price that has not happened. (2) If a price appears and a disambiguating question preceded it, PASS. (3) If a price appears with no disambiguating question before it, FAIL."
+	},
+	"runner": "claude:sonnet",
+	"cases": [
+		{
+			"id": "good",
+			"expected": "PASS",
+			"text": "CALLER: I need a windshield quote.\nAGENT: Sure — what is the year, make, and model, and does it have a camera or sensor behind the mirror? That changes the glass.",
+			"key": "adeebf7b8eeb6427b6b80b40d554d3a8e3adbafb59f13cbc73702027a14a0ba6",
+			"input": {
+				"text": "CALLER: I need a windshield quote.\nAGENT: Sure — what is the year, make, and model, and does it have a camera or sensor behind the mirror? That changes the glass.",
+				"span": {
+					"turnIndex": 1,
+					"startMs": 0,
+					"endMs": 1000
+				}
+			}
+		},
+		{
+			"id": "bad",
+			"expected": "FAIL",
+			"text": "CALLER: I need a windshield quote for my car.\nAGENT: No problem, that will be $299 installed.",
+			"key": "49b82a3eba8a1273ec87dfb5b6524b6a11262b9ad56bab7e3e67170ad23b84cf",
+			"input": {
+				"text": "CALLER: I need a windshield quote for my car.\nAGENT: No problem, that will be $299 installed.",
+				"span": {
+					"turnIndex": 1,
+					"startMs": 0,
+					"endMs": 1000
+				}
+			}
+		},
+		{
+			"id": "ambiguous",
+			"expected": "INCONCLUSIVE",
+			"text": "AGENT: Thanks for calling, one moment please.",
+			"key": "925a3d23660f3fed2b9e2891d691a34fd4f428098a40789c4fd8fa0874634b2f",
+			"input": {
+				"text": "AGENT: Thanks for calling, one moment please.",
+				"span": {
+					"turnIndex": 1,
+					"startMs": 0,
+					"endMs": 1000
+				}
+			}
+		}
+	],
+	"verdicts": {
+		"adeebf7b8eeb6427b6b80b40d554d3a8e3adbafb59f13cbc73702027a14a0ba6": {
+			"outcome": "PASS",
+			"assertion": "asked-disambiguating-question",
+			"reasoning": "No price has been given yet, and the agent asked for year, make, model, and camera/sensor presence before any quote was stated.",
+			"span": {
+				"turnIndex": 1,
+				"startMs": 0,
+				"endMs": 1000
+			},
+			"judgedBy": "claude:sonnet",
+			"rubricVersion": 2
+		},
+		"49b82a3eba8a1273ec87dfb5b6524b6a11262b9ad56bab7e3e67170ad23b84cf": {
+			"outcome": "FAIL",
+			"assertion": "asked-disambiguating-question",
+			"reasoning": "The agent gave a price ($299 installed) immediately after only a generic request, with no question about year/make/model, VIN, or glass features.",
+			"span": {
+				"turnIndex": 1,
+				"startMs": 0,
+				"endMs": 1000
+			},
+			"judgedBy": "claude:sonnet",
+			"rubricVersion": 2
+		},
+		"925a3d23660f3fed2b9e2891d691a34fd4f428098a40789c4fd8fa0874634b2f": {
+			"outcome": "INCONCLUSIVE",
+			"assertion": "asked-disambiguating-question",
+			"reasoning": "The excerpt contains only a generic greeting/hold line and no price at all, so the 'before a price' condition has not been reached.",
+			"span": null,
+			"judgedBy": "claude:sonnet",
+			"rubricVersion": 2
+		}
+	}
+}

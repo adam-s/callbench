@@ -122,12 +122,15 @@ web UI are not built.
   must be CAUGHT. A suite that survives either one cannot detect the bench lying,
   which is the single worst thing this repo can do. Also: the report's
   hash-mismatch refusal (bypass it and see if anything fails). And the judge:
-  - **Cache key drops a component** — remove the judged content (or the rubric,
-    or the model id) from the key. A stale verdict now replays for changed
-    input. If nothing fails, the determinism story is unfounded, and it is the
-    *whole* determinism story — there is no temperature knob standing behind it.
-  - **Judge INCONCLUSIVE coerced** to PASS, then to FAIL. Same severity as the
-    assertion-layer collapse, one stage upstream.
+  - **Cache key drops a component — verified CAUGHT:** in
+    `packages/judge/src/judge.ts`, hardcode `text: input.text` to a constant in
+    `cacheKey` (or drop rubric version / model). A stale verdict now replays for
+    changed input; the cache-key tests fail (6 at landing). It is the *whole*
+    determinism story — there is no temperature knob behind it.
+  - **Judge INCONCLUSIVE coerced — verified CAUGHT:** coerce INCONCLUSIVE to
+    FAIL/PASS on cache replay (the `if (hit) return` line) or in `parseReply`.
+    The calibration-replay tests fail. Same severity as the assertion-layer
+    collapse, one stage upstream.
   - **Verdict recorded as fact** — drop the rubric/reasoning/provenance and
     store a bare boolean. A test should notice that a judgment stopped being
     labelled as one.
