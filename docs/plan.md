@@ -5,8 +5,9 @@ as its only input, ends by passing the checkout gate (`pnpm typecheck && pnpm
 lint && pnpm vitest run` green, plus a red-team pass), and writes what it froze
 to `docs/contracts/increment-NN-*.md`.
 
-Increments 0-2 and the assertion layer (4a) are built; the ✅/🟡 headings below
-carry status and frozen contracts. The judge (4b), the scenario runner, the web
+Increments 0-2 and all of Increment 4 (assertion layer, judge, scenario runner)
+are built over the simulator; the ✅/🟡 headings below carry status and frozen
+contracts. The live exchange (a dial), the web
 UI, the hybrid tester, and the live runs are ahead.
 
 The goal the increments serve: a small set of scenarios, each run a handful of
@@ -111,7 +112,7 @@ run. The simulator can be made wrong on purpose.
 
 Freezes: the simulator's defect switches (each is a test's fixture).
 
-## Increment 4 — Scenarios and the assertion layer 🟡 (4a assertion layer built; judge + scenario runner ahead)
+## Increment 4 — Scenarios and the assertion layer 🟡 (assertion layer, judge, and scenario runner built over the simulator; live exchange pending a dial)
 
 **Done when** a scenario drives the simulator and produces a report with
 PASS / FAIL / INCONCLUSIVE results, each traced to a transcript span — and the

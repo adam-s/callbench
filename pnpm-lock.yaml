@@ -21,6 +21,9 @@ importers:
       '@callbench/judge':
         specifier: workspace:*
         version: link:packages/judge
+      '@callbench/scenario':
+        specifier: workspace:*
+        version: link:packages/scenario
       '@callbench/shared':
         specifier: workspace:*
         version: link:packages/shared
@@ -73,6 +76,28 @@ importers:
       '@callbench/assert':
         specifier: workspace:*
         version: link:../assert
+      '@callbench/transcript':
+        specifier: workspace:*
+        version: link:../transcript
+    devDependencies:
+      '@types/node':
+        specifier: ^24.13.3
+        version: 24.13.3
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/scenario:
+    dependencies:
+      '@callbench/assert':
+        specifier: workspace:*
+        version: link:../assert
+      '@callbench/judge':
+        specifier: workspace:*
+        version: link:../judge
+      '@callbench/simulator':
+        specifier: workspace:*
+        version: link:../simulator
       '@callbench/transcript':
         specifier: workspace:*
         version: link:../transcript

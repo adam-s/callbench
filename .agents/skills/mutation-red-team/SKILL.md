@@ -84,8 +84,8 @@ nothing.
 The invariants each increment freezes, and the mutations it owes this catalog.
 Entries marked "verified CAUGHT" have run against landed code; the rest wait on
 their increment. Built so far: 1 (transport), 2 (speech: transcript, stt, tts,
-turn), 3 (simulator), 4a (assertion layer). The judge (4b), scenario runner, and
-web UI are not built.
+turn), 3 (simulator), 4a (assertion layer), 4b (the judge), the scenario runner.
+The web UI is not built.
 
 - **Increment 1 (dial guard) — CRITICAL, verified CAUGHT:** in
   `scripts/lib/twilio.ts`, neuter `assertDialAllowed`'s ownership check
@@ -136,6 +136,25 @@ web UI are not built.
     labelled as one.
   - **Cache miss reachable under test** — make the judge call the provider. The
     suite must fail for wanting a credential, not quietly acquire one.
+- **Scenario runner (`packages/scenario`) — verified CAUGHT:** the runner joins
+  the record phase (drive the simulator to a frozen transcript) and the assert
+  phase (code + judged assertions → one report). Each mutation below failed the
+  9-test scenario suite when injected:
+  - **Structural abstention collapses** — in `assess`, change the judged-
+    assertion abstain (material absent) from `'INCONCLUSIVE'` to `'PASS'`. The
+    same bench-lies collapse as the assertion layer, one seam over.
+  - **The model is consulted when it must abstain** — change the `input === null`
+    guard to `if (false)` so an absent excerpt reaches `judge()`. The forbidden-
+    runner test (a runner that throws if called) must fail — a judged assertion
+    must never reach the network for a question the transcript cannot answer.
+  - **Verdict counts not aggregated** — drop the `for (const v of verdicts)`
+    count loop so judged outcomes vanish from the headline counts. A judgment
+    that isn't counted is a finding the report hides.
+  - **Judged assertions skipped silently** — neuter the "judged assertions but
+    no judge context" throw (`if (false)`), so a scenario's semantic checks are
+    dropped without a word instead of refused loudly.
+  - **Hash-refuse gate bypassed** — neuter the `verifyFrozen` refusal in
+    `assess`; a drifted transcript must refuse a report, not produce one.
 - **Increment 5 (web):** render a report whose hash doesn't match the artifact
   (must refuse, not warn); point a finding's deep link at the wrong span; derive
   a displayed figure from the browser's `AnalyserNode` rather than the frozen
