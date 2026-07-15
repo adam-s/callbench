@@ -18,6 +18,9 @@ importers:
       '@callbench/shared':
         specifier: workspace:*
         version: link:packages/shared
+      '@callbench/simulator':
+        specifier: workspace:*
+        version: link:packages/simulator
       '@callbench/stt':
         specifier: workspace:*
         version: link:packages/stt
@@ -51,6 +54,15 @@ importers:
       '@types/node':
         specifier: ^25.5.0
         version: 25.9.5
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/simulator:
+    devDependencies:
+      '@types/node':
+        specifier: ^24.13.3
+        version: 24.13.3
       typescript:
         specifier: 5.9.3
         version: 5.9.3
