@@ -64,10 +64,14 @@ export function durationMs(utterance: Utterance): number {
 export class ModalKokoroTts implements TtsProvider {
 	readonly #baseUrl: string;
 	readonly #apiKey: string | undefined;
+	readonly #timeoutMs: number;
 
-	constructor(baseUrl: string, apiKey?: string) {
+	/** `timeoutMs` bounds the whole request (AGENTS.md: a run is bounded before
+	 * it starts) — a wedged endpoint cannot hang synthesis forever. */
+	constructor(baseUrl: string, apiKey?: string, timeoutMs = 60_000) {
 		this.#baseUrl = baseUrl.replace(/\/$/, '');
 		this.#apiKey = apiKey;
+		this.#timeoutMs = timeoutMs;
 	}
 
 	async synthesize(text: string, voice?: string): Promise<Utterance> {
@@ -78,6 +82,7 @@ export class ModalKokoroTts implements TtsProvider {
 				...(this.#apiKey ? { authorization: `Bearer ${this.#apiKey}` } : {}),
 			},
 			body: JSON.stringify({ input: text, ...(voice ? { voice } : {}) }),
+			signal: AbortSignal.timeout(this.#timeoutMs),
 		});
 		if (!res.ok) {
 			throw new Error(

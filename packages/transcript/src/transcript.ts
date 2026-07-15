@@ -31,16 +31,23 @@ export type Speaker = 'bench' | 'target';
  * The speech-to-text confidence for a heard turn — the foundation INCONCLUSIVE
  * is built on (plan.md, Increment 2). Null for a turn the bench itself spoke:
  * we know verbatim what we synthesized, so there is nothing to be unsure about.
- * The raw provider fields travel unchanged; the abstain threshold is the
- * assertion layer's decision, never baked in here.
+ *
+ * PROVIDER-NEUTRAL by design. `score` is a normalized 0..1 confidence (higher =
+ * surer) that every STT adapter must produce, and it is what the abstain logic
+ * reads — so a second provider (docs/speech.md says whisper is the wrong
+ * default, so a second one is expected, not hypothetical) plugs in without the
+ * neutral seam carrying one provider's field names. `raw` is that provider's
+ * own numbers, kept verbatim for a human reading the record; nothing downstream
+ * may branch on a specific `raw` key, because a different provider won't have
+ * it. The abstain threshold itself is the assertion layer's decision, never
+ * baked in here.
  */
 export interface Confidence {
-	/** Mean token log-probability. Near 0 = confident; very negative = unsure. */
-	readonly avgLogprob: number;
-	/** Probability the segment was not speech at all. High = probably silence. */
-	readonly noSpeechProb: number;
-	/** The least-confident word's probability — the weakest link in the turn. */
-	readonly minWordProb: number;
+	/** Normalized 0..1; higher = more confident. Every adapter produces this. */
+	readonly score: number;
+	/** The producing adapter's own confidence numbers, verbatim. Provider-
+	 * specific; for display and forensics, never for branching. */
+	readonly raw: Readonly<Record<string, number>>;
 }
 
 export interface Turn {
@@ -66,25 +73,41 @@ export interface FrozenTranscript {
 	readonly anchorEpochMs: number;
 }
 
-/** Canonical bytes for hashing: field order fixed, no incidental whitespace, so
- * the same turns always hash the same regardless of how they were built. */
+/** Deterministic key order for a `raw` confidence bag — sorted, so two logically
+ * equal bags always canonicalize identically regardless of insertion order. */
+function canonicalRaw(raw: Readonly<Record<string, number>>): Record<string, number> {
+	const out: Record<string, number> = {};
+	for (const k of Object.keys(raw).sort()) out[k] = raw[k] as number;
+	return out;
+}
+
+/**
+ * Canonical bytes for hashing: field order fixed, no incidental whitespace, so
+ * the same turns always hash the same regardless of how they were built.
+ *
+ * The `satisfies Record<keyof Turn, unknown>` is load-bearing, not decoration:
+ * it makes TypeScript FAIL THE BUILD if a field is added to `Turn` and not
+ * mirrored here. Without it, a new field (say an audio-span reference) would
+ * silently escape the hash — two records differing only in that field would
+ * hash identical and `verifyFrozen` would pass a drifted record, the exact
+ * failure the refuse-on-mismatch gate exists to prevent.
+ */
 function canonicalize(turns: readonly Turn[], anchorEpochMs: number): string {
 	return JSON.stringify({
 		anchorEpochMs,
-		turns: turns.map((t) => ({
-			speaker: t.speaker,
-			text: t.text,
-			startMs: t.startMs,
-			endMs: t.endMs,
-			confidence: t.confidence
-				? {
-						avgLogprob: t.confidence.avgLogprob,
-						noSpeechProb: t.confidence.noSpeechProb,
-						minWordProb: t.confidence.minWordProb,
-					}
-				: null,
-			provider: t.provider,
-		})),
+		turns: turns.map(
+			(t) =>
+				({
+					speaker: t.speaker,
+					text: t.text,
+					startMs: t.startMs,
+					endMs: t.endMs,
+					confidence: t.confidence
+						? { score: t.confidence.score, raw: canonicalRaw(t.confidence.raw) }
+						: null,
+					provider: t.provider,
+				}) satisfies Record<keyof Turn, unknown>,
+		),
 	});
 }
 

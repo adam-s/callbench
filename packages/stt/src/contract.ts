@@ -27,9 +27,12 @@ export interface SttResult {
 	readonly spans: readonly SttSpan[];
 	/** e.g. `faster-whisper:large-v3` — travels onto every turn built from this. */
 	readonly provider: string;
-	/** Detected language and the model's confidence in that detection. */
-	readonly language: string;
-	readonly languageProbability: number;
+	/** Detected language (BCP-47-ish, e.g. `en`), or null if the provider does
+	 * not report one. Language detection is common but not universal. */
+	readonly language: string | null;
+	/** The model's confidence in the language detection, 0..1, or null if the
+	 * provider does not report it — not every STT gives this. */
+	readonly languageProbability: number | null;
 }
 
 export interface SttProvider {

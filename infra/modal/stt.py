@@ -69,15 +69,21 @@ class STT:
         # shape PLUS the raw confidence fields the abstain logic needs, which
         # OpenAI's own response omits — a superset, so a plain OpenAI client
         # still reads `.text` and ours reads the rest.
+        #
+        # PLAIN `def`, not `async def`: faster-whisper's decode is synchronous
+        # and GPU-blocking. On the ASGI event loop it would freeze every other
+        # request (including GET /health) for the whole decode, making the
+        # declared max_inputs concurrency a lie. A sync handler runs in
+        # FastAPI's threadpool, so concurrent requests actually progress.
         @web.post("/v1/audio/transcriptions")
-        async def transcriptions(
+        def transcriptions(
             file: UploadFile = File(...),
             model: str = Form(default=MODEL),  # accepted for OpenAI-compat; ignored
             response_format: str = Form(default="verbose_json"),
         ) -> dict:
             import tempfile
 
-            data = await file.read()
+            data = file.file.read()  # sync read — this handler runs in the threadpool
             with tempfile.NamedTemporaryFile(suffix=".wav") as tmp:
                 tmp.write(data)
                 tmp.flush()

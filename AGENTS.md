@@ -75,7 +75,8 @@ from three separate rules:
 - **probe** what's uncertain (§3) — a claim from the search is settled by
   observation, not adopted on faith.
 - **build** the scoped work (§1's "done when").
-- **gate**: `pnpm typecheck && pnpm lint && pnpm vitest run` green — the floor.
+- **gate**: the static checkout gate green (types, lint, unit tests) — the
+  floor. The exact command lives in the Tests + build section, not here.
 - **red-team** at checkpoints (§4): production code, then tests.
 - **mutation-check** (§4): mutate to confirm the suite actually bites; a
   surviving mutation is a coverage gap to close before the iteration ends.

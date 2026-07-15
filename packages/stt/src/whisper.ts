@@ -41,10 +41,12 @@ function segmentConfidence(seg: WhisperResponse['segments'][number]): Confidence
 	// catch, and an average would smooth it away. Empty word list (rare) falls
 	// back to the segment's own probability floor: not confident by default.
 	const minWordProb = seg.words.length > 0 ? Math.min(...seg.words.map((w) => w.probability)) : 0;
+	// The neutral score IS the weakest word's probability (already 0..1). The
+	// whisper-specific numbers ride along in `raw` for a human, never for
+	// branching — a Deepgram adapter will fill `raw` with its own keys.
 	return {
-		avgLogprob: seg.avg_logprob,
-		noSpeechProb: seg.no_speech_prob,
-		minWordProb,
+		score: minWordProb,
+		raw: { avgLogprob: seg.avg_logprob, noSpeechProb: seg.no_speech_prob, minWordProb },
 	};
 }
 
@@ -67,13 +69,44 @@ export function mapWhisperResponse(res: WhisperResponse): SttResult {
 
 /** Live adapter. `baseUrl` is the Modal STT endpoint (no trailing slash);
  * `apiKey` is sent as a bearer token when the endpoint requires one. */
+/** A shape check at the network seam. The response feeds the FROZEN, hashed
+ * record, so endpoint drift (a renamed field, a stock OpenAI endpoint without
+ * `provider`/per-segment `words`) must fail LOUDLY here — never freeze
+ * `undefined` into permanent evidence. Cheap structural check, not a full
+ * schema: enough to catch drift before it reaches the transcript. */
+function assertWhisperShape(x: unknown): asserts x is WhisperResponse {
+	const r = x as Record<string, unknown>;
+	if (
+		typeof r?.text !== 'string' ||
+		typeof r?.provider !== 'string' ||
+		!Array.isArray(r?.segments)
+	) {
+		throw new Error(
+			'STT response is not the expected whisper shape (missing text/provider/segments) — ' +
+				'the endpoint drifted or is not the callbench STT endpoint; refusing to freeze it',
+		);
+	}
+	for (const seg of r.segments as Array<Record<string, unknown>>) {
+		if (typeof seg?.avg_logprob !== 'number' || !Array.isArray(seg?.words)) {
+			throw new Error(
+				'STT segment is missing confidence fields (avg_logprob/words) — endpoint drift; refusing to freeze',
+			);
+		}
+	}
+}
+
 export class ModalWhisperStt implements SttProvider {
 	readonly #baseUrl: string;
 	readonly #apiKey: string | undefined;
+	readonly #timeoutMs: number;
 
-	constructor(baseUrl: string, apiKey?: string) {
+	/** `timeoutMs` bounds the whole request — a run is bounded before it starts
+	 * (AGENTS.md), including a wedged or slow-trickling endpoint. Default is
+	 * generous for a long recording; a caller can size it to audio duration. */
+	constructor(baseUrl: string, apiKey?: string, timeoutMs = 120_000) {
 		this.#baseUrl = baseUrl.replace(/\/$/, '');
 		this.#apiKey = apiKey;
+		this.#timeoutMs = timeoutMs;
 	}
 
 	async transcribe(audio: Uint8Array, mediaType: string): Promise<SttResult> {
@@ -87,12 +120,15 @@ export class ModalWhisperStt implements SttProvider {
 			method: 'POST',
 			headers: this.#apiKey ? { authorization: `Bearer ${this.#apiKey}` } : {},
 			body: form,
+			signal: AbortSignal.timeout(this.#timeoutMs),
 		});
 		if (!res.ok) {
 			throw new Error(
 				`STT endpoint ${this.#baseUrl} returned HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`,
 			);
 		}
-		return mapWhisperResponse((await res.json()) as WhisperResponse);
+		const json: unknown = await res.json();
+		assertWhisperShape(json);
+		return mapWhisperResponse(json);
 	}
 }

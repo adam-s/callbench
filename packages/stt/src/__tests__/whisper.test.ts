@@ -33,19 +33,20 @@ describe('mapWhisperResponse against the real capture', () => {
 		}
 	});
 
-	it('extracts confidence, and minWordProb is the WEAKEST word — not an average', () => {
+	it('score is the WEAKEST word probability — not an average; raw keeps the detail', () => {
 		const r = mapWhisperResponse(res);
 		for (let i = 0; i < r.spans.length; i++) {
 			const span = r.spans[i];
 			const seg = res.segments[i];
 			if (!span || !seg) throw new Error('missing span/segment');
-			expect(span.confidence.avgLogprob).toBe(seg.avg_logprob);
-			expect(span.confidence.noSpeechProb).toBe(seg.no_speech_prob);
+			// raw carries the provider's own numbers verbatim (forensics only).
+			expect(span.confidence.raw.avgLogprob).toBe(seg.avg_logprob);
+			expect(span.confidence.raw.noSpeechProb).toBe(seg.no_speech_prob);
+			// The neutral score is the weakest word — the abstain signal.
 			const expectedMin = Math.min(...seg.words.map((w) => w.probability));
-			expect(span.confidence.minWordProb).toBe(expectedMin);
-			// The min is at or below every word — the whole point of "weakest link".
+			expect(span.confidence.score).toBe(expectedMin);
 			for (const w of seg.words) {
-				expect(span.confidence.minWordProb).toBeLessThanOrEqual(w.probability);
+				expect(span.confidence.score).toBeLessThanOrEqual(w.probability);
 			}
 		}
 	});
@@ -53,9 +54,9 @@ describe('mapWhisperResponse against the real capture', () => {
 	it('surfaces a genuinely low-confidence word (the abstain signal is real)', () => {
 		// The captured phrase contains the invented word "Callbench", which the
 		// model heard poorly — this fixture exists partly to prove the signal is
-		// not always ~1.0. Some span's weakest word is clearly uncertain.
+		// not always ~1.0. Some span's score is clearly uncertain.
 		const r = mapWhisperResponse(res);
-		const weakest = Math.min(...r.spans.map((s) => s.confidence.minWordProb));
+		const weakest = Math.min(...r.spans.map((s) => s.confidence.score));
 		expect(weakest).toBeLessThan(0.8);
 	});
 
@@ -64,6 +65,6 @@ describe('mapWhisperResponse against the real capture', () => {
 			...res,
 			segments: [{ ...res.segments[0]!, words: [] }],
 		};
-		expect(mapWhisperResponse(noWords).spans[0]?.confidence.minWordProb).toBe(0);
+		expect(mapWhisperResponse(noWords).spans[0]?.confidence.score).toBe(0);
 	});
 });

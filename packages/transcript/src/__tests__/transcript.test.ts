@@ -13,7 +13,7 @@ const heard = (over: Partial<Turn> = {}): Turn => ({
 	text: 'we handle recalibration in-house',
 	startMs: 1000,
 	endMs: 2000,
-	confidence: { avgLogprob: -0.27, noSpeechProb: 0.002, minWordProb: 0.54 },
+	confidence: { score: 0.54, raw: { avgLogprob: -0.27, noSpeechProb: 0.002, minWordProb: 0.54 } },
 	provider: 'faster-whisper:large-v3',
 	...over,
 });
@@ -79,7 +79,7 @@ describe('confidence and provider travel with the turn', () => {
 		t.append(heard());
 		expect(t.turns[0]?.confidence).toBeNull();
 		expect(t.turns[0]?.provider).toBe('scripted');
-		expect(t.turns[1]?.confidence?.minWordProb).toBe(0.54);
+		expect(t.turns[1]?.confidence?.score).toBe(0.54);
 		expect(t.turns[1]?.provider).toBe('faster-whisper:large-v3');
 	});
 });
@@ -102,10 +102,7 @@ describe('hash + freeze', () => {
 		expect(hashTurns([spoke(), heard({ text: 'DIFFERENT' })], 0)).not.toBe(h0);
 		expect(hashTurns([spoke(), heard({ startMs: 1001 })], 0)).not.toBe(h0);
 		expect(
-			hashTurns(
-				[spoke(), heard({ confidence: { avgLogprob: -9, noSpeechProb: 0.9, minWordProb: 0.01 } })],
-				0,
-			),
+			hashTurns([spoke(), heard({ confidence: { score: 0.01, raw: { avgLogprob: -9 } } })], 0),
 		).not.toBe(h0);
 		// The anchor is part of the identity too.
 		expect(hashTurns(base, 1)).not.toBe(h0);
