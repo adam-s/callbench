@@ -19,3 +19,7 @@ temp/
 
 # Harness-created agent worktrees (isolation) — never tracked or linted.
 .claude/worktrees/
+
+# Python build artifacts
+__pycache__/
+*.pyc

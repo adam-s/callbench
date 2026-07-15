@@ -199,6 +199,26 @@ live in [speech.md](speech.md). The load-bearing integration facts:
   [low-latency TTS survey](https://gradium.ai/content/best-low-latency-tts-apis-2026),
   [phone-agent TTS ranking](https://inworld.ai/resources/best-voice-ai-for-ai-phone-agents).
 
+## Model hosting and the provider seam
+
+**The runner pattern comes from the maintainer's own `goldseam`**
+(`~/Projects/goldseam`): a runner maps an input to an output, the core never
+learns which model or host produced it, and selection is a `provider:model`
+string with the host as a base-URL override. Its `openai:` runner reaches any
+OpenAI-compatible endpoint; its `claude:` runner is `claude -p` (Claude Code
+CLI, print mode). callbench adopts this whole shape — see
+[models.md](models.md). Read `packages/goldseam/src/heal/runners.ts`.
+
+**The Modal serve pattern** comes from `goldseam/selfhost/modal/` and
+`car-diagnosis/src/cardiag/modal/serve_qwen.py`: a vLLM OpenAI-compatible
+endpoint, `min_containers=0` + `scaledown_window` for scale-to-zero, pinned
+CUDA/vLLM versions, an HF-cache Volume. callbench's `infra/modal/` follows it;
+the batch-audio variant (`detect-study/.../modal_audio.py`) is the model for
+the offline STT-over-frozen-audio stage.
+
+Modal's own vLLM example (pinned in those files) is the upstream source; diff
+against it if Modal's API has moved.
+
 ## Web Audio and the visualization
 
 **Best example is in this repo's own neighborhood:** `~/Projects/separate` —

@@ -153,6 +153,18 @@ notes) is briefing, not a work order — the maintainer directs what gets built.
   output is recorded as judgment, not fact.
 - **Simplicity over complexity.** Reach for complexity only when the problem
   genuinely requires it.
+- **Prefer streaming, at the edges.** When an interface offers incremental
+  delivery — speech-to-text partials, synthesized audio chunks, model tokens, a
+  rendering UI — take it over a batch call. On a live call the reason is
+  concrete: processing overlaps production instead of waiting for it, which is
+  the difference between natural turn-taking and talking over people, and it is
+  the only way first-token latency stays inside a human's patience. This is a
+  strong default, not an absolute: streaming costs partial-failure handling and
+  reconnection logic, so a genuinely one-shot, latency-insensitive call may
+  stay batch — say why when it does. **The default lives at the edges and does
+  not touch the seam:** the frozen artifact is still whole and atomic (freeze
+  invariant), assembled from the stream and hashed once complete. Stream the
+  live path; freeze the record.
 - **Measure the clock you claim to measure.** A latency number means nothing
   without its two endpoints named and both timestamped from the same clock at
   the same layer. Deriving a duration from stamps taken at different layers
