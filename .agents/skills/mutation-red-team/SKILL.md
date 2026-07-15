@@ -91,14 +91,35 @@ mutations it owes this catalog. Do not run these until the code exists.
   (mutate to a constant — if nothing fails, INCONCLUSIVE has no foundation);
   transcript append-only enforcement; the transcript hash (swap the algorithm,
   or make it a constant).
-- **Increment 3 (scenarios/assertions):** **the three-state collapse** — make
-  INCONCLUSIVE return FAIL, then separately make it return PASS. Both must be
-  CAUGHT. A suite that survives either one cannot detect the bench lying, which
-  is the single worst thing this repo can do. Also: the report's hash-mismatch
-  refusal (bypass it and see if anything fails).
-- **Increment 4 (hybrid tester):** probe-point enforcement — let the persona
+- **Increment 3 (simulator):** disable a deliberate-defect switch so the
+  simulator behaves *correctly* where a test expects it to misbehave. Every
+  assertion that depends on that defect must fail. If the suite stays green, the
+  assertions are not reading what they claim to read — and the simulator's whole
+  purpose is defeated, since a target that can't be made wrong proves nothing.
+- **Increment 4 (scenarios/assertions/judge):** **the three-state collapse** —
+  make INCONCLUSIVE return FAIL, then separately make it return PASS. Both must
+  be CAUGHT. A suite that survives either one cannot detect the bench lying,
+  which is the single worst thing this repo can do. Also: the report's
+  hash-mismatch refusal (bypass it and see if anything fails). And the judge:
+  - **Cache key drops a component** — remove the judged content (or the rubric,
+    or the model id) from the key. A stale verdict now replays for changed
+    input. If nothing fails, the determinism story is unfounded, and it is the
+    *whole* determinism story — there is no temperature knob standing behind it.
+  - **Judge INCONCLUSIVE coerced** to PASS, then to FAIL. Same severity as the
+    assertion-layer collapse, one stage upstream.
+  - **Verdict recorded as fact** — drop the rubric/reasoning/provenance and
+    store a bare boolean. A test should notice that a judgment stopped being
+    labelled as one.
+  - **Cache miss reachable under test** — make the judge call the provider. The
+    suite must fail for wanting a credential, not quietly acquire one.
+- **Increment 5 (web):** render a report whose hash doesn't match the artifact
+  (must refuse, not warn); point a finding's deep link at the wrong span; derive
+  a displayed figure from the browser's `AnalyserNode` rather than the frozen
+  record. Also **the dial gate at the render surface**: give the play control the
+  real target as an argument and see whether anything stops it.
+- **Increment 6 (hybrid tester):** probe-point enforcement — let the persona
   skip a probe and see whether the run still reports success.
-- **Increment 5 (live run):** **the dial gate** — remove the human checkpoint;
+- **Increment 7 (live run):** **the dial gate** — remove the human checkpoint;
   add a retry-on-drop path; raise the concurrency cap; make the wall-clock cap
   advisory. Every one of these must be CAUGHT by a fake-transport test that
   counts dial attempts. Run this set BEFORE the first live call, not after.
@@ -121,12 +142,26 @@ there:
 
     DST="/tmp/mutation-<label>-$(date +%s)-$$"
     rsync -a \
-      --exclude='.git' --exclude='node_modules' --exclude='data' \
-      --exclude='temp' --exclude='.claude/worktrees' \
+      --exclude='.git' --exclude='node_modules' \
+      --exclude='.env' --exclude='.env.*' \
+      --exclude='data' --exclude='temp' --exclude='.claude/worktrees' \
       "$REPO"/ "$DST"/
     cd "$DST" && pnpm install --prefer-offline
 
 Everything after this happens with `$DST` as your working directory.
+
+Two exclusions carry their reasons, because both are load-bearing:
+
+- **`.env` never leaves the real checkout.** It holds provider credentials and
+  the target's number. `/tmp` is world-readable and this copy is not cleaned up
+  on a crash. The suite needs no credential (see the rules below), so omitting it
+  costs nothing and including it is a leak that outlives the run.
+- **`data` stays excluded, and that is a feature.** `data/` is gitignored raw
+  capture — it does not exist on a fresh clone, so no test may depend on it.
+  Fixtures are *committed*, alongside the source they test, and rsync brings them
+  automatically. If a mutation run reports failures that vanish when `data/` is
+  present, the finding is not about the mutation: a test is reading uncommitted
+  capture and would fail for anyone else. Report that.
 
 ## Rules — READ CAREFULLY
 
@@ -139,7 +174,10 @@ Everything after this happens with `$DST` as your working directory.
   git (`git status`, `git log`) is fine only inside `$DST`.
 - **Never place a phone call.** This repo dials real businesses. Nothing you do
   touches the network, and no credential is needed for the test suite. If a test
-  appears to want one, that is itself the finding — report it and stop.
+  appears to want one, that is itself the finding — report it and stop. This
+  holds even where a stage calls a provider in production: a judge that scores an
+  assertion reads a *cached* verdict under test, and a cache miss that reaches
+  for a key is the finding, not an inconvenience to work around.
 - Apply EXACTLY the mutation specified below (in `$DST`). Do not invent other
   mutations.
 - Do not touch any test file, fixture, or unrelated source. If the mutation is

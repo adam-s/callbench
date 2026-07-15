@@ -43,12 +43,20 @@ MEDIUM / LOW.
 
 /Users/adamsohn/Projects/callbench
 
-pnpm monorepo, TypeScript strict, Vitest. Seams behind contracts: transport
-(Twilio Media Streams first), stt, tts, scenario, assertions. A scenario drives
-a call; every utterance lands in an append-only, hashed transcript with
-timings; deterministic assertions read that transcript and emit PASS / FAIL /
-INCONCLUSIVE with transcript spans. Read AGENTS.md and docs/architecture.md
-before reviewing — the product invariants there are the spec.
+pnpm monorepo, TypeScript strict, Vitest, plus a SvelteKit app that renders
+reports. Seams behind contracts: transport (Twilio Media Streams first), stt,
+tts, scenario, judge, assertions, simulator.
+
+Two phases joined by a frozen artifact. **Record**: a scenario drives a call and
+every utterance lands in an append-only, hashed transcript with timings.
+**Assert**: assertions read that frozen artifact — never a live call — and emit
+PASS / FAIL / INCONCLUSIVE with spans. Most assertions are plain code; the
+irreducibly semantic ones go to a named judge stage whose verdict is recorded as
+judgment rather than fact and cached against a content hash so replays are
+deterministic and offline.
+
+Read AGENTS.md and docs/architecture.md before reviewing — the product
+invariants there are the spec.
 
 ## What changed since last review (if applicable)
 
@@ -66,6 +74,11 @@ accordingly.
   scenarios, a test that can dial, a `--yes` flag that retires the gate, an
   error handler that "recovers" by calling again. A bench one bug away from
   flooding a business line is CRITICAL, not HIGH.
+  **Every surface counts, and the UI is where this now hides**: an endpoint or
+  action that a run control could reach with the real target as its argument, a
+  target selector whose options aren't fenced to the simulator, a confirmation
+  dialog standing in for the absence of a path. The gate is that the path does
+  not exist — "it asks first" is not the gate.
 - **Caps.** Unbounded defaults, a cap read but not enforced, a cap enforced per
   scenario but not per run, concurrency > 1 reaching a single-line target, a
   wall-clock cap that doesn't stop an in-flight call.
@@ -96,6 +109,22 @@ accordingly.
 - **Concurrency.** Two runs sharing a data dir or an artifact path, a scenario
   and the media loop racing on state, a freeze racing an in-flight write
   (multi-part writes are atomic — all parts or none).
+- **The judge.** A cache key that doesn't cover everything the verdict depends
+  on — the judged content, the rubric, the model — so a stale verdict replays for
+  changed input, or a re-run silently returns a different answer for unchanged
+  input. A judge whose INCONCLUSIVE can't survive the trip into the report. A
+  verdict stored as a bare boolean, losing that it was judgment rather than fact.
+  A cache miss reachable from the test suite. A judge consulted for a question
+  plain code already answers.
+- **The record/assert seam.** Anything in the assert phase that reaches back to
+  the source it is grading — a live handle, a transport import, a clock read, a
+  re-fetch. Assertions read the artifact and nothing else; a path that could
+  re-derive from the system under test defeats the point of freezing.
+- **The render surface.** A report rendered from anything but the frozen
+  artifact, a figure computed in the browser and presented as a measurement (the
+  client Web Audio pipeline measures nothing), a span link that plays audio the
+  finding doesn't refer to, a hash mismatch that renders anyway with a warning
+  instead of refusing.
 
 ## Output format
 

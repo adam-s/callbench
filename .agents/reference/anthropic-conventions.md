@@ -174,11 +174,11 @@ Rows are claims. Re-verify against the tree before relying on any of them.
 | `.agents/skills/live-call/` | ✓ aligned | The dial procedure — pre-flight gate, one call at a time, never dials itself |
 | `.agents/skills/red-team-review/` | ✓ aligned | Red-team bug review of production code |
 | `.agents/skills/test-red-team/` | ✓ aligned | Red-team audit of the test suite (fixture lies are the local hazard) |
-| `.agents/skills/mutation-red-team/` | ✓ aligned | Injects regressions in a `/tmp` copy; catalog seeded at Increment 0 |
-| `.agents/skills/self-improve/` | ✓ aligned | End-of-cycle retro pass; trace to `data/retros/` |
+| `.agents/skills/mutation-red-team/` | ✓ aligned | Injects regressions in a `/tmp` copy; catalog carries Increments 0–7. The `/tmp` copy excludes `.env` — it now holds live credentials and the target's number |
+| `.agents/skills/self-improve/` | ✓ aligned | End-of-cycle retro pass; trace to `data/retros/` (created by the first retro; `data/` is gitignored) |
 | `.agents/reference/` | ✓ aligned | `anti-slop.md`, `anthropic-conventions.md` (this file) |
 | `.agents/assets/` | ✓ aligned | `chime.wav` (your move), `chime-done.wav` (done) |
-| `.claude/settings.json` | not used | No committed permissions/env yet. **Candidate once a live run is near**: a `deny` on the dial script, so the gate is enforced by the harness and not only by prose. |
+| `.claude/settings.json` | not used | No committed permissions/env yet. **Candidate, and the case is stronger now that a real target number is in `.env`**: a `deny` on the dial script, so the gate is enforced by the harness and not only by prose. |
 | `.claude/agents/` | not used | Skills spawn Opus sub-agents inline via the `Agent` tool |
 | `.claude/hooks/` | not used | Increment checkout is enforced by prose. Candidate: a typecheck-after-edit hook once churn justifies it |
 

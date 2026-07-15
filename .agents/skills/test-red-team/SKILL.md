@@ -49,10 +49,21 @@ fixture lies, and coverage gaps. Rank CRITICAL / HIGH / MEDIUM / LOW.
 ## Setup
 
 Repo: /Users/adamsohn/Projects/callbench
-Stack: pnpm monorepo, TypeScript strict, Vitest. Tests live in `__tests__/`
-directories alongside their source. The suite NEVER touches the network — every
-seam that would (transport, stt, tts) sits behind a contract and is tested
-against recorded fixtures. Read AGENTS.md and docs/architecture.md first.
+Stack: pnpm monorepo, TypeScript strict, Vitest, plus a SvelteKit app rendering
+frozen reports. Tests live in `__tests__/` directories alongside their source.
+
+The suite NEVER touches the network — every seam that would (transport, stt, tts,
+judge) sits behind a contract and is tested against **committed** fixtures. Two
+consequences worth holding while reviewing:
+
+- **The judge calls a provider in production and must not under test.** Its
+  verdicts are cached against a content hash; the suite replays the cache. A test
+  that can reach a cache miss can reach the network.
+- **Fixtures are committed, `data/` is not.** `data/` is gitignored raw capture
+  and is absent on a fresh clone. A test that reads it passes only on the machine
+  that recorded it — and passes for whoever wrote it, which is the worst case.
+
+Read AGENTS.md and docs/architecture.md first.
 
 ## Target surface
 
@@ -97,21 +108,37 @@ against recorded fixtures. Read AGENTS.md and docs/architecture.md first.
    pass-or-fail? A suite that only tests PASS and FAIL leaves the state that
    exists to prevent lying completely uncovered.
 
-8. **Timing math.** Are latency derivations tested with fixed synthetic
+8. **The judge — a stubbed judge is a tautology generator.** The obvious lie:
+   stub the judge to return PASS, assert the assertion passed. That tests the
+   stub. Check for:
+   - **Is the judge itself calibrated, or only mocked?** It needs a set of
+     known-good and known-bad artifacts with known verdicts, asserting it
+     *discriminates*. A judge that always returns PASS passes every suite it
+     grades, and no amount of mocking downstream will reveal that.
+   - **Is the cache key pinned input→key?** A test asserting "same input, same
+     verdict" passes trivially if the key ignores the input. Pin the key against
+     changed content, a changed rubric, and a changed model id — all three must
+     produce a different key, or a stale verdict replays for changed input.
+   - **Can a test reach a cache miss?** If so, the suite can reach the network.
+     That's the finding.
+   - **Does the verdict survive as judgment?** Is there a test that the rubric,
+     span, and reasoning make it into the record — not just the boolean?
+
+9. **Timing math.** Are latency derivations tested with fixed synthetic
    timestamps and a known expected duration, or only with "is a number"? A
    timing function that returns a constant would pass a weak test and produce a
    confidently wrong figure reported to a stranger.
 
-9. **Transcript integrity.** Is append-only actually asserted (attempt a rewrite,
+10. **Transcript integrity.** Is append-only actually asserted (attempt a rewrite,
    expect refusal)? Is the hash pinned input→output, or only checked for
    length? Does a test prove the report REFUSES on hash mismatch, rather than
    just that it renders on match?
 
-10. **Coverage gaps.** Error branches: provider 500, malformed frame, WebSocket
+11. **Coverage gaps.** Error branches: provider 500, malformed frame, WebSocket
     drop mid-call, unintelligible audio, a scenario whose probe point is never
     reached. Each maps to a reported outcome; each needs a test.
 
-11. **Assertion granularity.** Order matters or doesn't, depending on the
+12. **Assertion granularity.** Order matters or doesn't, depending on the
     surface — turns in a transcript are ordered and that ordering is load-
     bearing. Was ordering actually asserted where it matters?
 
