@@ -11,6 +11,7 @@ common.py    single source of truth: app naming, GPU tiers, the shared CUDA
              image, the HF-cache volume, scale-to-zero windows. Nothing else
              hard-codes any of these — change a default here, everything moves.
 stt.py       speech-to-text (faster-whisper), OpenAI /v1/audio/transcriptions
+tts.py       text-to-speech (Kokoro-82M), OpenAI /v1/audio/speech
 llm.py       persona + bootstrap judge (vLLM), OpenAI /v1/chat/completions
 manage.sh    deploy / status / urls / logs / down — over the whole fleet
 ```
@@ -57,6 +58,7 @@ a base URL — the seam in [docs/models.md](../../docs/models.md). After a deplo
 
 ```
 MODAL_STT_URL=https://<workspace>--callbench-stt-stt-api.modal.run
+MODAL_TTS_URL=https://<workspace>--callbench-tts-tts-api.modal.run
 MODAL_LLM_URL=https://<workspace>--callbench-llm-serve.modal.run   # +/v1 for the OpenAI base
 ```
 
@@ -70,6 +72,8 @@ INCONCLUSIVE is built on.
 - **stt** — deployed, verified: transcribed real 8kHz telephony audio correctly,
   confidence fields meaningful (a novel word scored 0.54 where real words scored
   0.99). Idles to zero.
+- **tts** — deployed, verified: synthesized speech came back through the wire
+  format intelligible to STT (~0.88). Kokoro-82M, Apache-2.0. Idles to zero.
 - **llm** — written, **not yet deployed**. A direct adaptation of the
   maintainer's proven `serve_qwen.py`; deploy when the persona (Increment 6) or a
   bootstrap judge needs it, to avoid spending ahead of need.

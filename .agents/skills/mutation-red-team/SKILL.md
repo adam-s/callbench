@@ -79,10 +79,13 @@ nothing.
 5. **Data factory runs when disabled.** Move the `isDebugEnabled()` check to
    after the factory invocation. Off-mode stops being free.
 
-### Increments 1+ — to be written as they land
+### Increments 1+ — extended as each lands
 
-The invariants each increment is expected to freeze, and therefore the
-mutations it owes this catalog. Do not run these until the code exists.
+The invariants each increment freezes, and the mutations it owes this catalog.
+Entries marked "verified CAUGHT" have run against landed code; the rest wait on
+their increment. Built so far: 1 (transport), 2 (speech: transcript, stt, tts,
+turn), 3 (simulator), 4a (assertion layer). The judge (4b), scenario runner, and
+web UI are not built.
 
 - **Increment 1 (dial guard) — CRITICAL, verified CAUGHT:** in
   `scripts/lib/twilio.ts`, neuter `assertDialAllowed`'s ownership check

@@ -204,13 +204,16 @@ and buffering. A browser's `AnalyserNode` is several buffers away from the wire.
 
 ```text
 packages/shared/     core types + the DEBUG module; no I/O, no providers
-packages/…           transport / stt / tts / scenario / transcript / assert /
-                     judge / simulator, added per increment — not scaffolded
-                     ahead of use
+packages/…           transport / transcript / stt / tts / turn / simulator /
+                     assert built; scenario / judge arrive with their increments
+                     — not scaffolded ahead of use
+infra/modal/         self-hosted models on Modal (STT, TTS, LLM), OpenAI-
+                     compatible, managed by one script. See models.md.
 apps/web/            SvelteKit — renders frozen reports. See ui.md.
 scripts/             bounded operator entry points, one folder per kind:
 scripts/probes/        one-shot empirical discovery against a live surface
 scripts/evals/         model/provider comparisons over captured data
+scripts/lib/           shared script plumbing (dial guard, tunnel helper)
 docs/contracts/      what each increment froze
 data/                gitignored — raw capture: recordings, transcripts, reports
 ```

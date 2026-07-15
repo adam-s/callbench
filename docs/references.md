@@ -182,22 +182,21 @@ Related research: [Reference-Guided Verdict — LLMs-as-Judges for free-form
 QA](https://arxiv.org/pdf/2408.09235) (giving the judge a reference answer, which
 is what a rubric does).
 
-## Speech — STT, TTS, and the one-vendor path
+## Speech — STT, TTS, and what we run
 
-Full provider survey, benchmarks, the 8kHz-telephony finding, and the TTS table
-live in [speech.md](speech.md). The load-bearing integration facts:
+Full provider survey, benchmarks, and the 8kHz-telephony finding live in
+[speech.md](speech.md); how models are hosted is the Modal section above.
+**Decided: self-hosted on Modal, not a hosted vendor** — STT is faster-whisper,
+TTS is Kokoro-82M (Apache-2.0), both deployed. A hosted vendor (Deepgram, whose
+`/v1/listen` ingests our exact `mulaw@8000` headerless bytes and whose Aura-2
+emits the same, so one signup could have covered both) was the near contender
+and was set aside for the one-hosting-story Modal decision. If measured
+telephony WER demands it, a hosted-STT adapter is additive behind the seam.
 
-- **Deepgram ingests our exact bytes.** `/v1/listen` with
-  `encoding=mulaw&sample_rate=8000` takes the raw headerless mulaw that our
-  `TransportEvent` audio already carries — strip base64 (done in the adapter),
-  forward. Documented specifically for Twilio Media Streams.
-- **Deepgram Aura-2 emits the same format** natively (no resampling stage), and
-  **Flux** bundles end-of-turn detection — so one vendor and one key can cover
-  STT + TTS + turn-taking. A maintainer signup decision, not an agent default.
-- Sources: [Twilio + Deepgram STT](https://deepgram.com/learn/deepgram-twilio-streaming),
-  [Deepgram TTS for Twilio](https://developers.deepgram.com/docs/twilio-and-deepgram-tts),
+- Sources: [Twilio + Deepgram STT](https://deepgram.com/learn/deepgram-twilio-streaming)
+  (the ingest-format fact, still true and reusable for any adapter),
   [low-latency TTS survey](https://gradium.ai/content/best-low-latency-tts-apis-2026),
-  [phone-agent TTS ranking](https://inworld.ai/resources/best-voice-ai-for-ai-phone-agents).
+  [Kokoro on Modal/telephony](https://wiki.agentvoiceresponse.com/en/kokoro-tts).
 
 ## Model hosting and the provider seam
 

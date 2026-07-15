@@ -5,8 +5,9 @@ as its only input, ends by passing the checkout gate (`pnpm typecheck && pnpm
 lint && pnpm vitest run` green, plus a red-team pass), and writes what it froze
 to `docs/contracts/increment-NN-*.md`.
 
-Increments 0 (scaffold) and 1 (transport + loopback) are done; the ✅ headings
-below carry their frozen contracts. Everything after them is unbuilt.
+Increments 0-2 and the assertion layer (4a) are built; the ✅/🟡 headings below
+carry status and frozen contracts. The judge (4b), the scenario runner, the web
+UI, the hybrid tester, and the live runs are ahead.
 
 The goal the increments serve: a small set of scenarios, each run a handful of
 times against a real voice agent, producing frozen reports a human turns into a
@@ -71,9 +72,9 @@ runs).
 speaks, hears the reply, and both land in the transcript with confidence
 signals attached.
 
-- STT and TTS contracts + one adapter each. **Provider is not settled** — see
-  [speech.md](speech.md); pick from the survey and probe against Increment 1's
-  real frames, not against a benchmark.
+- STT and TTS contracts + one adapter each. **Settled: self-hosted on Modal** —
+  faster-whisper (STT) and Kokoro-82M (TTS), both deployed; see
+  [speech.md](speech.md) and [models.md](models.md).
 - Turn model and the append-only transcript.
 - Fixtures recorded from Increment 1's real audio, **committed** with the source
   they test, so the suite runs on a fresh clone with no network. Capture from the
@@ -90,7 +91,7 @@ the transcript center (hash+freeze), the STT/TTS/turn contracts, and the
 TTS→wire→STT pipeline proven end to end. The live two-turn Twilio exchange is
 pending an approved loopback dial and lands with the simulator (Increment 3).
 
-## Increment 3 — The target simulator
+## Increment 3 — The target simulator 🟡 (flow + defects built; live answering pending a dial)
 
 **Done when** a voice agent we own answers a call and holds the shop's flow —
 greets, asks for the vehicle, quotes, takes a correction, reads back — and the
@@ -110,7 +111,7 @@ run. The simulator can be made wrong on purpose.
 
 Freezes: the simulator's defect switches (each is a test's fixture).
 
-## Increment 4 — Scenarios and the assertion layer
+## Increment 4 — Scenarios and the assertion layer 🟡 (4a assertion layer built; judge + scenario runner ahead)
 
 **Done when** a scenario drives the simulator and produces a report with
 PASS / FAIL / INCONCLUSIVE results, each traced to a transcript span — and the

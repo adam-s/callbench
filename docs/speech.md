@@ -4,10 +4,13 @@ The speech-to-text and synthesis survey, recorded so the next agent doesn't
 re-run it. Sibling to [drivers.md](drivers.md): that file is how a call gets
 *placed*, this one is how it gets *heard*.
 
-**Nothing here is decided.** Increment 2 picks a provider and probes it against
-Increment 1's real frames. Everything below is assembled from published
-benchmarks and vendor claims as of 2026-07-15, which makes it a starting point,
-not a finding — per the probe-before-building rule in [AGENTS.md](../AGENTS.md).
+**Decided, and frozen (Increment 2):** STT is faster-whisper on Modal, TTS is
+Kokoro-82M on Modal, both deployed — see the "What was chosen" section below,
+[models.md](models.md) for the hosting decision, and
+[contracts/increment-02-speech.md](contracts/increment-02-speech.md) for the
+frozen contracts. The survey below is the record of how that decision was
+reached, kept so the next agent doesn't re-run it; the vendor figures are
+published claims as of 2026-07-15, a starting point, not findings.
 
 ## The constraint that decides this
 
@@ -48,11 +51,14 @@ exists.
 
 Three things to carry forward:
 
-- **Whisper is the wrong default for this project**, and specifically so. It is
-  trained for wideband audio, and the published comparisons put Deepgram Nova-3,
-  AssemblyAI, and Speechmatics ahead of it on 8kHz telephony with noise and
-  overlap. It remains a fine offline tool for *our own* recordings; it is not the
-  call pipeline's transcriber.
+- **Whisper is the weakest of these on telephony — and it is what we run, on
+  purpose.** The published comparisons put Deepgram Nova-3, AssemblyAI, and
+  Speechmatics ahead of it on 8kHz audio with noise and overlap. We run
+  faster-whisper on Modal anyway as the *first* transcriber, because it works
+  today with no signup and the seam makes it swappable: if measured telephony
+  WER on real target calls proves too poor, a Deepgram/AssemblyAI adapter is
+  additive, not a rewrite. "The right first model" beats "the best model we
+  haven't integrated."
 - **End-of-turn detection may matter more than word error rate.** Knowing when
   the far end stopped talking is what makes a reply possible, and a naive
   silence timer is how a bench talks over people. A provider that solves this in
@@ -96,20 +102,30 @@ Survey (searched 2026-07-15; vendor TTFB claims, not measured by us):
 
 Sub-200ms TTFB is the widely-cited target for natural turn-taking.
 
-## The one-vendor observation
+## What was chosen — self-hosted on Modal
 
-**Deepgram covers both directions plus turn detection under one API key.** Its
-`/v1/listen` STT ingests exactly what our `TransportEvent` audio carries —
-`encoding=mulaw&sample_rate=8000`, headerless — so the adapter strips base64
-(already done) and forwards raw bytes. Its Aura-2 TTS emits the same format.
-Its Flux STT bundles end-of-turn detection (the turn-taking hard part;
-[references.md](references.md) has the local-model alternative, smart-turn).
+**Decided (2026-07-15): both directions run self-hosted on Modal, not a SaaS
+signup.** A hosted vendor (Deepgram, which ingests our exact `mulaw@8000`
+headerless bytes, was the near contender) was considered and set aside — the
+maintainer holds Modal budget, and one hosting story for every model beats a
+per-provider account. See [models.md](models.md) for the decision and the
+seam; [infra/modal/](../infra/modal/) for the deployed endpoints.
 
-That is one signup instead of two or three, and one integration seam to probe
-instead of several. It is a **maintainer decision** — creating an account and a
-key is a spend/signup gate, not an agent default. The STT/TTS contracts are
-built to keep providers swappable regardless of which way this goes; the point
-of naming Deepgram is that it is the cheapest path to a *working* Increment 2,
+What actually runs, both proven end to end:
+
+- **STT: faster-whisper on Modal** (`infra/modal/stt.py`), OpenAI
+  `/v1/audio/transcriptions`, returning the confidence the abstain path needs.
+  whisper is the weakest of the surveyed models on telephony, and it is the
+  right *first* model because it works and the seam makes it swappable — a
+  Deepgram/AssemblyAI adapter is additive if measured WER demands it.
+- **TTS: Kokoro-82M on Modal** (`infra/modal/tts.py`), Apache-2.0, OpenAI
+  `/v1/audio/speech`, native 8kHz mulaw after resample. Proven intelligible
+  back through STT (~0.88).
+- **Turn detection** stays local in the 20ms path (energy VAD now,
+  [references.md](references.md)'s smart-turn as the upgrade) — never a network
+  round trip.
+
+The STT/TTS contracts keep providers swappable, so this is a starting point,
 not a lock-in.
 
 ## Our own transcription of our own recordings

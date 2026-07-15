@@ -68,21 +68,31 @@ what else improves — the full set is in [AGENTS.md](AGENTS.md).
 
 ```text
 AGENTS.md            principles and policy for coding agents (start here)
-docs/                brief, architecture, plan, probes, drivers, speech, ui
+docs/                brief, architecture, plan, probes, drivers, speech, ui, models
 docs/references.md   prior art per concept — read before building a seam
 docs/contracts/      what each increment froze
 .agents/             skills and references (.claude/skills symlinks here)
-packages/            per-increment packages; none before its increment
+packages/            shared, transport, transcript, stt, tts, turn, simulator, assert
+infra/modal/         self-hosted models (STT, TTS, LLM) + manage.sh; see models.md
 scripts/probes/      one-shot empirical discovery against a live surface
 scripts/evals/       model/provider comparisons over captured data
+scripts/lib/         shared script plumbing (the dial guard, the tunnel helper)
 data/                gitignored — raw capture. No test may read it.
 ```
 
 ## Status
 
-**Increment 0 (scaffold) is done. The dial path is probed and works.** Everything
-else is unbuilt — see [docs/plan.md](docs/plan.md) for the increments and, more
-usefully, for why they're in that order.
+Built and gate-green: **Increment 0** (scaffold), **1** (transport + loopback,
+timing baseline), **2** (speech in/out — contracts frozen, pipeline proven; the
+live two-turn exchange is pending a dial), **3** (the target simulator's flow +
+defect switches; live answering pending a dial), and **4a** (the assertion layer
+and the three-state outcome). Models run self-hosted on Modal
+([docs/models.md](docs/models.md)); STT and TTS are deployed.
+
+Next: the judge (Increment 4b), the scenario runner, the web UI (Increment 5),
+the hybrid persona (6), and the first live run against the real shop (7) — which
+stays human-gated, dial by dial. See [docs/plan.md](docs/plan.md) for the
+increments and, more usefully, for why they're in that order.
 
 Two ordering claims worth knowing up front:
 

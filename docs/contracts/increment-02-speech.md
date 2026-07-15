@@ -30,8 +30,11 @@ enforced not trusted (contract tests pin each):
   refuse-on-mismatch check both use, so they cannot drift.
 - **refuse on mismatch** — `verifyFrozen` is the report's publish gate.
 
-A `Confidence` is `{ avgLogprob, noSpeechProb, minWordProb }`, null for a turn
-the bench spoke. It travels WITH the turn, alongside a `provider` tag.
+A `Confidence` is provider-neutral: `{ score, raw }` — `score` a normalized
+0..1 (higher = surer) that every STT adapter produces and the abstain logic
+reads, `raw` that provider's own numbers (whisper fills `avgLogprob`,
+`noSpeechProb`, `minWordProb`) for forensics, never for branching. Null for a
+turn the bench spoke. It travels WITH the turn, alongside a `provider` tag.
 
 ## STT (`@callbench/stt`)
 
