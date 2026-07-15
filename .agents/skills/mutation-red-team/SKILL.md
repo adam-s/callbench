@@ -84,9 +84,15 @@ nothing.
 The invariants each increment is expected to freeze, and therefore the
 mutations it owes this catalog. Do not run these until the code exists.
 
-- **Increment 1 (transport):** the frame parser's format assumptions; the clock
-  and layer that timestamps are taken from (mutate to stamp at a different
-  layer and see whether any test notices the number moved).
+- **Increment 1 (transport):** in `packages/transport/src/twilio/frames.ts`:
+  change `TWILIO_MEDIA_FORMAT.sampleRate` to 16000 (the frozen measured fact —
+  verified CAUGHT at landing); coerce `sequenceNumber`/`chunk`/`timestamp` to
+  numbers in `parseMessage` (the wire-string quirk); make `parseMessage` drop
+  unrecognized events instead of tagging them `unknown` (silent-swallow — the
+  surface-interventions invariant); strip `streamSid` from `mediaMessage`
+  output. Once the adapter lands: stamp `atMs` from `Date.now()` deltas instead
+  of the monotonic clock, and stamp after parsing instead of at socket read —
+  the clock/layer contract in `contract.ts`.
 - **Increment 2 (speech):** the confidence signal reaching the turn record
   (mutate to a constant — if nothing fails, INCONCLUSIVE has no foundation);
   transcript append-only enforcement; the transcript hash (swap the algorithm,
