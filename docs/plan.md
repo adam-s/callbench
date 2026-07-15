@@ -8,9 +8,20 @@ to `docs/contracts/increment-NN-*.md`.
 Increment 0 is done: this scaffold. Everything below is unbuilt.
 
 The goal the increments serve: a small set of scenarios, each run a handful of
-times against a real voice agent, producing one frozen report a human turns into
-a message. Read [brief.md](brief.md) for why, [probes.md](probes.md) for what a
-call looks for, [architecture.md](architecture.md) for the shape.
+times against a real voice agent, producing frozen reports a human turns into a
+message — and a UI that makes each finding audible. Read [brief.md](brief.md)
+for why, [probes.md](probes.md) for what a call looks for,
+[architecture.md](architecture.md) for the shape, [ui.md](ui.md) for the surface.
+
+**Read the order as a claim, not a schedule.** Two things drive it, and both are
+about not lying:
+
+- **The simulator comes before the assertions** (3 before 4) because an assertion
+  can only be trusted once you have watched it fail. A target that might be
+  correct cannot distinguish a working assertion from one that never runs.
+- **The UI comes after the engine** (5, not 1) because it renders evidence, and
+  evidence has to exist first. A dashboard of invented numbers is the one
+  artifact this project's reader would see through instantly.
 
 ---
 
@@ -28,9 +39,16 @@ Frozen: [contracts/increment-00-scaffold.md](contracts/increment-00-scaffold.md)
 audio both ways, and writes a timestamped transcript — without a single call
 reaching the shop.
 
-- Buy a number (see the account facts in [drivers.md](drivers.md)).
+- A number is already owned; the dial path is probed and works. See the probe
+  findings in [drivers.md](drivers.md) for what was measured and what wasn't.
 - Transport contract + the Twilio Media Streams adapter behind it.
-- A trivial answering endpoint on the maintainer's own number to call into.
+- **The loopback needs a second number with a TwiML endpoint answering it, not a
+  personal handset.** The dial probe established why: a cell screens an unknown
+  caller to voicemail, and Twilio still reports the call `completed` — a loopback
+  that answers nondeterministically, or not at all, teaches nothing. This is a
+  purchase, and therefore a maintainer decision.
+- Requires a public tunnel so the provider can reach the local server for TwiML
+  and the media WebSocket.
 - **Probe first**: capture the real frame shape, encoding, and event sequence
   before writing a parser. The 8kHz-mulaw assumption in `drivers.md` is a label,
   not a fact.
@@ -47,30 +65,96 @@ Freezes: the transport contract, the frame format, the clock and its layer.
 speaks, hears the reply, and both land in the transcript with confidence
 signals attached.
 
-- STT and TTS contracts + one adapter each.
+- STT and TTS contracts + one adapter each. **Provider is not settled** — see
+  [speech.md](speech.md); pick from the survey and probe against Increment 1's
+  real frames, not against a benchmark.
 - Turn model and the append-only transcript.
-- Fixtures recorded from Increment 1's real audio, so the suite tests this
-  without the network.
+- Fixtures recorded from Increment 1's real audio, **committed** with the source
+  they test, so the suite runs on a fresh clone with no network. Capture from the
+  wire, never from a convenient path: room audio through a speakerphone is a
+  different signal and a fixture built from it tests the wrong thing.
+- **Turn-taking is the hard part, and it is in this increment or it ambushes the
+  next one.** Knowing when the far end has stopped speaking is what makes a reply
+  possible; a naive silence timer is how a bench talks over people.
 - The confidence signal is load-bearing: it is what INCONCLUSIVE is built on
   later. A transcript that can't say "I didn't hear that" can't abstain.
 
 Freezes: STT/TTS contracts, the turn shape, the transcript format and its hash.
 
-## Increment 3 — Scenarios and the assertion layer
+## Increment 3 — The target simulator
 
-**Done when** a scenario file drives the loopback exchange and produces a report
-with PASS / FAIL / INCONCLUSIVE results, each traced to a transcript span.
+**Done when** a voice agent we own answers a call and holds the shop's flow —
+greets, asks for the vehicle, quotes, takes a correction, reads back — and the
+harness can drive it end to end.
+
+The practice target. It is early in the order for one reason: **it is the only
+place an assertion can be proven to fire.** Point the bench at a working system
+and everything passes, which is indistinguishable from assertions that never
+run. The simulator can be made wrong on purpose.
+
+- Behavior spec comes from the warm-up call's observations, not from invention.
+- Deliberate-defect switches: fabricate a feature, drop a correction, go silent
+  mid-turn, degrade the audio. Each one exists to make a specific assertion fail
+  on demand.
+- It replaces the trivial loopback endpoint from Increment 1 and becomes the
+  target for everything up to Increment 6.
+
+Freezes: the simulator's defect switches (each is a test's fixture).
+
+## Increment 4 — Scenarios and the assertion layer
+
+**Done when** a scenario drives the simulator and produces a report with
+PASS / FAIL / INCONCLUSIVE results, each traced to a transcript span — and the
+deliberate defects make the right assertions fail.
 
 - Scenario definition: ordered turns, probe injection points, assertions.
-- Assertions as plain deterministic code over the frozen transcript.
+- **Tests are authored in code** and run over the *frozen artifact*, never over a
+  live call. Recording and asserting are separate programs
+  ([architecture.md](architecture.md)); this is what lets an assertion be fixed
+  and re-run at no cost to anyone's phone line.
+- Assertions in plain deterministic code wherever the question can be expressed
+  that way — which is most of [probes.md](probes.md). Prefer code.
+- **The judge** for what code cannot express: a named, isolated stage scoring
+  the irreducibly semantic assertions, its verdict recorded as judgment rather
+  than fact and frozen against a content hash so replays stay deterministic and
+  offline. It ships with a calibration set, because a judge that always returns
+  PASS passes every suite it grades.
 - Report writer: diffable, cites spans, refuses on hash mismatch.
 - **The three-state outcome is the point of this increment.** Get INCONCLUSIVE
   working before anything real is dialed — a bench that can't abstain will lie
-  under exactly the conditions where lying costs the most.
+  under exactly the conditions where lying costs the most. The simulator's
+  audio-degradation switch is how you prove abstention works.
 
-Freezes: the scenario contract, the report format.
+Freezes: the scenario contract, the report format, the judge contract and its
+cache key.
 
-## Increment 4 — The hybrid tester
+## Increment 5 — The web UI
+
+**Done when** a QA engineer can open the app, see the tests, open a run, and
+hear the moment a finding is about — with the audio, the waveform, and the
+transcript in sync.
+
+Built after the engine, deliberately: **a UI over a non-existent engine is a
+facade, and the intended reader builds this stack for a living.** Rough real
+evidence beats a polished dashboard of invented numbers. Every increment before
+this one produces real artifacts for it to render.
+
+- SvelteKit, path-based routes. Test list, run detail, deep links to a finding.
+- Waveform, level meter, playhead, transcript synced to playback — a Web Audio
+  pipeline over the frozen recording, measuring nothing
+  ([architecture.md](architecture.md)).
+- **Click a finding → hear its span.** This is the centerpiece: it turns a claim
+  into something the reader can verify by ear, which is the whole argument for
+  building a bench rather than forming an opinion.
+- **The UI renders; it never dials.** Against the simulator, a run control is
+  free and correct. Against the real target there is no such control — not
+  behind a confirmation, not behind a flag. See the invariant in
+  [AGENTS.md](../AGENTS.md).
+
+See [ui.md](ui.md) for the routes and the surface. Freezes: the route shape, the
+report-rendering contract.
+
+## Increment 6 — The hybrid tester
 
 **Done when** a model persona carries the conversation while the harness still
 enforces its probe points.
@@ -81,28 +165,51 @@ enforces its probe points.
   that looks successful and tests nothing.
 - Model judgment stays a named, isolated stage; its output is recorded as
   judgment, never as fact.
+- Exercised against the simulator, where an improvising persona is cheap to
+  catch.
 
 Freezes: the persona seam, the probe-enforcement mechanism.
 
-## Increment 5 — First live run
+## Increment 7 — First live run
 
 **Done when** the maintainer has approved and dialed a bounded set of calls to
 the real line, and the frozen reports exist.
 
 Prerequisites, all maintainer-gated, none routable-around:
 
-- **Recording and consent settled and written down** — jurisdiction, party
-  consent, the target's own terms. Colorado's one-party rule and Adam's status
-  as a party to the call is the *starting* analysis, not the finding; the
-  maintainer decides and records it before the first dial.
-- Every earlier increment green against the loopback.
+- **Recording and consent — settled by the maintainer, 2026-07-15.**
+  **Determination: recording is permitted for bench calls to this target.**
+
+  Recorded as the maintainer's decision, which is where this call belongs per
+  [AGENTS.md](../AGENTS.md). The grounds, as given, are: the maintainer operates
+  from Bolivia and determines no applicable recording restriction attaches
+  there; the callee is an automated system rather than a person; and the call is
+  one-party, with the maintainer a party to it and the target's jurisdiction
+  (Colorado) a one-party state.
+
+  These grounds are recorded as stated, not independently verified — no agent
+  should cite them as researched legal fact or extend them past this target. The
+  invariant that this is **re-settled when the target changes** stands: a
+  different callee reopens the question rather than inheriting this answer.
+
+  The earlier text here — "Colorado's one-party rule and Adam's status as a
+  party to the call" as a *starting analysis* — is superseded by the above and
+  must not be reused as an open question.
+
+  One limit is unaffected because it never rested on consent: **if a human joins
+  the call, the test ends** (invariant), and capture ends with it. The
+  determination above covers an automated callee; a person on the line is the
+  case it does not describe.
+- Every earlier increment green against the simulator, **including proof that
+  each scenario's assertions fail when the simulator is made to misbehave.** An
+  assertion never observed failing is an assertion never observed.
 - Caps declared in the run config: call count, minutes, concurrency (default 1).
 - The `live-call` skill's checklist walked, dial by dial.
 
 The scenarios come from [probes.md](probes.md). Start with the disambiguation
 family — it's the cheapest call and the highest-signal finding.
 
-## Increment 6 — The report a human sends
+## Increment 8 — The report a human sends
 
 **Done when** the maintainer has what they need to write the message: findings
 grouped, each with its span, its input, and its rate across runs.

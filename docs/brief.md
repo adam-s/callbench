@@ -90,7 +90,14 @@ push toward a harness:
 
 In scope: place a call, hold a scripted-plus-improvised conversation, capture
 audio and timings, transcribe, assert against a scenario's expectations, emit a
-diffable report.
+diffable report — and render that report in a web UI where a finding can be
+heard, not just read ([ui.md](ui.md)).
+
+Also in scope, and neither was in the original request: **a target simulator**
+(a voice agent we own, so scenarios can be exercised without a stranger's line
+ringing — and so an assertion can be watched failing before it grades someone
+real), and **a model judge** for the assertions plain code cannot express, fenced
+per [architecture.md](architecture.md).
 
 Out of scope, permanently: anything that changes, stresses, or works around the
 system under test. It is a real shop's front office; a call that reaches a
@@ -100,9 +107,24 @@ dials, bounded runs, a human on the line ends the test — are not ceremony. The
 are the terms under which this project is allowed to exist at all.
 
 Deliverable shape, current intent: a handful of scenarios, each run a small
-number of times, producing one report the maintainer reads and turns into a
-message. The prose of that message is Adam's judgment and voice, written by
-Adam. The bench's job ends at the evidence.
+number of times, producing frozen reports the maintainer reads and turns into a
+message, plus a UI that makes each finding audible. The prose of that message is
+Adam's judgment and voice, written by Adam. **The bench's job ends at the
+evidence** — that line holds even with a UI in scope, because the UI renders
+evidence rather than drawing conclusions from it.
+
+**Who the UI is for is two answers, and they pull apart.** Its nominal user is a
+QA engineer testing voice agents: scenario list, run history, triage. Its actual
+reader is the founder, evaluating in twenty minutes. Those are different
+products — one needs depth, the other needs to land in sixty seconds. The
+resolution the project takes: build the thing a QA engineer would use, for an
+audience of one who is judging whether you'd build his portals well. Where the
+two conflict, the twenty minutes wins.
+
+The failure that framing guards against: a dashboard is the easiest thing here to
+fake and the fastest thing to be caught faking, because the person reading it
+ships this exact stack. Rough real evidence beats a polished screen of invented
+numbers. Everything the UI shows traces to an artifact from a real call.
 
 ## Cross-repo relationship
 

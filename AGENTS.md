@@ -173,6 +173,22 @@ regardless of what else improves. Mechanisms and rationale live in the docs.
   time.** No unattended call loop, no retry-on-failure dial, no scheduled run.
   The bench prepares a call and stops; a human starts it. A test suite that can
   place calls by itself is one bug away from flooding somebody's business line.
+  **No surface is exempt** — a control that dials is a dial path whatever it is
+  built from, and a confirmation prompt in front of it is still a dial path. The
+  gate is that the path does not exist, not that it asks first.
+- **Evidence is captured once; interpretation re-runs freely.** Capture and
+  evaluation are separate programs joined by a frozen artifact. Nothing that
+  grades, scores, or reports may reach back to the source it is grading — it
+  reads the artifact. This is what lets an evaluation be fixed, re-run, and
+  argued with at no cost to the system under test, and it is what keeps the
+  suite offline without relying on anyone's discipline.
+- **A stage that cannot be deterministic is frozen, not re-rolled.** Where
+  judgment is irreducibly non-deterministic, its output is computed once, keyed
+  to a hash of exactly what it judged, and replayed thereafter. Determinism is a
+  property of the record, not a parameter requested from the provider — sampling
+  controls may be absent, may be removed, and never guaranteed identical output
+  even when present. A re-evaluation that quietly returns a different verdict for
+  unchanged input is the failure this prevents.
 - **A run is bounded before it starts** — a hard cap on call count, wall-clock
   minutes, and concurrency, declared in the run's own config and enforced in
   code. An unbounded default is a bug even if no run ever hits the ceiling.
@@ -232,10 +248,17 @@ red-teaming exists to catch.
 - **Static green is the floor** — types, lint, and unit tests all clean before
   any checkout (`pnpm typecheck && pnpm lint && pnpm vitest run`).
 - **Contract tests** pin whatever each increment locks down.
-- **The suite never touches the network.** Transport, speech-to-text, and
-  synthesis are contracts precisely so the suite runs against recorded
-  fixtures. A test that dials, or that needs a credential, is misplaced by
-  construction.
+- **The suite never touches the network.** Every seam that would is a contract
+  precisely so the suite runs against recorded fixtures. A test that dials, or
+  that needs a credential, is misplaced by construction — including where the
+  production path legitimately calls a provider, because under test that path
+  replays a frozen result.
+- **Fixtures are committed; raw capture is not.** A fixture the suite reads
+  travels with the repo, alongside the source it tests. Uncommitted capture does
+  not exist on a fresh clone, so a test that reads it is green on one machine and
+  red everywhere else — and it will pass for whoever wrote it, which is the worst
+  case. A fixture must also resemble the surface it stands in for; one recorded
+  through a convenient path rather than the real one tests the convenience.
 - **Dynamic scripts** (probe / chaos / smoke) are bounded — a hard cap on
   requests, wall time, or scenarios — and write deterministic, diffable output.
   No model judgment inside a script.

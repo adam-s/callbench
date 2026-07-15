@@ -34,9 +34,12 @@ as a persona instead of a scripted turn machine. Less code, less determinism.
 
 The useful form is hybrid, and it is the one the architecture targets: the model
 carries the conversation, the harness injects scripted probes at fixed points,
-and deterministic assertions run over the transcript afterward. Model judgment
-stays in a named, isolated stage and never becomes load-bearing plumbing — the
-rule in [AGENTS.md](../AGENTS.md).
+and assertions run over the frozen transcript afterward. Model judgment stays in
+named, isolated stages and never becomes load-bearing plumbing — the rule in
+[AGENTS.md](../AGENTS.md). There are two such stages and they are unrelated: the
+*persona* that talks, and the *judge* that scores the assertions plain code
+cannot express ([architecture.md](architecture.md)). Neither is plumbing; both
+are recorded as judgment rather than fact.
 
 Note the failure mode this invites: a model persona that improvises its way past
 a probe point produces a call that looks successful and tests nothing. Probe
@@ -77,12 +80,16 @@ than bought. Not evaluated in depth.
 
 ## Account facts (maintainer-supplied, 2026-07-15)
 
+Superseded in part by the first dial probe — see *Probe findings* below. Where
+the two disagree, the probe wins: it was observed, this section was reasoned.
+
 - Account is upgraded and active with balance — past trial restrictions, so no
   trial notice is prepended to calls.
-- **A number must be purchased.** Outbound needs a `from` caller ID. Verifying a
-  personal cell as caller ID technically avoids the purchase, but then every
-  test call presents a personal number. An owned number is the clean path, and
-  it doubles as the inbound leg (below).
+- ~~**A number must be purchased.**~~ **Done** — one number is owned; the probe
+  read it off the account. Outbound needs a `from` caller ID, and verifying a
+  personal cell technically avoids the purchase, but then every test call
+  presents a personal number. The owned number is the clean path, and it doubles
+  as the inbound leg (below).
 - **Inbound SMS works without registration; outbound does not.** The "Registration
   required" label on a US local number is A2P 10DLC, and it gates *sending*.
   Receiving is unaffected. This is the right half to have: the harness never
@@ -95,6 +102,43 @@ than bought. Not evaluated in depth.
   PSTN transit — which is what makes the latency findings worth reporting.
   On-net does **not** mean the phone leg can be bypassed; the target is dialed
   like any other number.
+
+## Probe findings (observed 2026-07-15, `scripts/probe-dial.ts`)
+
+Read off the probe's output, not recalled. One call, `CAaf924658e222408adb17402b2e639777`.
+
+- **Auth is Account SID + Auth Token.** An API Key SID (`SK…`) authenticates but
+  fails the account path with `Authorization Error … (code 70051)`, which names
+  neither the cause nor the fix. The probe guards by SID shape so the next agent
+  reads a real message instead of a 401.
+- **Account active, balance 18.85 USD, one number owned** — the `from` number in
+  `.env`. No purchase is outstanding for outbound.
+- **The dial connects.** `queued → ringing → in-progress → completed`, duration
+  5s (Twilio's `start_time`→`end_time`).
+- **Pricing is still unverified.** `price` was `null` ~1 min after the call —
+  Twilio rates asynchronously. The ~$0.014/min figure above remains an
+  assumption; re-read `price` on a later call before quoting it anywhere.
+
+Two findings that outlive this probe:
+
+- **`completed` does not mean a human heard it.** The probe call was screened by
+  iOS "Silence Unknown Callers" and went to voicemail; Twilio still reported
+  `completed` with a 5s duration. `answered_by` is `null` unless `MachineDetection`
+  is requested. Any later stage that treats call status as evidence of a
+  delivered utterance is reading a field that cannot carry that meaning —
+  voicemail and a listening human are the same status.
+- **A personal cell is not a loopback answering endpoint.** Screening and
+  voicemail make it nondeterministic, which is the opposite of what Increment 1
+  needs. The plan's "trivial answering endpoint" wants a second owned number
+  with a TwiML app behind it — a purchase to raise with the maintainer when
+  Increment 1 starts. This screening does not apply to the target, which is
+  on-net (above).
+
+**Timing caveat.** The probe's per-state elapsed figures come from its own wall
+clock at 2s poll intervals — they record when the script *observed* a
+transition, not when it occurred. They are not a latency baseline and must not
+be cited as one; that baseline needs frame-level stamps from one clock at one
+layer, per Increment 1.
 
 ## Decision
 
