@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { Transport } from '$lib/audio/transport.svelte.ts';
+	import LevelMeter from '$lib/components/LevelMeter.svelte';
 	import PlaybackControls from '$lib/components/PlaybackControls.svelte';
+	import TurnRibbon from '$lib/components/TurnRibbon.svelte';
 	import Waveform, { type WaveSpan } from '$lib/components/Waveform.svelte';
 	import { shortRun, whereOf } from '$lib/types.ts';
 	import type { PageData } from './$types';
@@ -83,8 +85,15 @@
 {#if hasAudio && data.audio}
 	<Waveform {transport} peaks={data.audio.peaks} durationMs={data.audio.durationMs} spans={waveSpans} />
 	<div class="player">
-		<PlaybackControls {transport} />
+		<div class="player-controls"><PlaybackControls {transport} /></div>
+		<div class="player-meter"><LevelMeter {transport} /></div>
 	</div>
+	<h2>Turn ribbon</h2>
+	<p class="sub">
+		Two lanes on a real time axis — the rhythm of the call at a glance. Click a block to seek there;
+		the block under the playhead lights up. Where the two lanes overlap is literal talkover.
+	</p>
+	<TurnRibbon turns={data.turns} durationMs={data.audio.durationMs} {transport} />
 	{#if data.audio.synthetic}
 		<p class="fence-note">
 			Simulator run — the audio is synthesized from the turn text ({data.audio.synthetic}), a stand-in
@@ -139,7 +148,27 @@
 
 <style>
 	.player {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
 		margin: 0.6rem 0 0.25rem;
+	}
+	.player-controls {
+		flex: 1;
+		min-width: 0;
+	}
+	.player-meter {
+		flex: none;
+		width: 180px;
+	}
+	@media (max-width: 560px) {
+		.player {
+			flex-direction: column;
+			align-items: stretch;
+		}
+		.player-meter {
+			width: 100%;
+		}
 	}
 	.findings {
 		list-style: none;

@@ -157,10 +157,16 @@ the fence stays airtight), a hash-verified audio-serving route, and
 click-a-finding-to-hear-its-span (the deep link auto-plays the cited moment).
 Simulator fixtures carry real speech synthesized locally (macOS `say`, tagged
 `synthetic` so it is never mistaken for a capture), with transcript timings taken
-from the real audio durations so waveform and spans align. The rich temporal
-dataviz (turn ribbon, fact ledger, latency strip) is the next increment; the
-assertion matrix is a first cut. The gate covers the app, including a jsdom
-project for the audio engine (see the amendment in
+from the real audio durations so waveform and spans align. The **turn ribbon**
+(two-lane temporal view) and a **live level meter** (the AnalyserNode spectrum,
+during playback — measuring nothing) are built and wired into the run page; the
+assertion matrix (scenarios × runs, three states, a mixed row flagged) is on the
+per-scenario page. The **fact ledger** and **latency strip** are deferred with
+the live dials: on the simulator fixtures the inter-turn gaps are a fixed
+synthetic constant and there is no correction to propagate, so both need
+real-call variation (or a correction fixture) to show anything true rather than a
+flat placeholder. The gate covers the app, including a jsdom project for the
+audio engine (see the amendment in
 [contracts/increment-00-scaffold.md](contracts/increment-00-scaffold.md)).
 
 Built after the engine, deliberately: **a UI over a non-existent engine is a
