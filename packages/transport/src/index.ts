@@ -10,3 +10,9 @@ export {
 	parseMessage,
 	TWILIO_MEDIA_FORMAT,
 } from './twilio/frames.ts';
+export { type MediaEndpoint, serveTwilioMedia, wsToMediaSocket } from './twilio/serve.ts';
+export {
+	createTwilioSession,
+	type MediaSocket,
+	type TwilioSessionOptions,
+} from './twilio/session.ts';

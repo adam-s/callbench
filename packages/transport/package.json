@@ -13,6 +13,11 @@
 	},
 	"devDependencies": {
 		"@types/node": "^24.13.3",
-		"typescript": "5.9.3"
+		"typescript": "5.9.3",
+		"@types/ws": "^8.18.1"
+	},
+	"dependencies": {
+		"@callbench/shared": "workspace:*",
+		"ws": "^8.21.1"
 	}
 }
