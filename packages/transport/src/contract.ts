@@ -12,14 +12,23 @@
  *
  * Every `atMs` in this contract is:
  *
- *   - **monotonic milliseconds since the session's own zero** (Node
+ *   - **monotonic milliseconds since the session's zero** (Node
  *     `performance.now()` deltas — never `Date.now()`, which steps under NTP),
  *   - **stamped in the adapter's socket-message handler**, before any parsing
  *     or buffering of ours.
  *
- * `anchorEpochMs` is the wall-clock epoch captured at the same instant as the
- * session's zero, so records can be placed in calendar time. Durations are
- * always `atMs - atMs`, never epoch arithmetic.
+ * A session's zero defaults to its own creation instant. `atMs - atMs` is
+ * therefore only a duration WITHIN one session — unless the runner anchored
+ * several sessions to one shared zero (adapters accept the zero as an option;
+ * a loopback run hosting both legs of a call does exactly this). Subtracting
+ * stamps across two sessions with independent zeros produced a negative
+ * 43-second "latency" the first time someone did it; the type system cannot
+ * catch this, so the rule has to live in heads and reviews: **check the zeros
+ * before subtracting across sessions.**
+ *
+ * `anchorEpochMs` is the wall-clock epoch corresponding to the session's
+ * `atMs = 0`, so records can be placed in calendar time. Durations are always
+ * `atMs - atMs`, never epoch arithmetic.
  *
  * The rule this encodes (AGENTS.md, "measure the clock you claim to measure"):
  * both endpoints of any duration must be stamps from THIS clock at THIS layer.

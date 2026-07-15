@@ -38,7 +38,18 @@ export interface MediaSocket {
 export interface TwilioSessionOptions {
 	/** Monotonic clock; injectable for tests. Defaults to performance.now. */
 	readonly now?: () => number;
-	/** Wall-clock anchor; injectable for tests. Defaults to Date.now(). */
+	/**
+	 * The session's zero, expressed on `now`'s own axis. Defaults to `now()` at
+	 * factory call — each session relative to its own birth. A runner hosting
+	 * BOTH legs of one call passes the same `now` and the same `zero` to both,
+	 * which puts every stamp from both legs on one axis and makes cross-leg
+	 * durations same-clock by construction. That case is real: the first
+	 * loopback run subtracted stamps from two per-session zeros and produced a
+	 * negative 43-second "latency".
+	 */
+	readonly zero?: number;
+	/** Wall-clock anchor for atMs = 0; injectable for tests. Defaults to
+	 * Date.now(). If you pass `zero`, pass the matching anchor. */
 	readonly anchorEpochMs?: number;
 	/** Reject the handshake if `start` hasn't arrived by then. */
 	readonly handshakeTimeoutMs?: number;
@@ -122,7 +133,7 @@ export function createTwilioSession(
 	options: TwilioSessionOptions = {},
 ): Promise<TransportSession> {
 	const now = options.now ?? (() => performance.now());
-	const zero = now();
+	const zero = options.zero ?? now();
 	const anchorEpochMs = options.anchorEpochMs ?? Date.now();
 	const expected = options.expectedFormat ?? TWILIO_MEDIA_FORMAT;
 	const cap = options.maxBufferedEvents ?? 2048;

@@ -126,6 +126,33 @@ describe('handshake', () => {
 	});
 });
 
+describe('shared zero', () => {
+	it('anchors several sessions to one axis when the runner asks', async () => {
+		// Two sessions, one clock, zero: 0 for both — a stamp is the clock's own
+		// value, so cross-session subtraction is legitimate. This is the loopback
+		// configuration; without zero, each session re-anchors at creation and
+		// cross-session math is garbage (measured: a negative 43s "latency").
+		const clock = fakeClock(1000); // clock already ran before either session
+		const make = async () => {
+			const socket = new FakeSocket();
+			const pending = createTwilioSession(socket, { now: clock.now, zero: 0 });
+			socket.deliver(connectedText);
+			socket.deliver(startText);
+			return { socket, session: await pending };
+		};
+		const a = await make();
+		clock.tick(500);
+		const b = await make();
+		a.socket.deliver('{"event":"stop","sequenceNumber":"9","streamSid":"MZx"}');
+		b.socket.deliver('{"event":"stop","sequenceNumber":"9","streamSid":"MZx"}');
+		const [aFirst] = await collect(a.session);
+		const [bFirst] = await collect(b.session);
+		if (!aFirst || !bFirst) throw new Error('missing events');
+		expect(aFirst.atMs).toBe(1000);
+		expect(bFirst.atMs).toBe(1500); // same axis: later session, later stamp
+	});
+});
+
 describe('inbound events', () => {
 	it('maps media to audio with decoded bytes and a fresh stamp', async () => {
 		const { socket, session, tick } = await handshaken();

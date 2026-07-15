@@ -156,16 +156,14 @@ async function main(): Promise<void> {
 				session.sendAudio(tone(440, 400));
 				session.sendMark('bench-probe');
 			}
-			// The bench leg ends the run once it has heard two distinct voiced
-			// bursts (greeting + reply) with a gap between them.
-			if (leg === 'bench' && records.bench.voicedBursts.length > 1) {
-				const bursts = records.bench.voicedBursts;
-				const last = bursts.at(-1);
-				const first = bursts[0];
-				if (last !== undefined && first !== undefined && last - first > 800) {
-					console.log(`${leg}   : heard both bursts — ending the run`);
-					finishRun();
-				}
+			// The exchange is over once Twilio confirms the sim's reply finished
+			// playing; a short grace lets the tail frames reach the bench. (The
+			// first run tried to detect "two voiced bursts with a gap" instead —
+			// the reply followed the greeting so closely that the bursts merged
+			// and the run idled to its cap.)
+			if (leg === 'sim' && ev.type === 'mark' && ev.name === 'sim-reply') {
+				console.log('sim   : reply played — ending after grace');
+				setTimeout(finishRun, 2500);
 			}
 		}
 		done[leg] = true;
@@ -179,12 +177,12 @@ async function main(): Promise<void> {
 			'/bench-media': {
 				onSession: (s) => void runLeg('bench', s),
 				onSessionError: (e) => console.error(`bench : handshake failed: ${e.message}`),
-				sessionOptions: { now: clock, anchorEpochMs },
+				sessionOptions: { now: clock, zero: 0, anchorEpochMs },
 			},
 			'/sim-media': {
 				onSession: (s) => void runLeg('sim', s),
 				onSessionError: (e) => console.error(`sim   : handshake failed: ${e.message}`),
-				sessionOptions: { now: clock, anchorEpochMs },
+				sessionOptions: { now: clock, zero: 0, anchorEpochMs },
 			},
 		},
 	});
@@ -285,17 +283,18 @@ async function main(): Promise<void> {
 
 	// Timing baseline — every figure below is same-clock (this process's
 	// monotonic clock) at same-layer (our socket read / our send call).
+	const delta = (a: number | null, b: number | null) =>
+		a !== null && b !== null ? +(a - b).toFixed(1) : null;
 	const timings = {
-		clock: 'performance.now() shared by both legs, zero at run start',
+		clock: 'one performance.now() axis shared by script and BOTH sessions (zero: 0)',
 		layer: 'our socket-message handler (inbound) / our sendAudio call (outbound)',
-		simHeardBenchTone_ms:
-			records.sim.firstVoicedAtMs !== null && benchSentAtMs !== null
-				? +(records.sim.firstVoicedAtMs - benchSentAtMs).toFixed(1)
-				: null,
-		benchHeardSimGreeting_ms:
-			records.bench.firstVoicedAtMs !== null && simGreetedAtMs !== null
-				? +(records.bench.firstVoicedAtMs - simGreetedAtMs).toFixed(1)
-				: null,
+		// The flagship figure: sim spoke, bench answered by reflex, sim heard the
+		// answer — a full out-and-back through Twilio, entirely on one leg's
+		// stamps. This is the harness+provider overhead floor, not target latency.
+		roundTrip_simSpoke_to_simHeardAnswer_ms: delta(records.sim.firstVoicedAtMs, simGreetedAtMs),
+		oneWay_simGreeting_to_benchEar_ms: delta(records.bench.firstVoicedAtMs, simGreetedAtMs),
+		oneWay_benchTone_to_simEar_ms: delta(records.sim.firstVoicedAtMs, benchSentAtMs),
+		simReplyLatency_ms: delta(simRepliedAtMs, records.sim.firstVoicedAtMs),
 		marks,
 	};
 	writeFileSync(
@@ -317,9 +316,17 @@ async function main(): Promise<void> {
 
 	console.log(`\n=== frozen: ${dir} ===`);
 	console.log(`events            : ${allEvents.length}`);
-	console.log(`sim heard bench   : ${timings.simHeardBenchTone_ms ?? 'NOT MEASURED'} ms`);
-	console.log(`bench heard sim   : ${timings.benchHeardSimGreeting_ms ?? 'NOT MEASURED'} ms`);
-	if (timings.simHeardBenchTone_ms === null || timings.benchHeardSimGreeting_ms === null) {
+	console.log(
+		`round trip (sim)  : ${timings.roundTrip_simSpoke_to_simHeardAnswer_ms ?? 'NOT MEASURED'} ms`,
+	);
+	console.log(
+		`one-way sim→bench : ${timings.oneWay_simGreeting_to_benchEar_ms ?? 'NOT MEASURED'} ms`,
+	);
+	console.log(`one-way bench→sim : ${timings.oneWay_benchTone_to_simEar_ms ?? 'NOT MEASURED'} ms`);
+	if (
+		timings.roundTrip_simSpoke_to_simHeardAnswer_ms === null ||
+		timings.oneWay_simGreeting_to_benchEar_ms === null
+	) {
 		console.log('\nA timing is missing — that is a reported gap, not a number to estimate.');
 		process.exit(1);
 	}
