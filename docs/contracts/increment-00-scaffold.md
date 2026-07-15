@@ -16,11 +16,29 @@ finding it in its constructed forms too, not just its literal ones.
 
 - pnpm@10.11.0 monorepo, workspace `packages/*`.
 - TypeScript 5.9.3, `module: ESNext`, `moduleResolution: bundler`, strict,
-  `erasableSyntaxOnly`. `@types/node` 25.x.
-- Biome 2.4.7 (lint + format): tabs, single quotes, semicolons, width 100.
+  `erasableSyntaxOnly`. `@types/node` 24.x.
+- Biome 2.x (lint + format): tabs, single quotes, semicolons, width 100.
 - Vitest 4.x, node environment. Test glob: `packages/**/*.test.ts`,
   `scripts/**/*.test.mjs`.
 - No runtime dependencies yet. Providers arrive with their increments.
+
+### Two version pins that look stale and are not
+
+Both are the kind of thing a "use the latest packages" pass silently breaks, so
+the reasons live here rather than in anyone's memory. Re-verify before changing
+either — these were measured on 2026-07-15, not recalled.
+
+- **TypeScript stays on 5.x even though 7.x is `latest`.** SvelteKit's peer range
+  is `^5.3.3 || ^6.0.0` — TypeScript 7 is not in it, and the web app is a planned
+  increment. Measured separately: 7.0.2 also fails this repo's typecheck outright
+  (it no longer auto-includes `@types/*`; it needs an explicit `types` field),
+  so the upgrade is two changes, not one. The move to make when it comes is
+  5.x → 6.x, and only once the toolchain's peer range says so.
+- **`@types/node` tracks the *runtime*, not `latest`.** We run Node 24 (an LTS
+  line); the types are 24.x deliberately, and this was a downgrade from 25.x.
+  Types ahead of the runtime let you call an API that typechecks and then throws
+  at runtime — the failure lands on whoever runs the code, not whoever compiled
+  it. When the runtime moves, the types move with it, in that order.
 
 ## Workspace layout
 

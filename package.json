@@ -8,11 +8,11 @@
 		"typecheck": "tsc -p packages/shared/tsconfig.json"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.4.7",
+		"@biomejs/biome": "2.5.4",
 		"@callbench/shared": "workspace:*",
-		"@types/node": "^25.5.0",
+		"@types/node": "^24.13.3",
 		"typescript": "5.9.3",
 		"vitest": "^4.1.0"
 	},
-	"packageManager": "pnpm@10.11.0"
+	"packageManager": "pnpm@10.34.5"
 }
