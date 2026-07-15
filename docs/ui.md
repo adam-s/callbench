@@ -152,13 +152,17 @@ measurement. Every timing figure in a report comes from here, stamped at one
 layer.
 
 **Client-side, during replay** — an `AudioContext` and an `AnalyserNode` over the
-frozen recording drive the meter and the waveform. **This pipeline measures
-nothing.** It renders evidence already captured. A level drawn here is a property
-of the file, not of the call; a duration read off the playhead is a property of
-the decoder. Neither may become a number in a report. An `AnalyserNode` sits
-several buffers from the wire, and the measurement principle in
-[AGENTS.md](../AGENTS.md) is exactly about not folding those buffers into a
-figure.
+frozen recording drive the live meter and the playhead. The **waveform** is not
+client-decoded: its peak envelope is computed server-side from the frozen file
+(`$lib/server/waveform.ts`) and passed to the page as data, so the browser never
+`fetch`es audio to draw it — the dial fence bans outbound `fetch` in client code,
+and this is how the waveform honors it while still being a property of the file.
+**This pipeline measures nothing.** It renders evidence already captured. A level
+drawn here is a property of the file, not of the call; a duration read off the
+playhead is a property of the decoder. Neither may become a number in a report.
+An `AnalyserNode` sits several buffers from the wire, and the measurement
+principle in [AGENTS.md](../AGENTS.md) is exactly about not folding those buffers
+into a figure.
 
 **WebRTC belongs to the first pipeline, not the second.** A browser-side
 transport (a WebRTC client injecting synthesized audio and capturing the far end)
@@ -181,14 +185,17 @@ drift apart, a wall-clock fallback for when audio never starts, and an
 exclusive-audio bus. Its `playRegion(start, end)` is the centerpiece gesture,
 already built.
 
-Take that engine rather than rewriting it. Two differences to expect: it is
-Svelte + Vite with no router (callbench needs real routes), and it renders one
-essay's fixed clips rather than an artifact directory that grows.
+That engine was ported rather than rewritten, into
+`apps/web/src/lib/audio/transport.svelte.ts` (with `destroy()` made
+reinitializable for SvelteKit's cross-navigation component reuse). Two
+differences from the source: callbench has real routes (SvelteKit, not plain
+Vite), and it renders an artifact directory that grows rather than one essay's
+fixed clips.
 
 ## Stack
 
-SvelteKit. Svelte 5 runes, matching the prior art so the audio engine ports
-rather than gets rewritten.
+SvelteKit, Svelte 5 runes — matching the prior art so the audio engine ported
+rather than getting rewritten.
 
 The gate covers this as of Increment 5. `pnpm typecheck` ends with
 `pnpm --filter @callbench/web check` (svelte-kit sync + svelte-check), and the
@@ -196,5 +203,5 @@ Vitest glob includes `apps/web/src/**/*.test.ts`. That widening amended a frozen
 contract ([contracts/increment-00-scaffold.md](contracts/increment-00-scaffold.md));
 the amendment is recorded there under the checkout gate rather than made
 silently. The server-side run logic (`$lib/server/runs.ts`) is plain Node and
-tests under the node environment; component/DOM tests, when the audio engine
-arrives, get their own jsdom project.
+tests under the node environment; the runes-based audio engine has its own jsdom
+Vitest project (`*.dom.test.ts`), added with the engine at Increment 5.

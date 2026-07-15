@@ -184,10 +184,14 @@ synthesized audio back out. This is the pipeline under measurement. Everything
 that claims a timing figure lives here, stamped from one clock at one layer.
 
 **Client-side — the Web Audio pipeline.** In the browser, an `AudioContext` and
-an `AnalyserNode` over the frozen recording drive the waveform, the meter, and
-the playhead. **This pipeline measures nothing.** It is a rendering of evidence
-already captured. A dB reading drawn here is a property of the artifact, not of
-the call, and no figure in a report may be derived from it.
+an `AnalyserNode` over the frozen recording drive the live meter and the
+playhead. (The waveform itself is NOT client-decoded: its peak envelope is
+computed server-side from the frozen file and passed to the page as data, so the
+browser never fetches audio to draw it — which keeps the dial fence airtight, no
+client `fetch`. The `<audio>` element loads playback by `src`.) **This pipeline
+measures nothing.** It is a rendering of evidence already captured. A dB reading
+drawn here is a property of the artifact, not of the call, and no figure in a
+report may be derived from it.
 
 **WebRTC** sits in the first pipeline, not the second: a browser-side transport
 adapter (a WebRTC client injecting synthesized audio and capturing the far end)
@@ -205,14 +209,15 @@ and buffering. A browser's `AnalyserNode` is several buffers away from the wire.
 ```text
 packages/shared/     core types + the DEBUG module; no I/O, no providers
 packages/…           transport / transcript / stt / tts / turn / simulator /
-                     assert built; scenario / judge arrive with their increments
-                     — not scaffolded ahead of use
+                     assert / judge / scenario / runplan built. Packages arrive
+                     with their increments — not scaffolded ahead of use.
 infra/modal/         self-hosted models on Modal (STT, TTS, LLM), OpenAI-
                      compatible, managed by one script. See models.md.
 apps/web/            SvelteKit — renders frozen reports. See ui.md.
 scripts/             bounded operator entry points, one folder per kind:
 scripts/probes/        one-shot empirical discovery against a live surface
 scripts/evals/         model/provider comparisons over captured data
+scripts/preflight.ts   live-run pre-flight — prints the bounded plan, no dial
 scripts/lib/           shared script plumbing (dial guard, tunnel helper)
 docs/contracts/      what each increment froze
 data/                gitignored — raw capture: recordings, transcripts, reports

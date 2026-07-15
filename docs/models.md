@@ -42,7 +42,7 @@ This is the concrete form of the one-interface-per-source invariant in
 | selector | reaches | used for |
 |---|---|---|
 | `openai:<model>` + base URL | any OpenAI-compatible endpoint — **Modal** first | STT, TTS, persona, judge (bootstrap) |
-| `claude:<model>` | `claude -p` (Claude Code CLI, print mode) | the judge, once it works — see below |
+| `claude:<model>` | `claude -p` (Claude Code CLI, print mode) | the judge (built) — see below |
 | `ollama:<model>` | a local Ollama daemon | offline fallback, cheap iteration |
 | `cmd:<exe>` | a subprocess: input on stdin, output on stdout | the escape hatch |
 
@@ -84,15 +84,15 @@ synthesis finishes; the UI streams its render. Where it does **not** reach: the
 frozen artifact is still assembled whole and hashed once complete — streaming
 is an edge behavior, the record is atomic.
 
-## The judge, and the `claude -p` migration
+## The judge, and the `claude -p` runner
 
-The judge starts on a Modal-served OpenAI-compatible LLM (the same endpoint the
-persona uses — one deploy, `openai:` runner). **Once it works, it moves to
-`claude -p`** (Claude Code CLI print mode, the `claude:` runner) — maintainer
-decision, 2026-07-15. Reasons: it is a stronger judge, it needs no GPU deploy,
-and swapping the runner selector is the whole change — the judge stage, its
-cache key, and its verdict schema do not move. Modal-served LLM stays as the
-bootstrap and the offline fallback.
+The judge is **built** (`packages/judge`) and runs on `claude -p` (Claude Code
+CLI print mode, the `claude:` runner) — maintainer decision, 2026-07-15. It was
+specced to bootstrap on a Modal-served OpenAI-compatible LLM and migrate; in
+practice it went straight to `claude -p` (a stronger judge, no GPU deploy, and
+the runner seam made it a config line). The Modal-served LLM remains available as
+an offline fallback. The judge stage, its content-hash cache key, and its verdict
+schema are runner-independent — swapping the selector is the whole change.
 
 This is exactly what the runner seam buys: the judge's determinism story (a
 verdict frozen against a content hash, [architecture.md](architecture.md)) is

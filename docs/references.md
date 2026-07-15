@@ -206,7 +206,8 @@ learns which model or host produced it, and selection is a `provider:model`
 string with the host as a base-URL override. Its `openai:` runner reaches any
 OpenAI-compatible endpoint; its `claude:` runner is `claude -p` (Claude Code
 CLI, print mode). callbench adopts this whole shape — see
-[models.md](models.md). Read `packages/goldseam/src/heal/runners.ts`.
+[models.md](models.md). Read `~/Projects/goldseam/packages/goldseam/src/heal/runners.ts`
+(external repo, not an in-repo package).
 
 **The Modal serve pattern** comes from `goldseam/selfhost/modal/` and
 `car-diagnosis/src/cardiag/modal/serve_qwen.py`: a vLLM OpenAI-compatible

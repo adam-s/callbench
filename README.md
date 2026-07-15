@@ -68,31 +68,42 @@ what else improves — the full set is in [AGENTS.md](AGENTS.md).
 
 ```text
 AGENTS.md            principles and policy for coding agents (start here)
-docs/                brief, architecture, plan, probes, drivers, speech, ui, models
+docs/                brief, architecture, plan, probes, drivers, speech, ui,
+                     models, warm-up-call
 docs/references.md   prior art per concept — read before building a seam
+docs/connotation/    connotation-pass artifacts for scenarios' outward text
 docs/contracts/      what each increment froze
 .agents/             skills and references (.claude/skills symlinks here)
-packages/            shared, transport, transcript, stt, tts, turn, simulator, assert
+packages/            shared, transport, transcript, stt, tts, turn, simulator,
+                     assert, judge, scenario, runplan
+apps/web/            the SvelteKit evidence viewer (server-side; renders artifacts)
 infra/modal/         self-hosted models (STT, TTS, LLM) + manage.sh; see models.md
 scripts/probes/      one-shot empirical discovery against a live surface
 scripts/evals/       model/provider comparisons over captured data
+scripts/preflight.ts live-run pre-flight — prints the bounded plan, places no call
 scripts/lib/         shared script plumbing (the dial guard, the tunnel helper)
 data/                gitignored — raw capture. No test may read it.
 ```
 
 ## Status
 
-Built and gate-green: **Increment 0** (scaffold), **1** (transport + loopback,
-timing baseline), **2** (speech in/out — contracts frozen, pipeline proven; the
-live two-turn exchange is pending a dial), **3** (the target simulator's flow +
-defect switches; live answering pending a dial), and **4a** (the assertion layer
-and the three-state outcome). Models run self-hosted on Modal
-([docs/models.md](docs/models.md)); STT and TTS are deployed.
+Built and gate-green, all against the deterministic simulator (no live dial yet):
+**Increment 0** (scaffold), **1** (transport + loopback, timing baseline),
+**2** (speech in/out — contracts frozen, pipeline proven), **3** (the target
+simulator's flow + defect switches), **4** (the assertion layer + three-state
+outcome, the judge, and the scenario runner), **5** (the web UI — routes, the
+on-disk run-artifact contract, the dial fence, the audio centerpiece
+"click a finding → hear its span", and temporal dataviz), and **7a** (the
+live-run pre-flight: bounded caps enforced in code, consent + connotation gates,
+a plan that stops before the dial). Models run self-hosted on Modal
+([docs/models.md](docs/models.md)); the live speech path needs Modal STT/TTS
+configured (a maintainer step).
 
-Next: the judge (Increment 4b), the scenario runner, the web UI (Increment 5),
-the hybrid persona (6), and the first live run against the real shop (7) — which
-stays human-gated, dial by dial. See [docs/plan.md](docs/plan.md) for the
-increments and, more usefully, for why they're in that order.
+Ahead, all requiring a live dial the maintainer starts, one call at a time: the
+live loopback proof and first live scenario (closing Increments 2–4 against real
+audio), the hybrid persona (Increment 6), and the first live run against the real
+shop (Increment 7b). See [docs/plan.md](docs/plan.md) for the increments and,
+more usefully, for why they're in that order.
 
 Two ordering claims worth knowing up front:
 

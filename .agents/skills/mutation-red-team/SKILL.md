@@ -85,8 +85,10 @@ The invariants each increment freezes, and the mutations it owes this catalog.
 Entries marked "verified CAUGHT" have run against landed code; the rest wait on
 their increment. Built so far: 1 (transport), 2 (speech: transcript, stt, tts,
 turn), 3 (simulator), 4a (assertion layer), 4b (the judge), the scenario runner,
-5 (web UI scaffold + routes + run-artifact contract + dial fence). The audio
-engine, the rich dataviz, and the live-run surfaces are ahead.
+5 (web UI — routes, run-artifact contract, dial fence, the audio centerpiece
+engine + waveform + serving, and temporal dataviz), and 7a (live-run pre-flight,
+`packages/runplan`). The live-dial surfaces (loopback, first live scenario, the
+hybrid persona, the real run) are ahead — each needs a maintainer-started dial.
 
 - **Increment 1 (dial guard) — CRITICAL, verified CAUGHT:** in
   `scripts/lib/twilio.ts`, neuter `assertDialAllowed`'s ownership check
@@ -195,7 +197,7 @@ engine, the rich dataviz, and the live-run surfaces are ahead.
     load instead of surfacing it as `broken`. Corrupt evidence vanishes from
     every navigational surface (against append-only / surface-interventions); the
     broken-surfacing test fails.
-- **Increment 6 (audio centerpiece) — verified CAUGHT:** the run-audio contract
+- **Increment 5 (audio centerpiece) — verified CAUGHT:** the run-audio contract
   (`artifact.ts` `RunAudio` + bodyHash coverage), the serving path
   (`runs.ts readRunAudio`, `waveform.ts`), and the ported engine
   (`transport.svelte.ts`, tested in the jsdom project). Each mutation failed its
