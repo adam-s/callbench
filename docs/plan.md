@@ -33,7 +33,7 @@ module and the core types, docs. Gate green from the first commit.
 
 Frozen: [contracts/increment-00-scaffold.md](contracts/increment-00-scaffold.md).
 
-## Increment 1 — Transport + loopback dry run
+## Increment 1 — Transport + loopback dry run ✅
 
 **Done when** the harness places a call to a number the maintainer owns, streams
 audio both ways, and writes a timestamped transcript — without a single call
@@ -59,7 +59,10 @@ reaching the shop.
   figure is meaningless without it. Name the two endpoints and stamp both from
   one clock at one layer.
 
-Freezes: the transport contract, the frame format, the clock and its layer.
+Frozen: [contracts/increment-01-transport.md](contracts/increment-01-transport.md) —
+the contract, the measured frame format, the clock and its layer, and the
+timing baseline (~180ms one-way, ~360ms round trip, replicated across two
+runs).
 
 ## Increment 2 — Speech in, speech out
 
