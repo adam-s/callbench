@@ -31,7 +31,10 @@ export function mulawToLinear(byte: number): number {
 	const mantissa = u & 0x0f;
 	let sample = ((mantissa << 3) + BIAS) << exponent;
 	sample -= BIAS;
-	return sign ? -sample : sample;
+	// `|| 0` normalizes negative zero: the sign bit on a zero-magnitude sample
+	// would otherwise return -0, which is harmless in an Int16Array but disagrees
+	// with the G.711 reference decoder (ffmpeg) that our oracle test pins against.
+	return (sign ? -sample : sample) || 0;
 }
 
 /** Encode a PCM buffer (16-bit samples) to μ-law bytes. */
@@ -59,4 +62,37 @@ export function tone(frequencyHz: number, durationMs: number, amplitude = 0.5): 
 		);
 	}
 	return encodePcm(samples);
+}
+
+/**
+ * Goertzel: how much of `frequencyHz` is present in a μ-law frame, as a
+ * fraction of the frame's total energy (0..~1).
+ *
+ * The loopback run needs this because energy alone lies. A leg on a loopback
+ * can hear an ECHO of its own tone; keying a "heard the answer" timing off any
+ * loud frame then measures the echo, not the round trip, and reports a
+ * confident-but-wrong latency where the honest answer is "couldn't tell". A
+ * frequency-specific test only counts the burst it was actually waiting for.
+ */
+export function toneStrength(bytes: Uint8Array, frequencyHz: number): number {
+	const sampleRate = 8000;
+	const pcm = decodeMulaw(bytes);
+	if (pcm.length === 0) return 0;
+	const k = (2 * Math.PI * frequencyHz) / sampleRate;
+	const coeff = 2 * Math.cos(k);
+	let s0 = 0;
+	let s1 = 0;
+	let s2 = 0;
+	let total = 0;
+	for (const sample of pcm) {
+		const x = sample / 32768;
+		s0 = x + coeff * s1 - s2;
+		s2 = s1;
+		s1 = s0;
+		total += x * x;
+	}
+	const power = s1 * s1 + s2 * s2 - coeff * s1 * s2;
+	// Normalize against the frame's total energy so the result is a fraction,
+	// not an amplitude — comparable across frames regardless of loudness.
+	return total > 0 ? power / (total * pcm.length) : 0;
 }

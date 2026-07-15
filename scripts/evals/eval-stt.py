@@ -130,11 +130,16 @@ def main() -> None:
     shutil.copy(audio, outdir / audio.name)
 
     results = []
+    prior = {}
+    if (outdir / "results.json").exists():
+        prior = json.loads((outdir / "results.json").read_text())
     for model in MODELS:
         tfile = outdir / "transcripts" / f"{model}.txt"
-        if tfile.exists():
+        # A transcript without a matching results.json entry means an interrupted
+        # run; re-transcribe rather than crash on the missing timing.
+        if tfile.exists() and model in prior:
             text = tfile.read_text().strip()
-            elapsed = json.loads((outdir / "results.json").read_text())[model]["seconds"]
+            elapsed = prior[model]["seconds"]
             print(f"{model:10} (cached) {text[:80]}")
         else:
             text, elapsed = transcribe(model, audio)

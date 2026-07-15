@@ -61,6 +61,19 @@ function fakeClock(startAt = 0) {
 	return { now, tick: (ms: number) => (t += ms) };
 }
 
+/**
+ * A clock that advances a fixed step on EVERY read. This is the oracle the
+ * red-team asked for: the stamp is `now()` read at the top of the message
+ * handler, before parsing. With a per-read clock, "stamp before parse" and
+ * "stamp after parse" produce DIFFERENT values — an implementation that moved
+ * the read below `parseMessage` would fail the assertions below. A clock that
+ * only moves on explicit ticks cannot tell the two apart.
+ */
+function tickingClock(step: number) {
+	let reads = 0;
+	return { now: () => reads++ * step, readsSoFar: () => reads };
+}
+
 async function handshaken(
 	overrides: Partial<Parameters<typeof createTwilioSession>[1]> = {},
 ): Promise<{ socket: FakeSocket; session: TransportSession; tick: (ms: number) => number }> {
@@ -84,6 +97,15 @@ async function collect(session: TransportSession): Promise<TransportEvent[]> {
 	return events;
 }
 
+// The wire's real stop shape (nested stop object), not the bare subset the
+// adapter happens to need — a fixture pinned to an assumption catches no drift.
+const STOP = JSON.stringify({
+	event: 'stop',
+	sequenceNumber: '9',
+	streamSid: `MZ${'0'.repeat(32)}`,
+	stop: { accountSid: `AC${'0'.repeat(32)}`, callSid: `CA${'0'.repeat(32)}` },
+});
+
 describe('handshake', () => {
 	it('resolves with identity as data: provider, sessionId, anchor', async () => {
 		const { session } = await handshaken();
@@ -94,10 +116,15 @@ describe('handshake', () => {
 
 	it('delivers connected and started first, stamped at their arrival times', async () => {
 		const { socket, session } = await handshaken();
-		socket.deliver('{"event":"stop","sequenceNumber":"9","streamSid":"MZx"}');
+		socket.deliver(STOP);
 		const [first, second] = await collect(session);
 		expect(first).toEqual({ type: 'connected', atMs: 5 });
-		expect(second).toMatchObject({ type: 'started', atMs: 10, tracks: ['inbound'] });
+		expect(second).toEqual({
+			type: 'started',
+			atMs: 10,
+			tracks: ['inbound'],
+			format: { encoding: 'audio/x-mulaw', sampleRate: 8000, channels: 1 },
+		});
 	});
 
 	it('refuses a format the bench does not speak, before any session exists', async () => {
@@ -124,6 +151,88 @@ describe('handshake', () => {
 		socket.dropConnection();
 		await expect(pending).rejects.toThrow(/closed during handshake/);
 	});
+
+	it('rejects when the socket errors mid-handshake', async () => {
+		const socket = new FakeSocket();
+		const pending = createTwilioSession(socket, {});
+		socket.deliver(connectedText);
+		socket.failWith(new Error('econnreset'));
+		await expect(pending).rejects.toThrow(/econnreset/);
+		expect(socket.closed).toBe(true);
+	});
+});
+
+describe('the stamp layer — before parse, once per message', () => {
+	// The headline frozen fact: atMs is read at the top of the message handler,
+	// before parseMessage. A per-read clock is the only oracle that discriminates
+	// entry-stamping from re-stamping — the hand-cranked clock cannot, because it
+	// does not move between the two positions.
+	it('stamps a malformed message from the entry read, not a re-read in the catch', async () => {
+		const socket = new FakeSocket();
+		const clock = tickingClock(100); // +100ms per clock read
+		const pending = createTwilioSession(socket, { now: clock.now });
+		socket.deliver(connectedText); // entry read #1 -> 100
+		socket.deliver(startText); // entry read #2 -> 200, resolves
+		const session = await pending;
+		socket.deliver('not json'); // entry read #3 -> 300; parse throws
+		const events = await collect(session);
+		const err = events.at(-1);
+		if (err?.type !== 'error') throw new Error(`expected error, got ${err?.type}`);
+		// 300 = the stamp taken on entry, before the throw. A regression that
+		// re-read the clock inside the catch would produce 400.
+		expect(err.atMs).toBe(300);
+	});
+
+	it('takes exactly one clock read per message (monotonic single-step)', async () => {
+		const socket = new FakeSocket();
+		const clock = tickingClock(100);
+		// No `zero` option: construction consumes read #0 (-> 0) as the baseline,
+		// so each message's single entry read is 100, 200, 300 — an extra clock
+		// read anywhere in the handler path would break this exact-step sequence.
+		const pending = createTwilioSession(socket, { now: clock.now });
+		socket.deliver(connectedText); // read #1 -> 100
+		socket.deliver(startText); // read #2 -> 200
+		const session = await pending;
+		socket.deliver(silenceText); // read #3 -> 300
+		socket.deliver(STOP); // read #4 -> 400
+		const [connected, started, audio] = await collect(session);
+		expect(connected?.atMs).toBe(100);
+		expect(started?.atMs).toBe(200);
+		expect(audio?.atMs).toBe(300);
+	});
+});
+
+describe('EventQueue waiter path (parked consumer, slow producer)', () => {
+	// Every other test delivers all messages before iterating, so the buffer is
+	// always pre-populated and next() never parks a waiter. That is the OPPOSITE
+	// of a live call, where the consumer waits and frames trickle in. These
+	// exercise the waiter branches directly.
+	it('delivers to a consumer that is already waiting', async () => {
+		const { socket, session } = await handshaken();
+		const iterator = session.events[Symbol.asyncIterator]();
+		void (await iterator.next()); // drain connected
+		void (await iterator.next()); // drain started
+		const pending = iterator.next(); // now PARKED — no buffered events
+		socket.deliver(silenceText); // arrives to a waiter, not a buffer
+		const result = await pending;
+		expect(result.done).toBe(false);
+		if (result.value.type !== 'audio') throw new Error('expected audio');
+		expect(result.value.bytes.length).toBe(160);
+	});
+
+	it('delivers a terminal event to a parked consumer and then ends', async () => {
+		const { socket, session } = await handshaken();
+		const iterator = session.events[Symbol.asyncIterator]();
+		void (await iterator.next());
+		void (await iterator.next());
+		const pending = iterator.next(); // parked
+		socket.dropConnection(); // terminal error to a waiter
+		const result = await pending;
+		if (result.done !== false || result.value.type !== 'error') {
+			throw new Error('expected a terminal error event to the parked waiter');
+		}
+		expect((await iterator.next()).done).toBe(true);
+	});
 });
 
 describe('shared zero', () => {
@@ -143,8 +252,8 @@ describe('shared zero', () => {
 		const a = await make();
 		clock.tick(500);
 		const b = await make();
-		a.socket.deliver('{"event":"stop","sequenceNumber":"9","streamSid":"MZx"}');
-		b.socket.deliver('{"event":"stop","sequenceNumber":"9","streamSid":"MZx"}');
+		a.socket.deliver(STOP);
+		b.socket.deliver(STOP);
 		const [aFirst] = await collect(a.session);
 		const [bFirst] = await collect(b.session);
 		if (!aFirst || !bFirst) throw new Error('missing events');
@@ -158,7 +267,7 @@ describe('inbound events', () => {
 		const { socket, session, tick } = await handshaken();
 		tick(20);
 		socket.deliver(silenceText);
-		socket.deliver('{"event":"stop","sequenceNumber":"9","streamSid":"MZx"}');
+		socket.deliver(STOP);
 		const events = await collect(session);
 		const audio = events.find((e) => e.type === 'audio');
 		if (audio?.type !== 'audio') throw new Error('no audio event');
@@ -171,7 +280,7 @@ describe('inbound events', () => {
 		const { socket, session } = await handshaken();
 		socket.deliver('{"event":"dtmf","dtmf":{"track":"inbound_track","digit":"7"}}');
 		socket.deliver('{"event":"mark","mark":{"name":"utt-1"}}');
-		socket.deliver('{"event":"stop","sequenceNumber":"9","streamSid":"MZx"}');
+		socket.deliver(STOP);
 		const events = await collect(session);
 		expect(events.some((e) => e.type === 'dtmf' && e.digit === '7')).toBe(true);
 		expect(events.some((e) => e.type === 'mark' && e.name === 'utt-1')).toBe(true);
@@ -179,7 +288,7 @@ describe('inbound events', () => {
 
 	it('ends iteration at stop, and a later close adds nothing', async () => {
 		const { socket, session } = await handshaken();
-		socket.deliver('{"event":"stop","sequenceNumber":"9","streamSid":"MZx"}');
+		socket.deliver(STOP);
 		socket.dropConnection();
 		const events = await collect(session);
 		expect(events.at(-1)?.type).toBe('stopped');
@@ -207,7 +316,7 @@ describe('inbound events', () => {
 		const { socket, session } = await handshaken();
 		socket.deliver('{"event":"someFutureThing","x":1}');
 		socket.deliver(silenceText);
-		socket.deliver('{"event":"stop","sequenceNumber":"9","streamSid":"MZx"}');
+		socket.deliver(STOP);
 		const events = await collect(session);
 		expect(events.map((e) => e.type)).toEqual(['connected', 'started', 'audio', 'stopped']);
 	});

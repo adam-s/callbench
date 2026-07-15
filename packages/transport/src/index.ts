@@ -1,4 +1,11 @@
-export { decodeMulaw, encodePcm, linearToMulaw, mulawToLinear, tone } from './audio/mulaw.ts';
+export {
+	decodeMulaw,
+	encodePcm,
+	linearToMulaw,
+	mulawToLinear,
+	tone,
+	toneStrength,
+} from './audio/mulaw.ts';
 export type { MediaFormat, TransportEvent, TransportSession } from './contract.ts';
 export type { TwilioMessage } from './twilio/frames.ts';
 export {

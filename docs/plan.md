@@ -5,7 +5,8 @@ as its only input, ends by passing the checkout gate (`pnpm typecheck && pnpm
 lint && pnpm vitest run` green, plus a red-team pass), and writes what it froze
 to `docs/contracts/increment-NN-*.md`.
 
-Increment 0 is done: this scaffold. Everything below is unbuilt.
+Increments 0 (scaffold) and 1 (transport + loopback) are done; the ✅ headings
+below carry their frozen contracts. Everything after them is unbuilt.
 
 The goal the increments serve: a small set of scenarios, each run a handful of
 times against a real voice agent, producing frozen reports a human turns into a

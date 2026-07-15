@@ -21,6 +21,12 @@ export function wsToMediaSocket(ws: WebSocket): MediaSocket {
 	return {
 		send: (text) => ws.send(text),
 		close: () => ws.close(),
+		// Twilio Media Streams sends text frames only (JSON). `data.toString()`
+		// on an unexpected binary or fragmented frame yields a non-JSON string,
+		// which the adapter surfaces as a malformed-message error and ends the
+		// session — the correct, visible failure. Accepted (red-team LOW): a
+		// dedicated "unexpected binary frame" reason would be marginally clearer
+		// but the outcome (surface + end, never silently drop) is already right.
 		onMessage: (cb) => ws.on('message', (data) => cb(data.toString())),
 		onClose: (cb) => ws.on('close', cb),
 		onError: (cb) => ws.on('error', cb),

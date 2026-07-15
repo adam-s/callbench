@@ -60,7 +60,18 @@ export type TwilioMessage =
 				readonly payload: string;
 			};
 	  }
-	| { readonly event: 'stop'; readonly sequenceNumber: string; readonly streamSid: string }
+	| {
+			readonly event: 'stop';
+			readonly sequenceNumber: string;
+			readonly streamSid: string;
+			// Twilio's stop carries a nested object with the account and call
+			// SIDs. The adapter doesn't read it (a stop is a stop), but the type
+			// reflects the real wire shape rather than a convenient subset — an
+			// earlier version omitted it, and a fixture pinned to an assumption
+			// catches no drift. Optional because it costs nothing to tolerate a
+			// bare stop, and stop is terminal regardless.
+			readonly stop?: { readonly accountSid: string; readonly callSid: string };
+	  }
 	| { readonly event: 'dtmf'; readonly dtmf: { readonly track: string; readonly digit: string } }
 	| { readonly event: 'mark'; readonly mark: { readonly name: string } }
 	/** An event name this codec doesn't know. Preserved verbatim so the adapter

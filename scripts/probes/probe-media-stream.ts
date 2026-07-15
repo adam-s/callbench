@@ -32,6 +32,7 @@ import { createServer } from 'node:http';
 import { join } from 'node:path';
 import { WebSocketServer } from 'ws';
 import { startTunnel, waitForTunnel } from '../lib/tunnel.ts';
+import { assertDialAllowed } from '../lib/twilio.ts';
 
 const PORT = 8788;
 const API = 'https://api.twilio.com/2010-04-01';
@@ -90,11 +91,10 @@ async function main(): Promise<void> {
 	}
 	// Not a formality: this probe streams audio and writes it to disk. Pointing
 	// it at the system under test would be an unapproved dial AND an unapproved
-	// capture, in one command, with no human between.
-	const target = process.env.CALLBENCH_TARGET_NUMBER;
-	if (target && to === target) {
-		throw new Error('Refusing: loopback number equals the system under test.');
-	}
+	// capture, in one command, with no human between. The guard is ownership-
+	// based (dials only account-owned numbers), so it cannot no-op on an unset
+	// env var the way the old target-equality check could.
+	await assertDialAllowed(sid, token, to);
 
 	const auth = authHeader(sid, token);
 	const raws: Raw[] = [];

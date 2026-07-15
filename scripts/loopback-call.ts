@@ -35,40 +35,22 @@ import {
 	type TransportEvent,
 	type TransportSession,
 	tone,
+	toneStrength,
 } from '@callbench/transport';
 import { startTunnel, waitForTunnel } from './lib/tunnel.ts';
+import {
+	twilioApi as api,
+	assertDialAllowed,
+	hangUp,
+	requireAccountSid,
+	required,
+} from './lib/twilio.ts';
 
 const PORT = 8790;
-const API = 'https://api.twilio.com/2010-04-01';
 const WALL_CAP_MS = 75_000;
 /** Mean |PCM| above this = a voiced frame. Tones sit ~10x higher; the PSTN
  * noise floor sits far below. */
 const VOICE_ENERGY = 1000;
-
-function required(name: string): string {
-	const v = process.env[name];
-	if (!v) throw new Error(`${name} is not set. Run with --env-file=.env`);
-	return v;
-}
-
-async function api(
-	sid: string,
-	token: string,
-	path: string,
-	body?: URLSearchParams,
-): Promise<Record<string, unknown>> {
-	const res = await fetch(`${API}${path}`, {
-		method: body ? 'POST' : 'GET',
-		headers: {
-			Authorization: `Basic ${Buffer.from(`${sid}:${token}`).toString('base64')}`,
-			...(body ? { 'Content-Type': 'application/x-www-form-urlencoded' } : {}),
-		},
-		body,
-	});
-	const parsed = (await res.json()) as Record<string, unknown>;
-	if (!res.ok) throw new Error(`HTTP ${res.status} from ${path}: ${parsed.message}`);
-	return parsed;
-}
 
 function isVoiced(bytes: Uint8Array): boolean {
 	const pcm = decodeMulaw(bytes);
@@ -86,14 +68,13 @@ interface LegRecord {
 }
 
 async function main(): Promise<void> {
-	const sid = required('TWILIO_ACCOUNT_SID');
+	const sid = requireAccountSid();
 	const token = required('TWILIO_AUTH_TOKEN');
 	const from = required('TWILIO_FROM_NUMBER');
 	const to = required('CALLBENCH_LOOPBACK_NUMBER');
-	if (!sid.startsWith('AC')) throw new Error('TWILIO_ACCOUNT_SID must start with AC');
-	if (process.env.CALLBENCH_TARGET_NUMBER && to === process.env.CALLBENCH_TARGET_NUMBER) {
-		throw new Error('Refusing: loopback number equals the system under test.');
-	}
+	// Ownership-checked destination guard (shared with the probes) — dials only
+	// account-owned numbers, no unset-env silent pass.
+	await assertDialAllowed(sid, token, to);
 
 	// One clock for everything in this process — the whole point of the run.
 	const zero = performance.now();
@@ -116,12 +97,24 @@ async function main(): Promise<void> {
 		finishRun = r;
 	});
 
+	// The tone each leg is WAITING to hear from the other. Detection is
+	// frequency-specific (Goertzel), not just "loud", so a leg cannot latch onto
+	// an echo of its own tone and report an echo as a round trip — the MEDIUM
+	// finding from the red-team. A leg hears its counterpart's tone or it hears
+	// nothing; there is no third confidently-wrong reading.
+	const EXPECTED_TONE: Record<'bench' | 'sim', number> = { bench: 600, sim: 440 };
+	const TONE_THRESHOLD = 0.02;
+
+	function hearsExpectedTone(leg: 'bench' | 'sim', bytes: Uint8Array): boolean {
+		return isVoiced(bytes) && toneStrength(bytes, EXPECTED_TONE[leg]) > TONE_THRESHOLD;
+	}
+
 	function record(leg: 'bench' | 'sim', ev: TransportEvent): void {
 		const rec = records[leg];
 		if (ev.type === 'audio') {
 			rec.audio.push(ev.bytes);
 			rec.events.push({ leg, type: 'audio', atMs: ev.atMs, bytes: ev.bytes.length });
-			if (isVoiced(ev.bytes)) {
+			if (hearsExpectedTone(leg, ev.bytes)) {
 				if (rec.firstVoicedAtMs === null) rec.firstVoicedAtMs = ev.atMs;
 				rec.voicedBursts.push(ev.atMs);
 			}
@@ -145,13 +138,18 @@ async function main(): Promise<void> {
 				session.sendAudio(tone(600, 400));
 				session.sendMark('sim-greeting');
 			}
-			if (leg === 'sim' && ev.type === 'audio' && !replied && isVoiced(ev.bytes)) {
+			if (leg === 'sim' && ev.type === 'audio' && !replied && hearsExpectedTone('sim', ev.bytes)) {
 				replied = true;
 				simRepliedAtMs = clock();
 				session.sendAudio(tone(1000, 400));
 				session.sendMark('sim-reply');
 			}
-			if (leg === 'bench' && ev.type === 'audio' && benchSentAtMs === null && isVoiced(ev.bytes)) {
+			if (
+				leg === 'bench' &&
+				ev.type === 'audio' &&
+				benchSentAtMs === null &&
+				hearsExpectedTone('bench', ev.bytes)
+			) {
 				benchSentAtMs = clock();
 				session.sendAudio(tone(440, 400));
 				session.sendMark('bench-probe');
@@ -170,17 +168,27 @@ async function main(): Promise<void> {
 		if (done.bench && done.sim) finishRun();
 	}
 
+	// A leg coroutine that throws must not become an unhandled rejection —
+	// Node ≥15 terminates the process on those, which during the call window
+	// would skip the hang-up. Route any leg failure into the normal end path;
+	// the finally-block cleanup then hangs up.
+	const runLegSafely = (leg: 'bench' | 'sim', s: TransportSession) =>
+		runLeg(leg, s).catch((e: unknown) => {
+			console.error(`${leg}   : leg failed: ${e instanceof Error ? e.message : e}`);
+			finishRun();
+		});
+
 	// 1. Serve both legs on one port.
 	const endpoint = await serveTwilioMedia({
 		port: PORT,
 		routes: {
 			'/bench-media': {
-				onSession: (s) => void runLeg('bench', s),
+				onSession: (s) => void runLegSafely('bench', s),
 				onSessionError: (e) => console.error(`bench : handshake failed: ${e.message}`),
 				sessionOptions: { now: clock, zero: 0, anchorEpochMs },
 			},
 			'/sim-media': {
-				onSession: (s) => void runLeg('sim', s),
+				onSession: (s) => void runLegSafely('sim', s),
 				onSessionError: (e) => console.error(`sim   : handshake failed: ${e.message}`),
 				sessionOptions: { now: clock, zero: 0, anchorEpochMs },
 			},
@@ -228,7 +236,12 @@ async function main(): Promise<void> {
 	);
 	console.log(`config : ${to} VoiceUrl -> https://${tunnel.host}/sim-twiml`);
 
-	// 4. ONE call: bench dials the simulator.
+	// 4. ONE call: bench dials the simulator. Everything from here is inside a
+	// try/finally with a signal handler, because between this dial and the
+	// hang-up there is a LIVE CALL. A thrown error, an unhandled leg rejection,
+	// or an operator Ctrl-C in this window must still hang up the call and drop
+	// the tunnel — leaving a stranger-facing line connected is exactly the
+	// failure this bench must never cause, even against a number we own.
 	console.log(`\nDialing ${to} from ${from} — one call, no retry. No phone rings.`);
 	const placed = await api(
 		sid,
@@ -243,24 +256,37 @@ async function main(): Promise<void> {
 	const callSid = String(placed.sid);
 	console.log(`call   : ${callSid} [${placed.status}]`);
 
-	// 5. Run until both bursts are heard, or the cap trips.
-	const capped = setTimeout(() => {
-		console.log('cap    : wall clock reached — ending');
-		finishRun();
-	}, WALL_CAP_MS);
-	await finished;
-	clearTimeout(capped);
+	let cleanedUp = false;
+	const cleanup = async () => {
+		if (cleanedUp) return;
+		cleanedUp = true;
+		sessions.bench?.end();
+		sessions.sim?.end();
+		await hangUp(sid, token, callSid);
+		tunnel.stop();
+		await endpoint.close();
+	};
+	// Ctrl-C during the call window: hang up, then leave.
+	const onSignal = () => {
+		console.log('\nsignal : interrupted — hanging up the live call before exit');
+		void cleanup().finally(() => process.exit(130));
+	};
+	process.once('SIGINT', onSignal);
+	process.once('SIGTERM', onSignal);
 
-	sessions.bench?.end();
-	sessions.sim?.end();
-	await api(
-		sid,
-		token,
-		`/Accounts/${sid}/Calls/${callSid}.json`,
-		new URLSearchParams({ Status: 'completed' }),
-	).catch(() => {});
-	tunnel.stop();
-	await endpoint.close();
+	try {
+		// 5. Run until the exchange completes, or the cap trips.
+		const capped = setTimeout(() => {
+			console.log('cap    : wall clock reached — ending');
+			finishRun();
+		}, WALL_CAP_MS);
+		await finished;
+		clearTimeout(capped);
+	} finally {
+		process.off('SIGINT', onSignal);
+		process.off('SIGTERM', onSignal);
+		await cleanup();
+	}
 
 	// 6. Freeze: events, audio, timings, hashes.
 	const dir = join('data', 'loopback', String(anchorEpochMs));

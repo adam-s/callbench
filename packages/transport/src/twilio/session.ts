@@ -63,7 +63,15 @@ export interface TwilioSessionOptions {
 	readonly maxBufferedEvents?: number;
 }
 
-/** Async queue: push from the socket handler, pull via for-await. */
+/**
+ * Async queue: push from the socket handler, pull via for-await.
+ *
+ * Single-consumer by design. `#buf` and `#waiters` are shared state, so two
+ * concurrent iterators would each steal a subset of events — but `events` is
+ * typed `AsyncIterable` and consumed by exactly one for-await in every caller.
+ * Accepted (red-team LOW): correct for today's use; if a second consumer is
+ * ever needed, that is a fan-out concern for the layer above, not this queue.
+ */
 class EventQueue {
 	readonly #cap: number;
 	#buf: TransportEvent[] = [];

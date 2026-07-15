@@ -17,6 +17,8 @@
  *   node --env-file=.env scripts/probes/probe-dial.ts          # place ONE call
  */
 
+import { assertDialAllowed, hangUp } from '../lib/twilio.ts';
+
 const API = 'https://api.twilio.com/2010-04-01';
 
 /** Polling is capped so a stuck call ends the probe rather than hanging. */
@@ -116,11 +118,11 @@ async function main(): Promise<void> {
 			`TWILIO_FROM_NUMBER ${from} is not owned by this account. Owned: ${owned.join(', ') || 'none'}`,
 		);
 	}
-	if (to === process.env.CALLBENCH_TARGET_NUMBER) {
-		throw new Error(
-			'Refusing: loopback number equals the system under test. This probe dials owned numbers only.',
-		);
-	}
+	// The destination guard: ownership-checked against the account, so it has
+	// no unset-env silent pass. Red-team finding: the old check compared `to`
+	// against CALLBENCH_TARGET_NUMBER with `===` and no-opped when that var was
+	// unset — a guard that can evaporate is not a guard.
+	await assertDialAllowed(sid, token, to);
 
 	// Plain and self-identifying. The only listener is the maintainer, and a
 	// probe call should say what it is in the first three words.
@@ -152,8 +154,11 @@ async function main(): Promise<void> {
 	console.log(`Duration: ${final.duration ?? '?'}s`);
 	console.log(`Price   : ${final.price ?? 'not yet rated'} ${final.price_unit ?? ''}`);
 	if (!TERMINAL.has(String(final.status))) {
+		// Poll exhaustion is not permission to walk away from a live call — the
+		// other two dial scripts always hang up; this one now does too.
+		await hangUp(sid, token, callSid);
 		console.log(
-			`\nStill in flight after ${(POLL_MAX_ATTEMPTS * POLL_INTERVAL_MS) / 1000}s. Probe stops here; the call was NOT retried.`,
+			`\nStill in flight after ${(POLL_MAX_ATTEMPTS * POLL_INTERVAL_MS) / 1000}s — hang-up sent. The call was NOT retried.`,
 		);
 	}
 }
