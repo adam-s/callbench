@@ -75,13 +75,25 @@ def transcribe(model: str, audio: Path) -> tuple[str, float]:
     return text, elapsed
 
 
-def bar_chart(path: Path, title: str, labels: list[str], values: list[float], fmt: str) -> None:
+def bar_chart(
+    path: Path,
+    title: str,
+    labels: list[str],
+    values: list[float],
+    fmt: str,
+    percent_axis: bool = False,
+) -> None:
     import matplotlib
 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
+    from matplotlib.ticker import PercentFormatter
 
     fig, ax = plt.subplots(figsize=(6, 2.6), dpi=160)
+    if percent_axis:
+        # Axis and direct labels must share one unit system; a fraction axis
+        # under a "5%" label reads as two different measurements.
+        ax.xaxis.set_major_formatter(PercentFormatter(xmax=1.0, decimals=0))
     y = range(len(labels))
     ax.barh(y, values, height=0.55, color=HUE)
     ax.set_yticks(list(y), labels)
@@ -152,6 +164,7 @@ def main() -> None:
         [m for m, _, _ in scored],
         [w for _, w, _ in scored],
         "{:.0%}",
+        percent_axis=True,
     )
     bar_chart(
         outdir / "runtime.png",
