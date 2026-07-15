@@ -18,6 +18,12 @@ importers:
       '@callbench/shared':
         specifier: workspace:*
         version: link:packages/shared
+      '@callbench/stt':
+        specifier: workspace:*
+        version: link:packages/stt
+      '@callbench/transcript':
+        specifier: workspace:*
+        version: link:packages/transcript
       '@callbench/transport':
         specifier: workspace:*
         version: link:packages/transport
@@ -39,6 +45,28 @@ importers:
       '@types/node':
         specifier: ^25.5.0
         version: 25.9.5
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/stt:
+    dependencies:
+      '@callbench/transcript':
+        specifier: workspace:*
+        version: link:../transcript
+    devDependencies:
+      '@types/node':
+        specifier: ^24.13.3
+        version: 24.13.3
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/transcript:
+    devDependencies:
+      '@types/node':
+        specifier: ^24.13.3
+        version: 24.13.3
       typescript:
         specifier: 5.9.3
         version: 5.9.3
