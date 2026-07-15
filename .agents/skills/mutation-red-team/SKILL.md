@@ -218,7 +218,22 @@ engine, the rich dataviz, and the live-run surfaces are ahead.
   replay-pipeline-measures-nothing rule — the engine must stay render-only).
 - **Increment 6 (hybrid tester):** probe-point enforcement — let the persona
   skip a probe and see whether the run still reports success.
-- **Increment 7 (live run):** **the dial gate** — remove the human checkpoint;
+- **Increment 7a (live-run pre-flight, `packages/runplan`) — verified CAUGHT:**
+  the bounds and gates a run clears before it starts. Each mutation failed its
+  suite:
+  - **RunBudget stops enforcing** — make `started()` not throw past a cap. A
+    runner that ignores `canStart()` could exceed the call/wall-clock/concurrency
+    bound; the enforcement tests fail.
+  - **Caps accept unbounded** — neuter `assertPositiveFinite`. `Infinity`/0/NaN
+    caps pass; the "caps must be real bounds" tests fail.
+  - **Connotation gate removed** — a run for a scenario whose outward text was
+    never reviewed would be planned; the connotation-gate test fails.
+  - **Consent gate removed** — a system-under-test run without consent settled
+    would be planned; the consent-gate test fails.
+  Also structural: `runplan` imports no transport/dial primitive (a planner that
+  could dial is the human-in-the-loop invariant defeated) — the no-dial scan
+  fails if one is introduced.
+- **Increment 7b (live run):** **the dial gate** — remove the human checkpoint;
   add a retry-on-drop path; raise the concurrency cap; make the wall-clock cap
   advisory. Every one of these must be CAUGHT by a fake-transport test that
   counts dial attempts. Run this set BEFORE the first live call, not after.

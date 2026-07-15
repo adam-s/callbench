@@ -239,6 +239,14 @@ Prerequisites, all maintainer-gated, none routable-around:
   each scenario's assertions fail when the simulator is made to misbehave.** An
   assertion never observed failing is an assertion never observed.
 - Caps declared in the run config: call count, minutes, concurrency (default 1).
+  **Built (7a):** `@callbench/runplan` — `normalizeCaps` refuses any unbounded
+  cap, `RunBudget` enforces all three at runtime (`started()` throws past a cap,
+  so a runner that skips the check still cannot exceed it), and `preflight`
+  assembles a plan only if consent is settled, the plan stays within its own call
+  cap, and every scenario's outward text has passed the connotation pass
+  ([connotation/windshield-quote.md](connotation/windshield-quote.md)). The
+  operator entry point is `scripts/preflight.ts` — it prints the plan (number
+  redacted) and STOPS; it places no call. The package imports no dial primitive.
 - The `live-call` skill's checklist walked, dial by dial.
 
 The scenarios come from [probes.md](probes.md). Start with the disambiguation

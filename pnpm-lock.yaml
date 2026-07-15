@@ -21,6 +21,9 @@ importers:
       '@callbench/judge':
         specifier: workspace:*
         version: link:packages/judge
+      '@callbench/runplan':
+        specifier: workspace:*
+        version: link:packages/runplan
       '@callbench/scenario':
         specifier: workspace:*
         version: link:packages/scenario
@@ -125,6 +128,19 @@ importers:
       '@callbench/transcript':
         specifier: workspace:*
         version: link:../transcript
+    devDependencies:
+      '@types/node':
+        specifier: ^24.13.3
+        version: 24.13.3
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/runplan:
+    dependencies:
+      '@callbench/scenario':
+        specifier: workspace:*
+        version: link:../scenario
     devDependencies:
       '@types/node':
         specifier: ^24.13.3
