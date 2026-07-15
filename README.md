@@ -73,7 +73,8 @@ docs/references.md   prior art per concept — read before building a seam
 docs/contracts/      what each increment froze
 .agents/             skills and references (.claude/skills symlinks here)
 packages/            per-increment packages; none before its increment
-scripts/             bounded operator entry points
+scripts/probes/      one-shot empirical discovery against a live surface
+scripts/evals/       model/provider comparisons over captured data
 data/                gitignored — raw capture. No test may read it.
 ```
 

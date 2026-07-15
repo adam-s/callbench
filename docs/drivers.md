@@ -103,7 +103,7 @@ the two disagree, the probe wins: it was observed, this section was reasoned.
   On-net does **not** mean the phone leg can be bypassed; the target is dialed
   like any other number.
 
-## Probe findings (observed 2026-07-15, `scripts/probe-dial.ts`)
+## Probe findings (observed 2026-07-15, `scripts/probes/probe-dial.ts`)
 
 Read off the probe's output, not recalled. One call, `CAaf924658e222408adb17402b2e639777`.
 
@@ -140,7 +140,7 @@ transition, not when it occurred. They are not a latency baseline and must not
 be cited as one; that baseline needs frame-level stamps from one clock at one
 layer, per Increment 1.
 
-## Frame format — measured (2026-07-15, `scripts/probe-media-stream.ts`)
+## Frame format — measured (2026-07-15, `scripts/probes/probe-media-stream.ts`)
 
 Read off a real Media Stream, not documentation. One call to the loopback
 number, 413 messages captured; the raw capture and a summary are under

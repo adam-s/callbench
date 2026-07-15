@@ -36,7 +36,7 @@ The message schema, per Twilio's docs (to be confirmed against a capture; see
 `mediaFormat` is documented as `{encoding: "audio/x-mulaw", sampleRate: 8000,
 channels: 1}` — which is where the 8kHz-mulaw claim in
 [drivers.md](drivers.md) comes from. **It is documentation, not a measurement**,
-and `scripts/probe-media-stream.ts` exists to settle it against this account.
+and `scripts/probes/probe-media-stream.ts` exists to settle it against this account.
 
 Three details that shape the design:
 
@@ -72,7 +72,7 @@ options.
 before the edge will route to it.** Observed once at ~24s of HTTP 530, and once
 never resolving in DNS within 24s. Dialing on the printed URL cost a real call:
 Twilio's handshake hit the un-routed hostname, raised 31920, and the call died at
-1 second. `scripts/probe-media-stream.ts` therefore verifies the tunnel carries a
+1 second. `scripts/probes/probe-media-stream.ts` therefore verifies the tunnel carries a
 WebSocket *before* it spends a ring on a phone.
 
 Known trouble, worth reading before blaming your own code:

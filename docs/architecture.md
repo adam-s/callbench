@@ -208,7 +208,9 @@ packages/…           transport / stt / tts / scenario / transcript / assert /
                      judge / simulator, added per increment — not scaffolded
                      ahead of use
 apps/web/            SvelteKit — renders frozen reports. See ui.md.
-scripts/             bounded operator entry points (dial, report, probes)
+scripts/             bounded operator entry points, one folder per kind:
+scripts/probes/        one-shot empirical discovery against a live surface
+scripts/evals/         model/provider comparisons over captured data
 docs/contracts/      what each increment froze
 data/                gitignored — raw capture: recordings, transcripts, reports
 ```
@@ -219,4 +221,6 @@ alongside the source they test and travel with the repo. A suite that goes green
 only because `data/` happens to be present is green on one machine.
 
 Packages arrive when an increment needs them. Empty packages are inventory, and
-the lighter-thing rule says don't.
+the lighter-thing rule says don't. The same holds one level down: a script
+*kind* gets its folder when its first script exists — there is no empty
+`devops/` waiting for a deploy script that may never be written.

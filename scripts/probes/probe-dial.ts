@@ -13,8 +13,8 @@
  * skill, which is human-gated dial by dial.
  *
  * Usage:
- *   node --env-file=.env scripts/probe-dial.ts --list   # owned numbers only
- *   node --env-file=.env scripts/probe-dial.ts          # place ONE call
+ *   node --env-file=.env scripts/probes/probe-dial.ts --list   # owned numbers only
+ *   node --env-file=.env scripts/probes/probe-dial.ts          # place ONE call
  */
 
 const API = 'https://api.twilio.com/2010-04-01';

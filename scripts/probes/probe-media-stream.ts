@@ -24,7 +24,7 @@
  * skill, human-gated dial by dial. The check below is not a formality.
  *
  * Usage:
- *   node --env-file=.env scripts/probe-media-stream.ts
+ *   node --env-file=.env scripts/probes/probe-media-stream.ts
  */
 
 import { spawn } from 'node:child_process';
