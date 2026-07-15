@@ -1,0 +1,21 @@
+node_modules
+dist
+*.tsbuildinfo
+*.log
+.DS_Store
+
+# Credentials. There is no scenario in which a provider token belongs in git.
+.env
+.env.*
+!.env.example
+
+# Nothing in data/ is tracked — recordings, transcripts, reports, probe dumps.
+# All of it is either raw capture from a live call or derived from it, and a
+# recording of somebody's business line is not repo content. Reports that need
+# to be kept get promoted deliberately, by a human, with the consent question
+# already answered.
+data/
+temp/
+
+# Harness-created agent worktrees (isolation) — never tracked or linted.
+.claude/worktrees/
