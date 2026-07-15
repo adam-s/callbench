@@ -18,6 +18,9 @@ importers:
       '@callbench/shared':
         specifier: workspace:*
         version: link:packages/shared
+      '@callbench/transport':
+        specifier: workspace:*
+        version: link:packages/transport
       '@types/node':
         specifier: ^24.13.3
         version: 24.13.3

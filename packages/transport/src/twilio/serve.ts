@@ -6,6 +6,10 @@
  * the network — everything with behavior lives in session.ts and is tested
  * against fixtures through the MediaSocket seam. This file is exercised live
  * by the loopback runs, not by unit tests; keep it too small to hide a bug.
+ *
+ * Routes are a path→handler map because a loopback run hosts BOTH legs of a
+ * call in one process on one tunnel: the bench's stream on one path, the
+ * simulator's on another — which is also what puts both legs on one clock.
  */
 
 import { createServer, type Server } from 'node:http';
@@ -23,30 +27,35 @@ export function wsToMediaSocket(ws: WebSocket): MediaSocket {
 	};
 }
 
+export interface MediaRoute {
+	onSession: (session: TransportSession) => void;
+	/** Handshake failures land here — a refused session must be visible to the
+	 * operator, never swallowed. */
+	onSessionError: (err: Error) => void;
+	sessionOptions?: TwilioSessionOptions;
+}
+
 export interface MediaEndpoint {
 	readonly server: Server;
 	close(): Promise<void>;
 }
 
-/**
- * Listen for Media Stream connections on `path` and deliver each completed
- * session to `onSession`. Handshake failures go to `onSessionError` — a
- * refused session must be visible to the operator, never swallowed.
- */
 export function serveTwilioMedia(opts: {
 	port: number;
-	path: string;
-	onSession: (session: TransportSession) => void;
-	onSessionError: (err: Error) => void;
-	sessionOptions?: TwilioSessionOptions;
+	routes: Record<string, MediaRoute>;
 }): Promise<MediaEndpoint> {
 	const server = createServer();
-	const wss = new WebSocketServer({ server, path: opts.path });
+	const wss = new WebSocketServer({ server });
 
-	wss.on('connection', (ws) => {
-		createTwilioSession(wsToMediaSocket(ws), opts.sessionOptions).then(
-			opts.onSession,
-			opts.onSessionError,
+	wss.on('connection', (ws, req) => {
+		const route = opts.routes[req.url ?? ''];
+		if (!route) {
+			ws.close();
+			return;
+		}
+		createTwilioSession(wsToMediaSocket(ws), route.sessionOptions).then(
+			route.onSession,
+			route.onSessionError,
 		);
 	});
 

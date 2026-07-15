@@ -27,11 +27,11 @@
  *   node --env-file=.env scripts/probes/probe-media-stream.ts
  */
 
-import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { join } from 'node:path';
-import { WebSocket, WebSocketServer } from 'ws';
+import { WebSocketServer } from 'ws';
+import { startTunnel, waitForTunnel } from '../lib/tunnel.ts';
 
 const PORT = 8788;
 const API = 'https://api.twilio.com/2010-04-01';
@@ -42,38 +42,7 @@ const READY_PATH = '/__ready';
 /** Caps. Each one independently ends the probe. */
 const MAX_SECONDS = 45;
 const MAX_FRAMES = 400;
-const TUNNEL_WAIT_MS = 25_000;
 const ANSWER_WAIT_MS = 40_000;
-
-/**
- * Wait this long after the tunnel prints its URL before touching DNS at all.
- *
- * This looks like a superstitious sleep. It is not, and removing it will break
- * this script in a way that takes an hour to diagnose. The story, measured
- * 2026-07-15:
- *
- * cloudflared prints the public URL ~20s before the tunnel is registered — its
- * own banner says "it may take some time to be reachable", and its logs show
- * QUIC connecting ~11s and prechecks passing ~21s AFTER the URL appears.
- *
- * The trap: if you ask a resolver for the hostname during that window, it gets
- * NXDOMAIN and **caches the negative answer** for the zone's TTL. Every later
- * query is then served the cached "does not exist" — so a readiness check that
- * polls eagerly *causes* the failure it is trying to detect, and the tunnel
- * looks dead long after it went live.
- *
- * Measured both ways. Polling from t+0: still NXDOMAIN on Google's resolver at
- * t+40s. Waiting 35s and then asking once: all three resolvers answer
- * immediately, first try.
- *
- * So: do not query early. The cost of patience is 35 seconds; the cost of
- * impatience is a poisoned cache and a wrong conclusion about someone else's
- * infrastructure.
- */
-const TUNNEL_SETTLE_MS = 35_000;
-
-/** How long to keep checking after the settle wait, before giving up. */
-const TUNNEL_READY_MS = 60_000;
 
 type Raw = { at: number; dir: 'in'; text: string };
 
@@ -106,88 +75,6 @@ async function api(
 		throw new Error(`HTTP ${res.status} from ${path}: ${parsed.message ?? text}`);
 	}
 	return parsed;
-}
-
-/** Start a cloudflared quick tunnel and resolve its public hostname. */
-function startTunnel(): Promise<{ host: string; stop: () => void }> {
-	return new Promise((resolve, reject) => {
-		const proc = spawn('cloudflared', [
-			'tunnel',
-			'--url',
-			`http://localhost:${PORT}`,
-			'--no-autoupdate',
-		]);
-		const timer = setTimeout(() => {
-			proc.kill();
-			reject(new Error(`cloudflared printed no URL within ${TUNNEL_WAIT_MS / 1000}s`));
-		}, TUNNEL_WAIT_MS);
-
-		// cloudflared announces the URL on stderr, not stdout.
-		const onData = (chunk: Buffer) => {
-			const m = /https:\/\/([a-z0-9-]+\.trycloudflare\.com)/i.exec(chunk.toString());
-			if (m?.[1]) {
-				clearTimeout(timer);
-				resolve({ host: m[1], stop: () => proc.kill() });
-			}
-		};
-		proc.stderr.on('data', onData);
-		proc.stdout.on('data', onData);
-		proc.on('error', (e) => {
-			clearTimeout(timer);
-			reject(e);
-		});
-	});
-}
-
-/**
- * Wait until the tunnel actually carries a WebSocket, then return.
- *
- * Two things must become true and they are not the same: the DNS record has to
- * exist, and the Cloudflare edge has to route to the tunnel (until it does, it
- * answers HTTP 530). Opening a real WebSocket checks both at once.
- *
- * Uses the OS resolver deliberately. An earlier version forced public DNS
- * (8.8.8.8/1.1.1.1) to route around a slow-ISP theory that turned out to be
- * false — the real failure was negative-cache poisoning from querying too
- * early, which the settle wait below fixes. Instrumented repro then showed the
- * forced-DNS path was itself broken (its lookup callback returned undefined,
- * "Invalid IP address"), while the plain OS resolver connected fine after
- * settling. The simplest thing that works is the OS resolver plus patience.
- *
- * Returns seconds waited, or null if it never came up.
- */
-async function waitForTunnel(host: string): Promise<number | null> {
-	// Settle first, ask second. See TUNNEL_SETTLE_MS — asking early poisons the
-	// resolver's negative cache and makes a live tunnel look permanently dead.
-	console.log(`settle : waiting ${TUNNEL_SETTLE_MS / 1000}s before the first DNS query`);
-	await new Promise((r) => setTimeout(r, TUNNEL_SETTLE_MS));
-
-	const started = Date.now();
-	while (Date.now() - started < TUNNEL_READY_MS) {
-		const open = await new Promise<boolean>((resolve) => {
-			const ws = new WebSocket(`wss://${host}${READY_PATH}`);
-			const finish = (ok: boolean) => {
-				try {
-					ws.close();
-				} catch {
-					/* already closed */
-				}
-				resolve(ok);
-			};
-			const t = setTimeout(() => finish(false), 4000);
-			ws.on('open', () => {
-				clearTimeout(t);
-				finish(true);
-			});
-			ws.on('error', () => {
-				clearTimeout(t);
-				finish(false);
-			});
-		});
-		if (open) return (Date.now() - started) / 1000;
-		await new Promise((r) => setTimeout(r, 2000));
-	}
-	return null;
 }
 
 async function main(): Promise<void> {
@@ -244,17 +131,17 @@ async function main(): Promise<void> {
 	console.log(`local  : ws://localhost:${PORT}`);
 
 	// 2. Tunnel — and then WAIT for it to actually carry traffic.
-	const tunnel = await startTunnel();
+	const tunnel = await startTunnel(PORT);
 	const wsUrl = `wss://${tunnel.host}${MEDIA_PATH}`;
 	console.log(`tunnel : ${wsUrl}`);
 
-	const readyAfter = await waitForTunnel(tunnel.host);
+	const readyAfter = await waitForTunnel(tunnel.host, READY_PATH);
 	if (readyAfter === null) {
 		tunnel.stop();
 		wss.close();
 		http.close();
 		throw new Error(
-			`Tunnel never carried a WebSocket within ${TUNNEL_READY_MS / 1000}s. Not dialing — ` +
+			'Tunnel never carried a WebSocket. Not dialing — ' +
 				'a call into a dead tunnel is a wasted ring on a real phone.',
 		);
 	}
