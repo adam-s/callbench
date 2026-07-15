@@ -65,6 +65,26 @@ meaning anything.
 
 ## Iteration
 
+**The loop, in order.** Every iteration runs this cycle; the numbered rules
+below are its steps in detail. Naming it here so no one has to reassemble it
+from three separate rules:
+
+> **search → probe → build → gate → red-team → mutation-check → record**
+
+- **search** the prior art (§2) — don't re-derive a solved thing.
+- **probe** what's uncertain (§3) — a claim from the search is settled by
+  observation, not adopted on faith.
+- **build** the scoped work (§1's "done when").
+- **gate**: `pnpm typecheck && pnpm lint && pnpm vitest run` green — the floor.
+- **red-team** at checkpoints (§4): production code, then tests.
+- **mutation-check** (§4): mutate to confirm the suite actually bites; a
+  surviving mutation is a coverage gap to close before the iteration ends.
+- **record** what was frozen and learned (§5, §6) in its correct home — the
+  contract, the references doc, a code comment — pruning as much as you add.
+
+Not every step produces a large artifact every time, but every step is
+*considered* every time; skipping one is a decision, not a default.
+
 1. **Plan first.** Scope the work and its "done when" gate before starting.
    Don't build what the maintainer hasn't asked for.
 2. **Search before you build — every feature, every time.** Before implementing
