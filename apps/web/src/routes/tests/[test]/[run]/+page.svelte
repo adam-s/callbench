@@ -30,9 +30,10 @@
 		})),
 	]);
 
-	// The audio replay engine. Only wired for a replayable (simulator) run that
-	// actually has audio; a system-under-test run never reaches this branch.
-	const hasAudio = $derived(data.replayable && data.audio !== null);
+	// Audio playback is EVIDENCE — offered for any run with a recording, simulator
+	// or real call. It plays a frozen file; it is not a dial. (The dial fence gates
+	// a re-run control, which the UI does not have.)
+	const hasAudio = $derived(data.audio !== null);
 	const transport = new Transport();
 
 	// Load whenever the run's audio changes (SvelteKit reuses this component across
@@ -99,14 +100,16 @@
 			Simulator run — the audio is synthesized from the turn text ({data.audio.synthetic}), a stand-in
 			for a real call recording. Click any finding's ▶ to hear its moment. Nobody's line rings.
 		</p>
+	{:else}
+		<p class="fence-note">
+			Recorded call — play it back to review the evidence by ear; click any finding's ▶ to hear its
+			moment. This plays a frozen recording. There is no re-run or re-dial control for a real line.
+		</p>
 	{/if}
 {:else if data.replayable}
 	<p class="fence-note">Simulator run — replayable, but this run has no audio recording.</p>
 {:else}
-	<p class="fence-note">
-		System-under-test run — view only. No replay or re-run control exists for a stranger's line;
-		that path is not built, by design.
-	</p>
+	<p class="fence-note">This run has no audio recording.</p>
 {/if}
 
 <h2>Findings</h2>

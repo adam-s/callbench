@@ -103,7 +103,7 @@ export function runIdOf(transcript: FrozenTranscript): string {
  * object so build-time and load-time agree; `bodyHash` itself is excluded (it
  * cannot hash itself). Recomputed and refused at load — see parseRunArtifact.
  */
-function computeBodyHash(
+export function computeBodyHash(
 	fields: Pick<
 		RunArtifact,
 		'artifactVersion' | 'scenario' | 'runId' | 'target' | 'createdEpochMs' | 'report' | 'audio'
@@ -126,12 +126,51 @@ function computeBodyHash(
 		.digest('hex');
 }
 
-/** Every assertion name that appears in a report — code results then verdicts.
- * A deep link addresses a finding by this name, so the names must be unique
- * across BOTH seams; a collision would make one finding unreachable and point a
- * link at the wrong evidence. `buildRunArtifact` enforces that here. */
-function assertionNames(report: ScenarioReport): string[] {
-	return [...report.results.map((r) => r.assertion), ...report.verdicts.map((v) => v.assertion)];
+/**
+ * Refuse a report with a duplicate assertion name across code results and judge
+ * verdicts. A deep link addresses a finding by name, so a collision would make
+ * one finding unreachable and point its link at the other. Enforced at BUILD and
+ * re-checked at LOAD — the load boundary re-verifies every other invariant, so it
+ * must not trust the writer for this one either.
+ */
+function assertUniqueAssertionNames(report: ScenarioReport): void {
+	const names = [
+		...report.results.map((r) => r.assertion),
+		...report.verdicts.map((v) => v.assertion),
+	];
+	const dupes = names.filter((n, i) => names.indexOf(n) !== i);
+	if (dupes.length > 0) {
+		throw new Error(
+			`refusing a run artifact: assertion name(s) collide across findings ` +
+				`(${[...new Set(dupes)].join(', ')}). A deep link addresses a finding by name, so ` +
+				'names must be unique across code results and judge verdicts.',
+		);
+	}
+}
+
+/**
+ * Refuse audio whose provenance contradicts the target. A simulator has no
+ * microphone, so its audio is always SYNTHESIZED (`synthetic != null`); the
+ * system under test is a real line, so its audio is always a real CAPTURE
+ * (`synthetic == null`). A mismatch would label a real recording as synthesized
+ * or vice-versa — the exact quiet mislabel the `synthetic` tag exists to prevent.
+ * Enforced at build and re-checked at load.
+ */
+function assertAudioCoherent(target: RunTarget, audio: RunAudio | undefined): void {
+	if (!audio) return;
+	if (target === 'simulator' && audio.synthetic === null) {
+		throw new Error(
+			'refusing a run artifact: a simulator run cannot have a real-capture recording ' +
+				'(audio.synthetic is null) — the simulator has no microphone.',
+		);
+	}
+	if (target === 'system-under-test' && audio.synthetic !== null) {
+		throw new Error(
+			`refusing a run artifact: a system-under-test run's audio is a real capture, but ` +
+				`audio.synthetic is ${JSON.stringify(audio.synthetic)} — a synthesized recording must ` +
+				'not be labeled as a real call.',
+		);
+	}
 }
 
 /**
@@ -140,7 +179,8 @@ function assertionNames(report: ScenarioReport): string[] {
  *     report + transcript that disagree on their hash are not one run);
  *   - two findings share an assertion name (a deep link, which addresses a
  *     finding by name, could then never reach one of them and would mislabel the
- *     other — the path→identity guarantee, enforced at construction).
+ *     other — the path→identity guarantee, enforced at construction);
+ *   - the audio's provenance contradicts the target (a mislabeled recording).
  */
 export function buildRunArtifact(
 	scenario: string,
@@ -157,15 +197,8 @@ export function buildRunArtifact(
 				'A report paired with a different transcript is not one run.',
 		);
 	}
-	const names = assertionNames(report);
-	const dupes = names.filter((n, i) => names.indexOf(n) !== i);
-	if (dupes.length > 0) {
-		throw new Error(
-			`refusing to build a run artifact: assertion name(s) collide across findings ` +
-				`(${[...new Set(dupes)].join(', ')}). A deep link addresses a finding by name, so ` +
-				'names must be unique across code results and judge verdicts.',
-		);
-	}
+	assertUniqueAssertionNames(report);
+	assertAudioCoherent(target, audio);
 	const core = {
 		artifactVersion: 1 as const,
 		scenario,
@@ -249,6 +282,11 @@ export function parseRunArtifact(text: string): RunArtifact {
 				'A figure in the report (an outcome, a verdict, a count) drifted from what was frozen.',
 		);
 	}
+	// Re-check the invariants the writer enforced — a hand-written run.json with a
+	// valid bodyHash must still not smuggle in a duplicate finding name or a
+	// mislabeled recording. The load boundary trusts no writer.
+	assertUniqueAssertionNames(parsed.report);
+	assertAudioCoherent(parsed.target as RunTarget, parsed.audio);
 	return parsed as RunArtifact;
 }
 

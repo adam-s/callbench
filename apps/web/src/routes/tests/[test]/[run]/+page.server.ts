@@ -39,10 +39,12 @@ export const load: PageServerLoad = ({ params }) => {
 		synthetic: string | null;
 		peaks: ReadonlyArray<readonly [number, number]>;
 	} | null = null;
-	// Gated on canReplay, matching the finding page: a system-under-test run never
-	// even loads its recording into the page, let alone offers a control. Only a
-	// simulator run reaches the audio here.
-	if (canReplay(artifact.target) && artifact.audio) {
+	// Audio is EVIDENCE, offered for any run that has a recording — including a
+	// system-under-test call, which is exactly what the bench exists to let a
+	// human hear. Playback is not a dial: it plays a frozen file. The dial fence
+	// (canReplay) gates a re-RUN control, which does not exist in the UI; it must
+	// not gate playback, or the centerpiece would be unavailable for real calls.
+	if (artifact.audio) {
 		const { bytes } = readRunAudio(params.test, params.run);
 		audio = {
 			url: `/tests/${params.test}/${params.run}/audio`,

@@ -8,8 +8,14 @@
  * The naive version stores caps and trusts the caller to respect them. That
  * fails the same way every soft limit fails: the one code path that forgets to
  * check is the one that floods a stranger's line. So the enforcement lives in a
- * stateful `RunBudget` that a runner must go THROUGH to start a call — there is
- * no "start a call" that skips the budget, and the budget refuses past any cap.
+ * stateful `RunBudget` whose `started()` THROWS past a cap — a soft "no" a caller
+ * can ignore is exactly the failure this avoids.
+ *
+ * NOTE: no live runner is built yet (the dialer is a later, maintainer-gated
+ * increment). Today this enforcer is exercised only by its tests and reached via
+ * the pre-flight's plan-time validation. When the dialer lands, it MUST route
+ * every call start through `started()` — that wiring is the seam to get right,
+ * and it does not exist yet.
  */
 
 export interface RunCaps {

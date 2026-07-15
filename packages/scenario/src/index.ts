@@ -1,6 +1,7 @@
 export {
 	artifactDigest,
 	buildRunArtifact,
+	computeBodyHash,
 	parseRunArtifact,
 	RUN_FILENAME,
 	type RunArtifact,

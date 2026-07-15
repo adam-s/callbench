@@ -196,6 +196,12 @@ describe('STRUCTURAL: no dial CAPABILITY exists anywhere in the app', () => {
 		// the transport contract itself, and driving audio onto a live leg
 		{ token: '@callbench/transport', why: 'the transport that dials' },
 		{ token: 'sendAudio', why: 'driving audio onto a live leg' },
+		// shelling out — a dial script could be spawned as a child process
+		{ token: 'child_process', why: 'spawning a process (could shell out to a dialer)' },
+		{ token: 'execSync', why: 'shelling out' },
+		{ token: 'execFile', why: 'shelling out' },
+		{ token: 'spawn(', why: 'spawning a process' },
+		{ token: 'spawnSync', why: 'spawning a process' },
 		// telephony vendors — a second layer over the capability ban
 		{ token: 'twilio', why: 'telephony vendor' },
 		{ token: 'telnyx', why: 'telephony vendor' },

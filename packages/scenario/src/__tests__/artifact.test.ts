@@ -12,12 +12,24 @@ import { MapCache, type Runner } from '@callbench/judge';
 import { describe, expect, it } from 'vitest';
 import {
 	buildRunArtifact,
+	computeBodyHash,
 	parseRunArtifact,
 	type RunArtifact,
+	type RunAudio,
 	serializeRunArtifact,
 } from '../artifact.ts';
 import { assess, driveSimulator } from '../scenario.ts';
 import { windshieldQuote } from '../scenarios.ts';
+
+const REAL_AUDIO: RunAudio = {
+	file: 'call.wav',
+	sampleRate: 8000,
+	channels: 1,
+	durationMs: 1000,
+	sha256: 'a'.repeat(64),
+	synthetic: null,
+};
+const SYNTH_AUDIO: RunAudio = { ...REAL_AUDIO, synthetic: 'macos-say' };
 
 const scriptedRunner: Runner = {
 	id: 'scripted:test',
@@ -130,6 +142,67 @@ describe('building refuses colliding assertion names (path→identity)', () => {
 		expect(() =>
 			buildRunArtifact('windshield-quote', 'simulator', transcript, collided, 1),
 		).toThrow(/collide/);
+	});
+});
+
+describe('audio provenance must match the target — no mislabeled recording', () => {
+	it('build refuses a simulator run with a real-capture recording (synthetic null)', async () => {
+		const t = driveSimulator(windshieldQuote);
+		const r = await assess(windshieldQuote, t, { runner: scriptedRunner, cache: new MapCache() });
+		expect(() => buildRunArtifact('windshield-quote', 'simulator', t, r, 1, REAL_AUDIO)).toThrow(
+			/simulator/,
+		);
+	});
+
+	it('build refuses a system-under-test run whose audio is synthesized', async () => {
+		const t = driveSimulator(windshieldQuote);
+		const r = await assess(windshieldQuote, t, { runner: scriptedRunner, cache: new MapCache() });
+		// A system-under-test run legitimately has real audio, so build it with that,
+		// then the synthesized variant must be refused.
+		expect(() =>
+			buildRunArtifact('windshield-quote', 'system-under-test', t, r, 1, SYNTH_AUDIO),
+		).toThrow(/system-under-test/);
+	});
+});
+
+describe('the load boundary re-checks what the writer enforced (forged valid bodyHash)', () => {
+	// A hand-written run.json can carry a VALID bodyHash for malicious content —
+	// the load boundary must not trust the writer. Forge such a file with the
+	// exported hash primitive and confirm parse still refuses.
+	async function forge(mutate: (a: RunArtifact) => RunArtifact): Promise<string> {
+		const artifact = await makeArtifact();
+		const bad = mutate(structuredClone(artifact));
+		const core = {
+			artifactVersion: bad.artifactVersion,
+			scenario: bad.scenario,
+			runId: bad.runId,
+			target: bad.target,
+			createdEpochMs: bad.createdEpochMs,
+			report: bad.report,
+			audio: bad.audio,
+		};
+		return JSON.stringify({ ...bad, bodyHash: computeBodyHash(core) });
+	}
+
+	it('refuses a duplicate assertion name even with a matching bodyHash', async () => {
+		const text = await forge((a) => {
+			const name = a.report.results[0]!.assertion;
+			return {
+				...a,
+				report: {
+					...a.report,
+					verdicts: a.report.verdicts.map((v) => ({ ...v, assertion: name })),
+				},
+			};
+		});
+		expect(() => parseRunArtifact(text)).toThrow(/collide/);
+	});
+
+	it('refuses a mislabeled recording even with a matching bodyHash', async () => {
+		// makeArtifact is a simulator run; give it a real-capture (synthetic null)
+		// audio ref — incoherent, and the load re-check must catch it.
+		const text = await forge((a) => ({ ...a, audio: REAL_AUDIO }));
+		expect(() => parseRunArtifact(text)).toThrow(/simulator/);
 	});
 });
 
