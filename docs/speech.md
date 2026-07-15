@@ -35,6 +35,17 @@ benchmark's claim.
 | Voxtral Transcribe 2 | ~5.9% | Open weights, native streaming, 13 languages |
 | NVIDIA Canary-Qwen 2.5B | ~5.6% | Top of the open ASR leaderboard; wideband benchmark |
 
+**First measurement on our own wire audio (2026-07-15,
+`scripts/evals/eval-stt.py`):** on an 8.22s real capture with a speaker-authored
+reference, local whisper scored tiny 29%, base/small/medium all 14% WER — and
+all four models unanimously misheard one word the speaker corrected. Small
+sample, real direction: consistent with the published claim that whisper is
+weak on 8kHz telephony. Re-run on longer captures before treating the numbers
+as more than a direction; the eval folder under `data/evals/` carries the
+provenance. Audio preprocessing to improve transcription is explicitly deferred
+(maintainer decision, 2026-07-15) — out of scope until the bench's core loop
+exists.
+
 Three things to carry forward:
 
 - **Whisper is the wrong default for this project**, and specifically so. It is
