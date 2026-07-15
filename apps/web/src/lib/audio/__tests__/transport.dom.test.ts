@@ -52,6 +52,7 @@ class FakeAudioContext {
 }
 
 class FakeAudio {
+	static instances: FakeAudio[] = [];
 	src = '';
 	currentTime = 0;
 	paused = true;
@@ -59,7 +60,18 @@ class FakeAudio {
 	duration = Number.NaN;
 	preload = '';
 	__connected = false;
-	addEventListener() {}
+	#listeners = new Map<string, Array<() => void>>();
+	constructor() {
+		FakeAudio.instances.push(this);
+	}
+	addEventListener(name: string, fn: () => void) {
+		const list = this.#listeners.get(name) ?? [];
+		list.push(fn);
+		this.#listeners.set(name, list);
+	}
+	fire(name: string) {
+		for (const fn of this.#listeners.get(name) ?? []) fn();
+	}
 	load() {}
 	play() {
 		this.paused = false;
@@ -72,6 +84,7 @@ class FakeAudio {
 
 beforeEach(() => {
 	FakeAudioContext.count = 0;
+	FakeAudio.instances = [];
 	vi.stubGlobal('AudioContext', FakeAudioContext);
 	vi.stubGlobal('Audio', FakeAudio);
 	// rAF stubbed to NOT run the tick loop — the state under test is set
@@ -133,5 +146,39 @@ describe('playRegion and seek', () => {
 		expect(t.t).toBe(10);
 		t.seek(-5);
 		expect(t.t).toBe(0);
+	});
+
+	it('re-asserts the clock at canplay when the media load discarded a racing seek', () => {
+		// The finding page's autoplay calls playRegion while load()'s media-load
+		// algorithm is still in flight; the element resets to 0 when the load
+		// settles, discarding the seek AND the play() — and the playhead used to
+		// follow it back to 0. The transport's clock is authoritative: at
+		// 'canplay' (the first genuinely seekable moment — a loadedmetadata
+		// correction is overridden by the element's own seek-to-default step)
+		// the element is brought to `t` and playback restarted.
+		const t = new Transport();
+		t.load('/a/audio', 40);
+		t.playRegion(28, 34);
+		expect(t.t).toBe(28);
+
+		const el = FakeAudio.instances[0]!;
+		el.currentTime = 0; // the load settled: seek discarded, position reset
+		el.paused = true; // and the pending play() dropped with it
+		el.fire('canplay');
+		expect(el.currentTime).toBe(28); // pulled back to the one clock
+		expect(el.paused).toBe(false); // and playing again
+
+		// An element that already agrees is left alone (no pointless seek).
+		el.currentTime = 28.1;
+		el.fire('canplay');
+		expect(el.currentTime).toBe(28.1);
+
+		// A paused transport never gets dragged into playback by a late canplay.
+		t.pause();
+		el.currentTime = 0;
+		el.paused = true;
+		el.fire('canplay');
+		expect(el.currentTime).toBe(0);
+		expect(el.paused).toBe(true);
 	});
 });

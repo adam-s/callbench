@@ -1,7 +1,11 @@
 <script lang="ts">
 	import { Transport } from '$lib/audio/transport.svelte.ts';
+	import OutcomePill from '$lib/components/OutcomePill.svelte';
 	import PlaybackControls from '$lib/components/PlaybackControls.svelte';
 	import Waveform, { type WaveSpan } from '$lib/components/Waveform.svelte';
+	import { Badge } from '$lib/components/ui/badge/index.js';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import * as Card from '$lib/components/ui/card/index.js';
 	import { shortRun, whereOf } from '$lib/types.ts';
 	import type { PageData } from './$types';
 	let { data }: { data: PageData } = $props();
@@ -59,106 +63,113 @@
 	);
 </script>
 
-<div class="crumbs">
-	<a href="/">callbench</a> / <a href="/tests/{data.scenario}">{data.scenario}</a> /
-	<a href="/tests/{data.scenario}/{data.runId}">{shortRun(data.runId)}</a> / {data.finding.assertion}
+<svelte:head>
+	<title>{data.finding.assertion} · {shortRun(data.runId)} · callbench</title>
+	<meta
+		name="description"
+		content="Finding {data.finding.assertion} ({data.finding.outcome}) in run {shortRun(data.runId)} of {data.scenario} — lands on the cited transcript span."
+	/>
+</svelte:head>
+
+<div class="page-head flex flex-wrap items-center gap-3">
+	<h1 class="font-mono text-xl font-semibold tracking-tight">{data.finding.assertion}</h1>
+	<OutcomePill state={data.finding.outcome} />
+	<Badge variant="outline" class="chip">{data.finding.kind}</Badge>
+	<span class="text-ink-3 font-mono text-xs">{whereOf(data.finding)}</span>
 </div>
 
-<h1 class="mono">{data.finding.assertion}</h1>
-<p class="sub">
-	<span class="pill {data.finding.outcome}">{data.finding.outcome}</span>
-	<span class="muted mono">{whereOf(data.finding)}</span>
-	{#if data.finding.by}<span class="muted"> · judged by {data.finding.by}</span>{/if}
-</p>
-
-<div class="card detail">{data.finding.detail}</div>
+<Card.Root class="py-0">
+	<Card.Content class="p-4">
+		{data.finding.detail}
+		{#if data.finding.by}<span class="text-ink-3"> — judged by {data.finding.by}</span>{/if}
+	</Card.Content>
+</Card.Root>
 
 {#if citedTurn === null}
-	<p class="fence-note">
+	<p class="fence-note text-ink-3 border-l-2 pl-2 text-xs">
 		This finding cites no span — it could not be evaluated (the flow never reached the point it
 		would judge), so there is no moment to land on. That absence is the finding.
 	</p>
 {:else if hasAudio && data.audio}
-	<div class="hearbar">
-		<Waveform {transport} peaks={data.audio.peaks} durationMs={data.audio.durationMs} spans={waveSpans} {cited} />
-		<div class="player">
-			<PlaybackControls {transport} />
-			<button class="again" onclick={() => cited && transport.playRegion(cited.startMs / 1000, cited.endMs / 1000)}>
-				▶ Hear this moment
-			</button>
-		</div>
+	<Card.Root class="gap-0 py-0">
+		<Card.Header class="border-b px-4 !py-3">
+			<Card.Title class="text-base">The moment</Card.Title>
+		</Card.Header>
+		<Card.Content class="flex flex-col gap-3 p-4">
+			<Waveform
+				{transport}
+				peaks={data.audio.peaks}
+				durationMs={data.audio.durationMs}
+				spans={waveSpans}
+				{cited}
+			/>
+			<div class="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:gap-4">
+				<div class="min-w-0 flex-1"><PlaybackControls {transport} /></div>
+				<Button
+					variant="outline"
+					size="sm"
+					class="flex-none"
+					onclick={() => cited && transport.playRegion(cited.startMs / 1000, cited.endMs / 1000)}
+				>
+					▶ Hear this moment
+				</Button>
+			</div>
+		</Card.Content>
 		{#if data.audio.synthetic}
-			<p class="fence-note">Audio synthesized from the turn text ({data.audio.synthetic}); a stand-in until a live recording.</p>
+			<div class="text-ink-3 border-t px-4 py-2 text-xs">
+				Audio synthesized from the turn text ({data.audio.synthetic}); a stand-in until a live
+				recording.
+			</div>
 		{/if}
-	</div>
+	</Card.Root>
 {:else}
-	<p class="sub" style="margin-top:1.25rem">The cited moment is highlighted below.</p>
+	<p class="fence-note text-ink-3 border-l-2 pl-2 text-xs">
+		No audio for this run — the cited moment is highlighted below.
+	</p>
 {/if}
 
-<ol class="transcript">
-	{#each data.turns as turn, i (i)}
-		<li class="turn {turn.speaker}" class:cited={i === citedTurn}>
-			<span class="who">{turn.speaker === 'bench' ? 'BENCH' : 'AGENT'}</span>
-			<span class="text">{turn.text}</span>
-			<span class="time muted mono">{turn.startMs}–{turn.endMs}ms</span>
-		</li>
-	{/each}
-</ol>
+<Card.Root class="gap-0 py-0">
+	<Card.Header class="border-b px-4 !py-3">
+		<Card.Title class="text-base">Transcript</Card.Title>
+	</Card.Header>
+	<ol class="transcript px-3 py-2">
+		{#each data.turns as turn, i (i)}
+			<li class="turn {turn.speaker}" class:cited={i === citedTurn}>
+				<span class="who">{turn.speaker === 'bench' ? 'BENCH' : 'AGENT'}</span>
+				<span class="text">{turn.text}</span>
+				<span class="time text-ink-3 font-mono">{turn.startMs}–{turn.endMs}ms</span>
+			</li>
+		{/each}
+	</ol>
+</Card.Root>
 
 <style>
-	.detail {
-		margin-bottom: 0.75rem;
-	}
-	.hearbar {
-		margin-bottom: 1.25rem;
-	}
-	.player {
-		display: flex;
-		align-items: center;
-		gap: 1rem;
-		margin-top: 0.6rem;
-	}
-	.again {
-		flex: none;
-		border: 1px solid var(--border);
-		background: var(--surface);
-		color: var(--accent);
-		border-radius: var(--radius);
-		padding: 0.35rem 0.7rem;
-		cursor: pointer;
-		font-size: 0.85rem;
-	}
-	.again:hover {
-		background: var(--surface-2);
-	}
-	.transcript {
-		list-style: none;
-		margin: 1rem 0 0;
-		padding: 0;
-	}
 	.turn {
 		display: grid;
-		grid-template-columns: 4.5rem 1fr auto;
-		gap: 0.75rem;
+		grid-template-columns: 3.6rem 1fr auto;
+		gap: 8px;
 		align-items: baseline;
-		padding: 0.4rem 0.6rem;
+		padding: 4px 8px;
 		border-radius: 6px;
 		opacity: 0.55;
-		transition: opacity 0.15s;
+		transition: opacity var(--t-fast);
 	}
 	.turn.cited {
 		opacity: 1;
 		outline: 2px solid var(--accent);
 	}
 	.turn.bench {
-		background: color-mix(in srgb, var(--bench) 8%, transparent);
+		background: var(--bench-bg);
 	}
 	.turn.target {
-		background: color-mix(in srgb, var(--target) 8%, transparent);
+		background: var(--target-bg);
+	}
+	.turn + .turn {
+		margin-top: 2px;
 	}
 	.who {
 		font-family: var(--mono);
-		font-size: 0.7rem;
+		font-size: 0.6875rem;
 		font-weight: 700;
 	}
 	.turn.bench .who {
@@ -168,7 +179,17 @@
 		color: var(--target);
 	}
 	.time {
-		font-size: 0.72rem;
+		font-size: 0.75rem;
 		white-space: nowrap;
+	}
+	/* Same as the run page: the timing cell gets its own row on a phone. */
+	@media (max-width: 560px) {
+		.turn {
+			grid-template-columns: 3.6rem 1fr;
+		}
+		.time {
+			grid-column: 1 / -1;
+			justify-self: end;
+		}
 	}
 </style>

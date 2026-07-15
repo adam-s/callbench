@@ -41,7 +41,7 @@
 		// measured figure (ui.md, two-pipelines). Null when not playing; the meter
 		// then simply decays to quiet.
 		const fd = transport.freq();
-		const accent = color('--accent', '#2b6cb0');
+		const accent = color('--accent', '#2a78d6');
 		const muted = color('--border', '#ccc');
 		const gap = 2;
 		const bw = (w - gap * (bars - 1)) / bars;
@@ -94,8 +94,10 @@
 	.meter {
 		width: 100%;
 		border: 1px solid var(--border);
-		border-radius: var(--radius);
-		background: var(--surface);
+		border-radius: var(--r-3);
+		/* recessed like the ribbon tracks, so the meter reads as an instrument
+		 * awaiting signal rather than an empty white box before first play */
+		background: var(--surface-2);
 		overflow: hidden;
 	}
 	canvas {

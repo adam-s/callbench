@@ -30,8 +30,26 @@
 
 	const durSec = $derived(Math.max(0.001, durationMs / 1000));
 
+	// The playhead is an OVERLAY, not a canvas stroke (pattern from the
+	// maintainer's ~/Projects/separate MelSpectrogram/Playhead): the canvas
+	// below draws the STATIC picture — peaks, finding spans, the cited outline —
+	// and repaints only when data or size changes. Moving the playhead each rAF
+	// tick updates one element's `left`, which the compositor handles without
+	// touching the canvas at all.
+	const playFrac = $derived(Math.max(0, Math.min(1, transport.t / durSec)));
+
+	// Hover: a ghost line + time readout following the cursor, so click-to-seek
+	// says where it will land before it is clicked. Pure overlay, no redraw.
+	let hoverFrac = $state<number | null>(null);
+
+	function fmt(sec: number): string {
+		const m = Math.floor(sec / 60);
+		const s = Math.floor(sec % 60);
+		return `${m}:${s.toString().padStart(2, '0')}`;
+	}
+
 	// Colors read from the page's CSS custom properties so the waveform matches
-	// the app vocabulary (and light/dark) instead of hardcoding hexes.
+	// the app vocabulary instead of hardcoding hexes.
 	function color(name: string, fallback: string): string {
 		if (typeof getComputedStyle === 'undefined' || !canvas) return fallback;
 		const v = getComputedStyle(canvas).getPropertyValue(name).trim();
@@ -73,7 +91,7 @@
 		if (cited) {
 			const x0 = xOf(cited.startMs);
 			const x1 = Math.max(x0 + 2, xOf(cited.endMs));
-			ctx.strokeStyle = color('--accent', '#2b6cb0');
+			ctx.strokeStyle = color('--accent', '#2a78d6');
 			ctx.lineWidth = 1.5;
 			ctx.strokeRect(x0 + 0.5, 1, x1 - x0 - 1, h - 2);
 		}
@@ -92,20 +110,11 @@
 			ctx.lineTo(x, mid - min * (mid - 2));
 		}
 		ctx.stroke();
-
-		// playhead
-		const px = (transport.t / durSec) * w;
-		ctx.strokeStyle = color('--accent', '#2b6cb0');
-		ctx.lineWidth = 1.5;
-		ctx.beginPath();
-		ctx.moveTo(px + 0.5, 0);
-		ctx.lineTo(px + 0.5, h);
-		ctx.stroke();
 	}
 
-	// Redraw once per clock tick (playhead) and whenever inputs change.
+	// Repaint the STATIC picture only when its inputs change — never per
+	// playback frame (the playhead overlay carries the motion).
 	$effect(() => {
-		transport.frame; // dependency: the single clock
 		void cssW;
 		void peaks;
 		void spans;
@@ -123,21 +132,22 @@
 		return () => ro.disconnect();
 	});
 
-	function seekFromEvent(e: MouseEvent) {
-		if (!canvas) return;
+	function fracFromEvent(e: MouseEvent): number {
+		if (!canvas) return 0;
 		const rect = canvas.getBoundingClientRect();
-		const frac = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-		transport.seek(frac * durSec);
+		return Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
 	}
 </script>
 
-<div class="wave" bind:this={wrap}>
+<div class="wave relative w-full overflow-hidden rounded-lg border bg-card" bind:this={wrap}>
 	<!-- click-to-seek: playback of a recording, never a dial -->
 	<canvas
 		bind:this={canvas}
-		style:width="100%"
+		class="block w-full cursor-pointer"
 		style:height="{cssH}px"
-		onclick={seekFromEvent}
+		onclick={(e) => transport.seek(fracFromEvent(e) * durSec)}
+		onmousemove={(e) => (hoverFrac = fracFromEvent(e))}
+		onmouseleave={() => (hoverFrac = null)}
 		onkeydown={(e) => {
 			if (e.key === 'Enter' || e.key === ' ') transport.toggle();
 		}}
@@ -148,18 +158,33 @@
 		aria-valuemax={Math.round(durSec)}
 		aria-valuenow={Math.round(transport.t)}
 	></canvas>
+
+	<!-- playhead: one composited element, no canvas repaint per frame -->
+	<div
+		class="pointer-events-none absolute inset-y-0 w-[1.5px] bg-[var(--accent)] will-change-[left]"
+		style:left="{playFrac * 100}%"
+		aria-hidden="true"
+	></div>
+
+	{#if hoverFrac !== null}
+		<div
+			class="pointer-events-none absolute inset-y-0 w-px bg-[var(--ink-3)] opacity-60"
+			style:left="{hoverFrac * 100}%"
+			aria-hidden="true"
+		></div>
+		<div
+			class="pointer-events-none absolute top-1 rounded border bg-card px-1 font-mono text-[0.6875rem] text-muted-foreground"
+			style:left="{hoverFrac * 100}%"
+			style:transform="translateX({hoverFrac > 0.9 ? '-100%' : '4px'})"
+			aria-hidden="true"
+		>
+			{fmt(hoverFrac * durSec)}
+		</div>
+	{/if}
 </div>
 
-<style>
-	.wave {
-		width: 100%;
-		border: 1px solid var(--border);
-		border-radius: var(--radius);
-		background: var(--surface);
-		overflow: hidden;
-	}
-	canvas {
-		display: block;
-		cursor: pointer;
-	}
-</style>
+<!-- time axis: the frozen timeline's endpoints, from the artifact's duration -->
+<div class="text-ink-3 mt-1 flex justify-between font-mono text-[0.6875rem]" aria-hidden="true">
+	<span>0:00</span>
+	<span>{fmt(durSec)}</span>
+</div>

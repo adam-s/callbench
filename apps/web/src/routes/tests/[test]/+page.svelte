@@ -1,4 +1,9 @@
 <script lang="ts">
+	import CountsBar from '$lib/components/CountsBar.svelte';
+	import OutcomePill from '$lib/components/OutcomePill.svelte';
+	import { Badge } from '$lib/components/ui/badge/index.js';
+	import * as Card from '$lib/components/ui/card/index.js';
+	import * as Table from '$lib/components/ui/table/index.js';
 	import { shortRun, worstOutcome, type Outcome } from '$lib/types.ts';
 	import type { PageData } from './$types';
 	let { data }: { data: PageData } = $props();
@@ -28,116 +33,182 @@
 		const outcomes = new Set(data.runs.map((r) => outcomeFor(r, assertion)).filter(Boolean));
 		return outcomes.size > 1;
 	}
+
+	function ago(epochMs: number): string {
+		const s = Math.max(0, (Date.now() - epochMs) / 1000);
+		if (s < 90) return 'just now';
+		if (s < 5400) return `${Math.round(s / 60)}m ago`;
+		if (s < 129600) return `${Math.round(s / 3600)}h ago`;
+		return `${Math.round(s / 86400)}d ago`;
+	}
 </script>
 
-<div class="crumbs"><a href="/">callbench</a> / {data.scenario}</div>
-<h1 class="mono">{data.scenario}</h1>
-<p class="sub">{data.runs.length} run{data.runs.length === 1 ? '' : 's'}. Each column is one run;
-	each row is one assertion. A row that changes color across runs is the finding.</p>
+<svelte:head>
+	<title>{data.scenario} · callbench</title>
+	<meta
+		name="description"
+		content="Scenario {data.scenario}: assertion matrix and every run of it — {data.runs.length} run{data.runs.length === 1 ? '' : 's'}."
+	/>
+</svelte:head>
 
-<h2>Assertion matrix</h2>
-<div class="matrix-scroll">
-	<table class="matrix">
-		<thead>
-			<tr>
-				<th class="corner">assertion</th>
-				{#each data.runs as run (run.runId)}
-					<th>
-						<a href="/tests/{data.scenario}/{run.runId}" class="mono">{shortRun(run.runId)}</a>
-					</th>
-				{/each}
-			</tr>
-		</thead>
-		<tbody>
-			{#each assertionNames as name (name)}
-				<tr class:mixed={rowMixed(name)}>
-					<th class="rowname mono" scope="row">
-						{name}
-						{#if rowMixed(name)}<span class="mixed-tag" title="outcome varies across runs">mixed</span>{/if}
-					</th>
-					{#each data.runs as run (run.runId)}
-						{@const o = outcomeFor(run, name)}
-						<td>
-							{#if o}<span class="pill {o}">{o}</span>{:else}<span class="muted">—</span>{/if}
-						</td>
-					{/each}
-				</tr>
-			{/each}
-		</tbody>
-	</table>
+<div class="page-head flex flex-wrap items-center gap-3">
+	<h1 class="font-mono text-xl font-semibold tracking-tight">{data.scenario}</h1>
+	<Badge variant="outline" class="chip">{data.runs.length} run{data.runs.length === 1 ? '' : 's'}</Badge>
+	{#if data.broken.length > 0}
+		<OutcomePill state="REFUSED" />
+	{/if}
 </div>
 
-<h2>Runs</h2>
-<ul class="runs">
-	{#each data.runs as run (run.runId)}
-		{@const o = worstOutcome(run.counts)}
-		<li>
-			<a class="mono" href="/tests/{data.scenario}/{run.runId}">{shortRun(run.runId)}</a>
-			<span class="pill {o}">{o}</span>
-			<span class="muted mono">
-				PASS {run.counts.PASS} · FAIL {run.counts.FAIL} · INCONCLUSIVE {run.counts.INCONCLUSIVE}
-			</span>
-			<span class="muted">{run.target}</span>
-		</li>
-	{/each}
-</ul>
+<Card.Root class="gap-0 py-0">
+	<Card.Header class="border-b px-4 !py-3">
+		<Card.Title class="text-base">Assertion matrix</Card.Title>
+		<Card.Description class="text-xs">
+			one column per run — a row that changes outcome across runs is the finding
+		</Card.Description>
+	</Card.Header>
+	<Card.Content class="overflow-x-auto p-0">
+		<table class="matrix w-full border-collapse text-[0.8125rem]">
+			<thead>
+				<tr class="bg-muted">
+					<th
+						class="text-ink-3 sticky left-0 z-10 bg-muted px-3 py-2 text-left text-[0.6875rem] font-semibold tracking-wider uppercase"
+					>
+						Assertion
+					</th>
+					{#each data.runs as run (run.runId)}
+						<th class="px-3 py-2 text-center">
+							<a href="/tests/{data.scenario}/{run.runId}" class="text-primary font-mono text-xs hover:underline">
+								{shortRun(run.runId)}
+							</a>
+						</th>
+					{/each}
+				</tr>
+			</thead>
+			<tbody>
+				{#each assertionNames as name (name)}
+					{@const mixed = rowMixed(name)}
+					<tr class="border-b last:border-b-0 {mixed ? 'mixed' : ''}">
+						<th
+							scope="row"
+							class="bg-card sticky left-0 z-10 px-3 py-2 text-left font-mono text-xs font-medium whitespace-nowrap {mixed
+								? 'shadow-[inset_3px_0_0_var(--inconclusive)]'
+								: ''}"
+						>
+							{name}
+							{#if mixed}
+								<span class="mixed-tag text-inconclusive ml-2 font-mono text-[0.6875rem]" title="outcome varies across runs">
+									MIXED
+								</span>
+							{/if}
+						</th>
+						{#each data.runs as run (run.runId)}
+							{@const o = outcomeFor(run, name)}
+							<td class="px-3 py-2 text-center">
+								{#if o}
+									<a href="/tests/{data.scenario}/{run.runId}/{name}"><OutcomePill state={o} /></a>
+								{:else}
+									<span class="text-ink-3">—</span>
+								{/if}
+							</td>
+						{/each}
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+	</Card.Content>
+</Card.Root>
 
-{#if data.broken.length > 0}
-	<h2>Refused runs</h2>
-	<p class="sub">
-		These runs exist on disk but would not load — the artifact drifted from what was frozen, or is
-		mislabeled or corrupt. They are shown, not hidden: a refused run is an intervention to see, not
-		a row to delete.
-	</p>
-	<ul class="runs">
-		{#each data.broken as b (b.runId)}
-			<li>
-				<span class="mono">{shortRun(b.runId)}</span>
-				<span class="pill FAIL">REFUSED</span>
-				<span class="muted">{b.error}</span>
-			</li>
-		{/each}
-	</ul>
-{/if}
+<Card.Root class="gap-0 py-0">
+	<Card.Header class="border-b px-4 !py-3">
+		<Card.Title class="text-base">Runs</Card.Title>
+	</Card.Header>
 
-<style>
-	.matrix-scroll {
-		overflow-x: auto;
-	}
-	.matrix {
-		border-collapse: collapse;
-		font-size: 0.85rem;
-	}
-	.matrix th,
-	.matrix td {
-		border: 1px solid var(--border);
-		padding: 0.4rem 0.6rem;
-		text-align: center;
-	}
-	.matrix .corner,
-	.matrix .rowname {
-		text-align: left;
-		background: var(--surface-2);
-		white-space: nowrap;
-	}
-	.matrix tr.mixed .rowname {
-		box-shadow: inset 3px 0 0 var(--inconclusive);
-	}
-	.mixed-tag {
-		font-size: 0.65rem;
-		color: var(--inconclusive);
-		margin-left: 0.4rem;
-	}
-	.runs {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-	}
-	.runs li {
-		display: flex;
-		align-items: center;
-		gap: 0.75rem;
-		padding: 0.45rem 0;
-		border-top: 1px solid var(--border);
-	}
-</style>
+	<!-- Desktop/tablet: the dense table. -->
+	<Card.Content class="hidden p-0 sm:block">
+		<Table.Root class="table">
+			<Table.Header>
+				<Table.Row class="bg-muted hover:bg-muted">
+					<Table.Head>Run</Table.Head>
+					<Table.Head>Worst</Table.Head>
+					<Table.Head>Outcomes</Table.Head>
+					<Table.Head>Target</Table.Head>
+					<Table.Head class="text-right">When</Table.Head>
+				</Table.Row>
+			</Table.Header>
+			<Table.Body>
+				{#each data.runs as run (run.runId)}
+					{@const o = worstOutcome(run.counts)}
+					<Table.Row>
+						<Table.Cell>
+							<a class="row-link font-mono font-semibold hover:underline" href="/tests/{data.scenario}/{run.runId}">
+								{shortRun(run.runId)}
+							</a>
+						</Table.Cell>
+						<Table.Cell><OutcomePill state={o} /></Table.Cell>
+						<Table.Cell>
+							<CountsBar counts={run.counts} />
+							<span class="text-ink-3 ml-2 font-mono text-xs tabular-nums">
+								{run.counts.PASS}·{run.counts.FAIL}·{run.counts.INCONCLUSIVE}
+							</span>
+						</Table.Cell>
+						<Table.Cell><Badge variant="outline" class="chip">{run.target}</Badge></Table.Cell>
+						<Table.Cell class="text-ink-3 num muted text-right tabular-nums">{ago(run.createdEpochMs)}</Table.Cell>
+					</Table.Row>
+				{/each}
+				{#each data.broken as b (b.runId)}
+					<Table.Row>
+						<Table.Cell><span class="font-mono">{shortRun(b.runId)}</span></Table.Cell>
+						<Table.Cell><OutcomePill state="REFUSED" /></Table.Cell>
+						<Table.Cell colspan={3} class="text-ink-3">{b.error}</Table.Cell>
+					</Table.Row>
+				{/each}
+			</Table.Body>
+		</Table.Root>
+	</Card.Content>
+
+	<!-- Phone: the SAME fields, stacked label-value (field parity). -->
+	<Card.Content class="p-0 sm:hidden">
+		<ul class="divide-y">
+			{#each data.runs as run (run.runId)}
+				{@const o = worstOutcome(run.counts)}
+				<li class="p-4">
+					<div class="flex items-center justify-between gap-2">
+						<a class="row-link font-mono font-semibold hover:underline" href="/tests/{data.scenario}/{run.runId}">
+							{shortRun(run.runId)}
+						</a>
+						<OutcomePill state={o} />
+					</div>
+					<dl class="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs">
+						<dt class="text-ink-3 text-[0.6875rem] font-medium tracking-wider uppercase">Outcomes</dt>
+						<dd class="text-right">
+							<CountsBar counts={run.counts} />
+							<span class="ml-1 font-mono tabular-nums">
+								{run.counts.PASS}·{run.counts.FAIL}·{run.counts.INCONCLUSIVE}
+							</span>
+						</dd>
+						<dt class="text-ink-3 text-[0.6875rem] font-medium tracking-wider uppercase">Target</dt>
+						<dd class="text-right"><Badge variant="outline" class="chip">{run.target}</Badge></dd>
+						<dt class="text-ink-3 text-[0.6875rem] font-medium tracking-wider uppercase">When</dt>
+						<dd class="text-right tabular-nums">{ago(run.createdEpochMs)}</dd>
+					</dl>
+				</li>
+			{/each}
+			{#each data.broken as b (b.runId)}
+				<li class="p-4">
+					<div class="flex items-center justify-between gap-2">
+						<span class="font-mono font-semibold">{shortRun(b.runId)}</span>
+						<OutcomePill state="REFUSED" />
+					</div>
+					<p class="text-ink-3 mt-2 text-xs">{b.error}</p>
+				</li>
+			{/each}
+		</ul>
+	</Card.Content>
+
+	{#if data.broken.length > 0}
+		<div class="text-ink-3 border-t px-4 py-2 text-xs">
+			A refused run exists on disk but would not load — drifted from its hash, mislabeled, or
+			corrupt. It is shown, not hidden: an intervention to see, not a row to delete.
+		</div>
+	{/if}
+</Card.Root>

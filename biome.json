@@ -50,6 +50,8 @@
 			"!**/*.svelte",
 			"!**/*.json",
 			"!apps/web/static",
+			"!apps/web/src/app.css",
+			"!apps/web/src/lib/components/ui",
 			"!**/coverage",
 			"!**/data"
 		]

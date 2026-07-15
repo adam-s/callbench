@@ -1,158 +1,121 @@
 /*
- * The app's vocabulary. Colors carry meaning in exactly three places (ui.md):
- * the three-state outcome, the two speakers, and pass/fail history. They are
- * defined once here and reused everywhere; nothing else gets a status color.
+ * The app's theme — shadcn-svelte's variable contract fed by callbench's
+ * VALIDATED palette (see STYLE.md: the verdict trio, speaker pair, and accent
+ * were chosen by the dataviz six-checks validator, not by eye; re-run it
+ * before changing any hue here).
  *
- * INCONCLUSIVE is a DISTINCT hue (indigo), never a pale PASS or a muted FAIL —
- * the render is exactly where the third state gets quietly collapsed, so it is
- * given its own color that reads as its own outcome. Every colored mark ships
- * with its text label; identity is never color alone.
+ * Light mode only, by direction. The legacy custom-property names
+ * (--pass, --fail, --inconclusive, --bench, --target, --accent, --ink-*,
+ * --surface-*, --border, --mono, --r-3) are kept as aliases because the
+ * canvas components (Waveform, LevelMeter, TurnRibbon) read them at render
+ * time via getComputedStyle — one source, two vocabularies.
  */
 
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
 :root {
-	color-scheme: light dark;
+	color-scheme: light;
 
-	--bg: #fbfbfa;
+	/* shadcn-svelte contract */
+	--background: #f5f6f8;
+	--foreground: #1b2430;
+	--card: #ffffff;
+	--card-foreground: #1b2430;
+	--popover: #ffffff;
+	--popover-foreground: #1b2430;
+	--primary: #2a78d6;
+	--primary-foreground: #ffffff;
+	--secondary: #f0f2f5;
+	--secondary-foreground: #1b2430;
+	--muted: #f0f2f5;
+	--muted-foreground: #5a6472;
+	--accent-ui: #f0f2f5;
+	--accent-ui-foreground: #1b2430;
+	--destructive: #c22f4d;
+	--destructive-foreground: #ffffff;
+	--border: #e2e5ea;
+	--input: #c9cedb;
+	--ring: #2a78d6;
+	--radius: 0.5rem;
+
+	/* the color LAW — three-state outcome, two speakers (validated set) */
+	--pass: #006300;
+	--pass-bg: #e7f1e7;
+	--fail: #c22f4d;
+	--fail-bg: #f9e9ed;
+	--inconclusive: #a21caf;
+	--inconclusive-bg: #f6e8f7;
+	--bench: #2a78d6;
+	--bench-bg: #eaf2fb;
+	--target: #c98500;
+	--target-bg: #faf3e3;
+
+	/* legacy aliases read by the canvas components and scoped styles */
+	--plane: #f5f6f8;
 	--surface: #ffffff;
-	--surface-2: #f2f2f0;
-	--border: #e3e3df;
-	--ink: #1a1a19;
-	--ink-2: #55554f;
-	--ink-3: #8a8a82;
-	--accent: #2b6cb0;
-
-	/* three-state outcome — three hues, not two-plus-a-shade */
-	--pass: #1a7f4b;
-	--pass-bg: #e6f4ec;
-	--fail: #c0392b;
-	--fail-bg: #fbeae8;
-	--inconclusive: #5b4bd6;
-	--inconclusive-bg: #ece9fb;
-
-	/* the two speakers */
-	--bench: #2b6cb0;
-	--target: #b0632b;
-
-	--radius: 8px;
-	--mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-	--sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+	--surface-2: #f0f2f5;
+	--border-strong: #c9cedb;
+	--ink: #1b2430;
+	--ink-2: #5a6472;
+	--ink-3: #8a93a2;
+	--accent: #2a78d6;
+	--accent-down: #1c5cab;
+	--r-1: 4px;
+	--r-2: 6px;
+	--r-3: 8px;
+	--mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+	--sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+	--t-fast: 120ms;
 }
 
-@media (prefers-color-scheme: dark) {
-	:root {
-		--bg: #17171a;
-		--surface: #1f1f23;
-		--surface-2: #27272c;
-		--border: #34343a;
-		--ink: #ededf0;
-		--ink-2: #b4b4bc;
-		--ink-3: #7d7d86;
-		--accent: #6ba3e0;
+@theme inline {
+	--color-background: var(--background);
+	--color-foreground: var(--foreground);
+	--color-card: var(--card);
+	--color-card-foreground: var(--card-foreground);
+	--color-popover: var(--popover);
+	--color-popover-foreground: var(--popover-foreground);
+	--color-primary: var(--primary);
+	--color-primary-foreground: var(--primary-foreground);
+	--color-secondary: var(--secondary);
+	--color-secondary-foreground: var(--secondary-foreground);
+	--color-muted: var(--muted);
+	--color-muted-foreground: var(--muted-foreground);
+	--color-accent: var(--accent-ui);
+	--color-accent-foreground: var(--accent-ui-foreground);
+	--color-destructive: var(--destructive);
+	--color-destructive-foreground: var(--destructive-foreground);
+	--color-border: var(--border);
+	--color-input: var(--input);
+	--color-ring: var(--ring);
 
-		--pass: #4ecb84;
-		--pass-bg: #16321f;
-		--fail: #ef6b5c;
-		--fail-bg: #331a17;
-		--inconclusive: #9a8cf5;
-		--inconclusive-bg: #201c3a;
+	--color-pass: var(--pass);
+	--color-pass-bg: var(--pass-bg);
+	--color-fail: var(--fail);
+	--color-fail-bg: var(--fail-bg);
+	--color-inconclusive: var(--inconclusive);
+	--color-inconclusive-bg: var(--inconclusive-bg);
+	--color-bench: var(--bench);
+	--color-bench-bg: var(--bench-bg);
+	--color-target: var(--target);
+	--color-target-bg: var(--target-bg);
+	--color-ink-3: var(--ink-3);
 
-		--bench: #6ba3e0;
-		--target: #e0a06b;
+	--radius-sm: calc(var(--radius) - 4px);
+	--radius-md: calc(var(--radius) - 2px);
+	--radius-lg: var(--radius);
+	--radius-xl: calc(var(--radius) + 4px);
+
+	--font-sans: var(--sans);
+	--font-mono: var(--mono);
+}
+
+@layer base {
+	* {
+		@apply border-border;
 	}
-}
-
-* {
-	box-sizing: border-box;
-}
-
-html,
-body {
-	margin: 0;
-	background: var(--bg);
-	color: var(--ink);
-	font-family: var(--sans);
-	font-size: 15px;
-	line-height: 1.5;
-}
-
-a {
-	color: var(--accent);
-	text-decoration: none;
-}
-a:hover {
-	text-decoration: underline;
-}
-
-.wrap {
-	max-width: 960px;
-	margin: 0 auto;
-	padding: 1.5rem 1.25rem 4rem;
-}
-
-.crumbs {
-	font-size: 0.85rem;
-	color: var(--ink-3);
-	margin-bottom: 1.25rem;
-}
-.crumbs a {
-	color: var(--ink-2);
-}
-
-h1 {
-	font-size: 1.4rem;
-	margin: 0 0 0.25rem;
-}
-h2 {
-	font-size: 1.05rem;
-	margin: 1.75rem 0 0.6rem;
-}
-.sub {
-	color: var(--ink-2);
-	margin: 0 0 1.25rem;
-}
-
-/* the outcome pill — always carries its text label */
-.pill {
-	display: inline-block;
-	font-family: var(--mono);
-	font-size: 0.72rem;
-	font-weight: 600;
-	letter-spacing: 0.02em;
-	padding: 0.12rem 0.44rem;
-	border-radius: 5px;
-	white-space: nowrap;
-}
-.pill.PASS {
-	color: var(--pass);
-	background: var(--pass-bg);
-}
-.pill.FAIL {
-	color: var(--fail);
-	background: var(--fail-bg);
-}
-.pill.INCONCLUSIVE {
-	color: var(--inconclusive);
-	background: var(--inconclusive-bg);
-}
-
-.card {
-	background: var(--surface);
-	border: 1px solid var(--border);
-	border-radius: var(--radius);
-	padding: 0.9rem 1rem;
-}
-
-.muted {
-	color: var(--ink-3);
-}
-.mono {
-	font-family: var(--mono);
-}
-
-.fence-note {
-	font-size: 0.8rem;
-	color: var(--ink-3);
-	border-left: 2px solid var(--border);
-	padding-left: 0.6rem;
-	margin-top: 0.5rem;
+	body {
+		@apply bg-background text-foreground font-sans text-[0.8125rem] leading-normal;
+	}
 }

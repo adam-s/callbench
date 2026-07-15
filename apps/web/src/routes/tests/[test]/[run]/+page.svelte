@@ -1,10 +1,14 @@
 <script lang="ts">
 	import { Transport } from '$lib/audio/transport.svelte.ts';
+	import CountsBar from '$lib/components/CountsBar.svelte';
 	import LevelMeter from '$lib/components/LevelMeter.svelte';
+	import OutcomePill from '$lib/components/OutcomePill.svelte';
 	import PlaybackControls from '$lib/components/PlaybackControls.svelte';
 	import TurnRibbon from '$lib/components/TurnRibbon.svelte';
 	import Waveform, { type WaveSpan } from '$lib/components/Waveform.svelte';
-	import { shortRun, whereOf } from '$lib/types.ts';
+	import { Badge } from '$lib/components/ui/badge/index.js';
+	import * as Card from '$lib/components/ui/card/index.js';
+	import { shortRun, whereOf, worstOutcome } from '$lib/types.ts';
 	import type { PageData } from './$types';
 	let { data }: { data: PageData } = $props();
 
@@ -60,197 +64,167 @@
 			})),
 	);
 
-	// The turn under the playhead right now — highlighted so the transcript scrolls
-	// in lockstep with playback. Reads the one clock (transport.t), in ms.
+	// The turn under the playhead right now — highlighted and kept in view so the
+	// transcript scrolls in lockstep with playback. Reads the one clock.
 	const playingTurn = $derived.by(() => {
 		const ms = transport.t * 1000;
 		return data.turns.findIndex((t) => ms >= t.startMs && ms < t.endMs);
 	});
 
+	// The reciprocal half of click-a-finding-hear-it: while audio plays, the
+	// transcript pane follows. Scrolls its own pane only (block:'nearest' inside
+	// the scroll container), so the page itself never jumps.
+	let transcriptPane: HTMLElement | undefined = $state();
+	$effect(() => {
+		if (playingTurn < 0 || !transport.playing || !transcriptPane) return;
+		const el = transcriptPane.querySelector(`[data-turn="${playingTurn}"]`);
+		el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+	});
+
 	function hear(span: { startMs: number; endMs: number }) {
 		transport.playRegion(span.startMs / 1000, span.endMs / 1000);
 	}
+
+	const worst = $derived(worstOutcome(data.counts));
 </script>
 
-<div class="crumbs">
-	<a href="/">callbench</a> / <a href="/tests/{data.scenario}">{data.scenario}</a> / {shortRun(
-		data.runId,
-	)}
+<svelte:head>
+	<title>{shortRun(data.runId)} · {data.scenario} · callbench</title>
+	<meta
+		name="description"
+		content="Run {shortRun(data.runId)} of {data.scenario}: transcript, findings, and call audio — PASS {data.counts.PASS}, FAIL {data.counts.FAIL}, INCONCLUSIVE {data.counts.INCONCLUSIVE}."
+	/>
+</svelte:head>
+
+<div class="page-head flex flex-wrap items-center gap-3">
+	<h1 class="font-mono text-xl font-semibold tracking-tight">{shortRun(data.runId)}</h1>
+	<OutcomePill state={worst} />
+	<CountsBar counts={data.counts} />
+	<Badge variant="outline" class="chip">{data.target}</Badge>
+	<span class="text-ink-3 font-mono text-xs tabular-nums">
+		PASS {data.counts.PASS} · FAIL {data.counts.FAIL} · INCONCLUSIVE {data.counts.INCONCLUSIVE}
+	</span>
 </div>
-<h1 class="mono">{shortRun(data.runId)}</h1>
-<p class="sub">
-	{data.scenario} · target <span class="mono">{data.target}</span> · PASS {data.counts.PASS} · FAIL
-	{data.counts.FAIL} · INCONCLUSIVE {data.counts.INCONCLUSIVE}
-</p>
 
 {#if hasAudio && data.audio}
-	<Waveform {transport} peaks={data.audio.peaks} durationMs={data.audio.durationMs} spans={waveSpans} />
-	<div class="player">
-		<div class="player-controls"><PlaybackControls {transport} /></div>
-		<div class="player-meter"><LevelMeter {transport} /></div>
-	</div>
-	<h2>Turn ribbon</h2>
-	<p class="sub">
-		Two lanes on a real time axis — the rhythm of the call at a glance. Click a block to seek there;
-		the block under the playhead lights up. Where the two lanes overlap is literal talkover.
-	</p>
-	<TurnRibbon turns={data.turns} durationMs={data.audio.durationMs} {transport} />
-	{#if data.audio.synthetic}
-		<p class="fence-note">
-			Simulator run — the audio is synthesized from the turn text ({data.audio.synthetic}), a stand-in
-			for a real call recording. Click any finding's ▶ to hear its moment. Nobody's line rings.
-		</p>
-	{:else}
-		<p class="fence-note">
-			Recorded call — play it back to review the evidence by ear; click any finding's ▶ to hear its
-			moment. This plays a frozen recording. There is no re-run or re-dial control for a real line.
-		</p>
-	{/if}
+	<Card.Root class="gap-0 py-0">
+		<Card.Header class="border-b px-4 !py-3">
+			<Card.Title class="text-base">The call</Card.Title>
+			<Card.Description class="text-xs">
+				click the waveform to seek · click a turn block to jump · overlap is talkover
+			</Card.Description>
+		</Card.Header>
+		<Card.Content class="flex flex-col gap-3 p-4">
+			<Waveform {transport} peaks={data.audio.peaks} durationMs={data.audio.durationMs} spans={waveSpans} />
+			<TurnRibbon turns={data.turns} durationMs={data.audio.durationMs} {transport} />
+			<div class="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:gap-4">
+				<div class="min-w-0 flex-1"><PlaybackControls {transport} /></div>
+				<div class="w-full sm:w-44 sm:flex-none"><LevelMeter {transport} /></div>
+			</div>
+		</Card.Content>
+		<div class="text-ink-3 border-t px-4 py-2 text-xs">
+			{#if data.audio.synthetic}
+				Simulator run — audio synthesized from the turn text ({data.audio.synthetic}), a stand-in
+				for a real recording. Click any finding's ▶ to hear its moment. Nobody's line rings.
+			{:else}
+				Recorded call — playback of a frozen recording. Click any finding's ▶ to hear its moment.
+				There is no re-run or re-dial control for a real line.
+			{/if}
+		</div>
+	</Card.Root>
 {:else if data.replayable}
-	<p class="fence-note">Simulator run — replayable, but this run has no audio recording.</p>
+	<p class="fence-note text-ink-3 border-l-2 pl-2 text-xs">
+		Simulator run — replayable, but this run has no audio recording.
+	</p>
 {:else}
-	<p class="fence-note">This run has no audio recording.</p>
+	<p class="fence-note text-ink-3 border-l-2 pl-2 text-xs">This run has no audio recording.</p>
 {/if}
 
-<h2>Findings</h2>
-<ul class="findings">
-	{#each findings as f (f.kind + f.assertion)}
-		<li>
-			<div class="frow">
-				{#if hasAudio && f.span}
-					<button class="hear" title="Hear this span" aria-label="Hear this span" onclick={() => hear(f.span!)}>▶</button>
-				{/if}
-				<a class="flink" href="/tests/{data.scenario}/{data.runId}/{f.assertion}">
-					<span class="pill {f.outcome}">{f.outcome}</span>
-					<span class="fname mono">{f.assertion}</span>
-					<span class="fwhere muted mono">{whereOf(f)}</span>
-				</a>
-			</div>
-			<p class="fdetail">
-				{f.detail}
-				{#if f.by}<span class="muted"> — judged by {f.by}</span>{/if}
-			</p>
-		</li>
-	{/each}
-</ul>
+<div class="grid items-start gap-4 lg:grid-cols-2">
+	<Card.Root class="gap-0 py-0">
+		<Card.Header class="border-b px-4 !py-3">
+			<Card.Title class="text-base">Findings</Card.Title>
+		</Card.Header>
+		<ul class="findings divide-y px-4 py-2">
+			{#each findings as f (f.kind + f.assertion)}
+				<li class="py-2">
+					<div class="flex items-center gap-2">
+						{#if hasAudio && f.span}
+							<button
+								class="btn-icon text-primary border-input bg-card hover:bg-muted inline-flex size-[22px] flex-none cursor-pointer items-center justify-center rounded-full border text-[0.55rem]"
+								title="Hear this span"
+								aria-label="Hear this span"
+								onclick={() => hear(f.span!)}>▶</button>
+						{:else}
+							<span class="w-[22px] flex-none"></span>
+						{/if}
+						<a
+							class="group flex min-w-0 items-center gap-2 text-inherit"
+							href="/tests/{data.scenario}/{data.runId}/{f.assertion}"
+						>
+							<OutcomePill state={f.outcome} />
+							<span class="font-mono font-semibold group-hover:underline">{f.assertion}</span>
+						</a>
+						<Badge variant="outline" class="chip">{f.kind}</Badge>
+					</div>
+					<p class="text-muted-foreground mt-1 ml-[30px]">
+						{f.detail}
+						{#if f.by}<span class="text-ink-3"> — judged by {f.by}</span>{/if}
+					</p>
+					<p class="text-ink-3 mt-0.5 ml-[30px] font-mono text-xs">{whereOf(f)}</p>
+				</li>
+			{/each}
+		</ul>
+	</Card.Root>
 
-<h2>Transcript</h2>
-<p class="sub">Verbatim, with session-clock timings. Every finding above traces to a span here.</p>
-<ol class="transcript">
-	{#each data.turns as turn, i (i)}
-		<li class="turn {turn.speaker}" class:playing={i === playingTurn}>
-			<span class="who">{turn.speaker === 'bench' ? 'BENCH' : 'AGENT'}</span>
-			<span class="text">{turn.text}</span>
-			<span class="time muted mono">
-				{turn.startMs}–{turn.endMs}ms
-				{#if turn.confidence}· conf {turn.confidence.score.toFixed(2)}{/if}
-			</span>
-		</li>
-	{/each}
-</ol>
+	<Card.Root class="gap-0 py-0 lg:sticky lg:top-4">
+		<Card.Header class="border-b px-4 !py-3">
+			<Card.Title class="text-base">Transcript</Card.Title>
+			<Card.Description class="text-xs">
+				verbatim, session clock — every finding traces to a span here
+			</Card.Description>
+		</Card.Header>
+		<ol class="transcript max-h-[72vh] overflow-y-auto px-3 py-2" bind:this={transcriptPane}>
+			{#each data.turns as turn, i (i)}
+				<li class="turn {turn.speaker}" class:playing={i === playingTurn} data-turn={i}>
+					<span class="who">{turn.speaker === 'bench' ? 'BENCH' : 'AGENT'}</span>
+					<span class="text">{turn.text}</span>
+					<span class="time text-ink-3 font-mono">
+						{turn.startMs}–{turn.endMs}ms
+						{#if turn.confidence}· conf {turn.confidence.score.toFixed(2)}{/if}
+					</span>
+				</li>
+			{/each}
+		</ol>
+	</Card.Root>
+</div>
 
 <style>
-	.player {
-		display: flex;
-		align-items: center;
-		gap: 1rem;
-		margin: 0.6rem 0 0.25rem;
-	}
-	.player-controls {
-		flex: 1;
-		min-width: 0;
-	}
-	.player-meter {
-		flex: none;
-		width: 180px;
-	}
-	@media (max-width: 560px) {
-		.player {
-			flex-direction: column;
-			align-items: stretch;
-		}
-		.player-meter {
-			width: 100%;
-		}
-	}
-	.findings {
-		list-style: none;
-		margin: 0 0 1rem;
-		padding: 0;
-	}
-	.findings li {
-		padding: 0.55rem 0;
-		border-top: 1px solid var(--border);
-	}
-	.frow {
-		display: flex;
-		align-items: center;
-		gap: 0.6rem;
-	}
-	.hear {
-		flex: none;
-		width: 1.5rem;
-		height: 1.5rem;
-		border-radius: 50%;
-		border: 1px solid var(--border);
-		background: var(--surface);
-		color: var(--accent);
-		cursor: pointer;
-		font-size: 0.6rem;
-		line-height: 1;
-	}
-	.hear:hover {
-		background: var(--surface-2);
-	}
-	.flink {
-		display: flex;
-		align-items: center;
-		gap: 0.6rem;
-		color: inherit;
-	}
-	.flink:hover {
-		text-decoration: none;
-	}
-	.flink:hover .fname {
-		text-decoration: underline;
-	}
-	.fname {
-		font-weight: 600;
-	}
-	.fwhere {
-		font-size: 0.78rem;
-	}
-	.fdetail {
-		margin: 0.3rem 0 0 2.1rem;
-		color: var(--ink-2);
-		font-size: 0.9rem;
-	}
-	.transcript {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-	}
+	/* The transcript's turn grid — genuinely custom layout, kept as scoped CSS
+	 * on the legacy tokens (aliased in app.css). */
 	.turn {
 		display: grid;
-		grid-template-columns: 4.5rem 1fr auto;
-		gap: 0.75rem;
+		grid-template-columns: 3.6rem 1fr auto;
+		gap: 8px;
 		align-items: baseline;
-		padding: 0.4rem 0.6rem;
+		padding: 4px 8px;
 		border-radius: 6px;
-		transition: background 0.1s;
 	}
 	.turn.bench {
-		background: color-mix(in srgb, var(--bench) 8%, transparent);
+		background: var(--bench-bg);
 	}
 	.turn.target {
-		background: color-mix(in srgb, var(--target) 8%, transparent);
+		background: var(--target-bg);
+	}
+	.turn + .turn {
+		margin-top: 2px;
 	}
 	.turn.playing {
 		outline: 2px solid var(--accent);
 	}
 	.who {
 		font-family: var(--mono);
-		font-size: 0.7rem;
+		font-size: 0.6875rem;
 		font-weight: 700;
 		letter-spacing: 0.03em;
 	}
@@ -261,7 +235,18 @@
 		color: var(--target);
 	}
 	.time {
-		font-size: 0.72rem;
+		font-size: 0.75rem;
 		white-space: nowrap;
+	}
+	/* On a phone the nowrap timing cell would crush the text column to a word
+	 * per line — drop it to its own row under the turn instead. */
+	@media (max-width: 560px) {
+		.turn {
+			grid-template-columns: 3.6rem 1fr;
+		}
+		.time {
+			grid-column: 1 / -1;
+			justify-self: end;
+		}
 	}
 </style>

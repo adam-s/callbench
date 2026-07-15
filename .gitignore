@@ -27,3 +27,9 @@ __pycache__/
 # SvelteKit generated output and build
 .svelte-kit/
 apps/*/build/
+
+# Browser-suite working output (baselines in e2e/__screenshots__ ARE committed)
+apps/*/.snapshots/
+apps/*/.perf/
+apps/*/test-results/
+apps/*/playwright-report/

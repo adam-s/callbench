@@ -35,6 +35,8 @@ export class Transport {
 	#raf = 0;
 	#audio: HTMLAudioElement | null = null;
 	#stopAt: number | null = null;
+	/** canplay-time clock corrections since the last load/seek — see the cap. */
+	#seekCorrections = 0;
 
 	// Wall-clock fallback so the playhead animates even when audio never plays
 	// (autoplay blocked, decode/codec failure, muted device). The clock free-runs
@@ -66,6 +68,32 @@ export class Transport {
 				this.duration = this.#audio.duration;
 			}
 		});
+		// A seek or play() issued while the media load algorithm is in flight is
+		// DISCARDED by the element when the load settles: load() queues its work
+		// asynchronously, so playRegion racing it (the finding page's autoplay does
+		// exactly this) seeks an element that is about to be reset to 0. Correcting
+		// at 'loadedmetadata' is too early — the element's own seek-to-default step
+		// runs right after it and wins (observed: a 28.4s write read back as 0).
+		// 'canplay' is the first moment the element is genuinely seekable, so THAT
+		// is where the transport re-asserts its clock: bring the element to `t`
+		// (never the reverse) and restart the playback the load interrupted. The
+		// 0.25s guard makes the mid-playback canplay (after any ordinary seek) a
+		// no-op.
+		a.addEventListener('canplay', () => {
+			if (!this.#audio || !this.playing) return;
+			if (Math.abs(this.#audio.currentTime - this.t) > 0.25) {
+				// CAPPED: an element that refuses the seek (e.g. served without range
+				// support it is unseekable and clamps every write to 0) re-fires
+				// canplay after each rejected attempt — uncapped, that is an infinite
+				// correction storm (observed). After the cap, the element is left
+				// where it insists and the wall-clock fallback carries the playhead.
+				if (this.#seekCorrections >= 3) return;
+				this.#seekCorrections++;
+				this.#audio.currentTime = this.t;
+				this.#lastAudioTime = -1;
+			}
+			void this.#audio.play().catch(() => {});
+		});
 		this.#audio = a;
 		return a;
 	}
@@ -76,6 +104,7 @@ export class Transport {
 		this.pause();
 		this.duration = duration;
 		this.t = 0;
+		this.#seekCorrections = 0;
 		const a = this.#ensureAudio();
 		if (a) {
 			a.src = audioUrl;
@@ -157,6 +186,7 @@ export class Transport {
 	seek(t: number) {
 		const clamped = Math.max(0, Math.min(this.duration, t));
 		this.t = clamped;
+		this.#seekCorrections = 0; // a fresh intent re-arms the canplay correction
 		this.#resetClock(clamped);
 		if (this.#audio) this.#audio.currentTime = clamped;
 	}
