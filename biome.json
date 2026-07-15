@@ -46,7 +46,10 @@
 			"!**/node_modules",
 			"!**/dist",
 			"!**/build",
+			"!**/.svelte-kit",
+			"!**/*.svelte",
 			"!**/*.json",
+			"!apps/web/static",
 			"!**/coverage",
 			"!**/data"
 		]

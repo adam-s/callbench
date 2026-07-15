@@ -14,13 +14,22 @@ finding it in its constructed forms too, not just its literal ones.
 
 ## Stack
 
-- pnpm@10.11.0 monorepo, workspace `packages/*`.
+- pnpm monorepo, workspaces `packages/*` and `apps/*`. (`apps/*` was **added at
+  Increment 5** for the web app — see the amendment note under the checkout
+  gate.)
 - TypeScript 5.9.3, `module: ESNext`, `moduleResolution: bundler`, strict,
   `erasableSyntaxOnly`. `@types/node` 24.x.
 - Biome 2.x (lint + format): tabs, single quotes, semicolons, width 100.
+  `.svelte` files are **not** linted by Biome (its Svelte support does not parse
+  template markup, so it false-flags script bindings used only in markup as
+  unused); svelte-check validates them instead.
 - Vitest 4.x, node environment. Test glob: `packages/**/*.test.ts`,
-  `scripts/**/*.test.mjs`.
-- No runtime dependencies yet. Providers arrive with their increments.
+  `scripts/**/*.test.mjs`, and (added at Increment 5) `apps/web/src/**/*.test.ts`
+  — the web app's server-side logic is plain Node and runs under the same node
+  environment; its tested modules import shared types by relative path, never
+  `$lib/*`, so no SvelteKit alias is needed here.
+- Runtime dependencies arrive with their increments; the web app (Increment 5)
+  adds SvelteKit + Svelte 5 under `apps/web` only.
 
 ### Two version pins that look stale and are not
 
@@ -61,9 +70,25 @@ because the one-debug-module policy requires it.
 `pnpm typecheck && pnpm lint && pnpm vitest run` — green as of this contract.
 Every increment ends here, plus a red-team pass.
 
-`typecheck` currently names `packages/shared/tsconfig.json` explicitly. **Each
-new package must add its own `tsc -p` to the root `typecheck` script.** A
-package that isn't in that list is not typechecked, and nothing will tell you.
+`typecheck` names each package's `tsconfig.json` explicitly. **Each new package
+must add its own `tsc -p` to the root `typecheck` script.** A package that isn't
+in that list is not typechecked, and nothing will tell you.
+
+### Amendment (Increment 5) — the gate widened for the web app
+
+This frozen contract was amended, deliberately and with the maintainer's
+request to build the UI in view, not silently:
+
+- The workspace gained `apps/*`; the web app lives at `apps/web`.
+- `typecheck` now ends with `pnpm --filter @callbench/web check`, which runs
+  `svelte-kit sync && svelte-check` — the UI's typecheck equivalent (plain `tsc`
+  cannot see `.svelte` files or the generated route types).
+- The Vitest glob gained `apps/web/src/**/*.test.ts`.
+- Biome ignores `**/.svelte-kit` (generated) and `**/*.svelte` (see Stack).
+
+What the widening protects, restated so it is not lost: a package or app outside
+the typecheck list and the Vitest glob is green by omission — nothing checks it,
+and its absence looks identical to passing. The web app is now inside both.
 
 ## The DEBUG contract (`@callbench/shared`)
 

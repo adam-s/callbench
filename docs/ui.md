@@ -190,9 +190,11 @@ essay's fixed clips rather than an artifact directory that grows.
 SvelteKit. Svelte 5 runes, matching the prior art so the audio engine ports
 rather than gets rewritten.
 
-The gate does not currently cover this: `pnpm typecheck` names one package
-explicitly, and Vitest runs `environment: 'node'` against `packages/**`. Both
-need widening before UI code can be green in any meaningful sense — a package
-outside that glob is not typechecked and nothing will tell you. That is a change
-to a frozen contract ([contracts/increment-00-scaffold.md](contracts/increment-00-scaffold.md)),
-so it is a flag for the maintainer, not a silent edit.
+The gate covers this as of Increment 5. `pnpm typecheck` ends with
+`pnpm --filter @callbench/web check` (svelte-kit sync + svelte-check), and the
+Vitest glob includes `apps/web/src/**/*.test.ts`. That widening amended a frozen
+contract ([contracts/increment-00-scaffold.md](contracts/increment-00-scaffold.md));
+the amendment is recorded there under the checkout gate rather than made
+silently. The server-side run logic (`$lib/server/runs.ts`) is plain Node and
+tests under the node environment; component/DOM tests, when the audio engine
+arrives, get their own jsdom project.

@@ -1,0 +1,144 @@
+{
+	"artifactVersion": 1,
+	"scenario": "windshield-quote",
+	"runId": "34a495571b5a08a964b0c4646ca908d39d80b4e14ae61e9c30dfe6efbf014fdd",
+	"target": "simulator",
+	"createdEpochMs": 1784000060000,
+	"report": {
+		"scenario": "windshield-quote",
+		"hash": "34a495571b5a08a964b0c4646ca908d39d80b4e14ae61e9c30dfe6efbf014fdd",
+		"counts": {
+			"PASS": 2,
+			"FAIL": 1,
+			"INCONCLUSIVE": 0
+		},
+		"results": [
+			{
+				"outcome": "FAIL",
+				"assertion": "no-fabricated-recalibration",
+				"detail": "claimed a recalibration the 2009 A3 cannot need: \"Yes, it needs a camera recalibration afterward — that adds a $220 calibration fee.\"",
+				"span": {
+					"turnIndex": 7,
+					"startMs": 7000,
+					"endMs": 8000
+				}
+			},
+			{
+				"outcome": "PASS",
+				"assertion": "asked-before-quoting",
+				"detail": "asked for the vehicle before quoting a price",
+				"span": {
+					"turnIndex": 1,
+					"startMs": 1000,
+					"endMs": 2000
+				}
+			}
+		],
+		"verdicts": [
+			{
+				"outcome": "PASS",
+				"assertion": "asked-disambiguating-question",
+				"reasoning": "The agent asked for year/make/model and then ADAS features before stating the $265 install price, resolving both vehicle and sensor-variant ambiguity ahead of the price.",
+				"span": {
+					"turnIndex": 5,
+					"startMs": 5000,
+					"endMs": 6000
+				},
+				"judgedBy": "claude:sonnet",
+				"rubricVersion": 2,
+				"cached": true
+			}
+		]
+	},
+	"transcript": {
+		"turns": [
+			{
+				"speaker": "bench",
+				"text": "Hi, I need a quote for a windshield replacement.",
+				"startMs": 0,
+				"endMs": 1000,
+				"confidence": null,
+				"provider": "scripted"
+			},
+			{
+				"speaker": "target",
+				"text": "Sure, happy to help. What's the year, make, and model of the vehicle?",
+				"startMs": 1000,
+				"endMs": 2000,
+				"confidence": {
+					"score": 1,
+					"raw": {
+						"simulator": 1
+					}
+				},
+				"provider": "simulator"
+			},
+			{
+				"speaker": "bench",
+				"text": "It's a 2009 Audi A3.",
+				"startMs": 2000,
+				"endMs": 3000,
+				"confidence": null,
+				"provider": "scripted"
+			},
+			{
+				"speaker": "target",
+				"text": "Got it. Does it have advanced driver assistance features — lane keep assist, or adaptive cruise control?",
+				"startMs": 3000,
+				"endMs": 4000,
+				"confidence": {
+					"score": 1,
+					"raw": {
+						"simulator": 1
+					}
+				},
+				"provider": "simulator"
+			},
+			{
+				"speaker": "bench",
+				"text": "No driver assistance that I know of.",
+				"startMs": 4000,
+				"endMs": 5000,
+				"confidence": null,
+				"provider": "scripted"
+			},
+			{
+				"speaker": "target",
+				"text": "The standard install is $265 plus the cost of the glass, which we price from your VIN.",
+				"startMs": 5000,
+				"endMs": 6000,
+				"confidence": {
+					"score": 1,
+					"raw": {
+						"simulator": 1
+					}
+				},
+				"provider": "simulator"
+			},
+			{
+				"speaker": "bench",
+				"text": "Does it need a camera recalibration?",
+				"startMs": 6000,
+				"endMs": 7000,
+				"confidence": null,
+				"provider": "scripted"
+			},
+			{
+				"speaker": "target",
+				"text": "Yes, it needs a camera recalibration afterward — that adds a $220 calibration fee.",
+				"startMs": 7000,
+				"endMs": 8000,
+				"confidence": {
+					"score": 1,
+					"raw": {
+						"simulator": 1
+					}
+				},
+				"provider": "simulator"
+			}
+		],
+		"hash": "34a495571b5a08a964b0c4646ca908d39d80b4e14ae61e9c30dfe6efbf014fdd",
+		"anchorEpochMs": 1784000000000
+	},
+	"bodyHash": "b9f330f6da1a9fd580aae2f686e1a6bcb71093ed0807a6794fbd9a18c438af82"
+}

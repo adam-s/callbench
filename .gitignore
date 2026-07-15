@@ -23,3 +23,7 @@ temp/
 # Python build artifacts
 __pycache__/
 *.pyc
+
+# SvelteKit generated output and build
+.svelte-kit/
+apps/*/build/

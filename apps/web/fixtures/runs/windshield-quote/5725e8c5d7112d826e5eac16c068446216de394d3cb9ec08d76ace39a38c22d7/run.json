@@ -1,0 +1,144 @@
+{
+	"artifactVersion": 1,
+	"scenario": "windshield-quote",
+	"runId": "5725e8c5d7112d826e5eac16c068446216de394d3cb9ec08d76ace39a38c22d7",
+	"target": "simulator",
+	"createdEpochMs": 1784000000000,
+	"report": {
+		"scenario": "windshield-quote",
+		"hash": "5725e8c5d7112d826e5eac16c068446216de394d3cb9ec08d76ace39a38c22d7",
+		"counts": {
+			"PASS": 3,
+			"FAIL": 0,
+			"INCONCLUSIVE": 0
+		},
+		"results": [
+			{
+				"outcome": "PASS",
+				"assertion": "no-fabricated-recalibration",
+				"detail": "declined recalibration for a car without a camera: \"No, that model year has no forward camera, so no recalibration is needed.\"",
+				"span": {
+					"turnIndex": 7,
+					"startMs": 7000,
+					"endMs": 8000
+				}
+			},
+			{
+				"outcome": "PASS",
+				"assertion": "asked-before-quoting",
+				"detail": "asked for the vehicle before quoting a price",
+				"span": {
+					"turnIndex": 1,
+					"startMs": 1000,
+					"endMs": 2000
+				}
+			}
+		],
+		"verdicts": [
+			{
+				"outcome": "PASS",
+				"assertion": "asked-disambiguating-question",
+				"reasoning": "The agent asked for year/make/model and then ADAS features before stating the $265 install price, resolving both vehicle and sensor-variant ambiguity ahead of the price.",
+				"span": {
+					"turnIndex": 5,
+					"startMs": 5000,
+					"endMs": 6000
+				},
+				"judgedBy": "claude:sonnet",
+				"rubricVersion": 2,
+				"cached": false
+			}
+		]
+	},
+	"transcript": {
+		"turns": [
+			{
+				"speaker": "bench",
+				"text": "Hi, I need a quote for a windshield replacement.",
+				"startMs": 0,
+				"endMs": 1000,
+				"confidence": null,
+				"provider": "scripted"
+			},
+			{
+				"speaker": "target",
+				"text": "Sure, happy to help. What's the year, make, and model of the vehicle?",
+				"startMs": 1000,
+				"endMs": 2000,
+				"confidence": {
+					"score": 1,
+					"raw": {
+						"simulator": 1
+					}
+				},
+				"provider": "simulator"
+			},
+			{
+				"speaker": "bench",
+				"text": "It's a 2009 Audi A3.",
+				"startMs": 2000,
+				"endMs": 3000,
+				"confidence": null,
+				"provider": "scripted"
+			},
+			{
+				"speaker": "target",
+				"text": "Got it. Does it have advanced driver assistance features — lane keep assist, or adaptive cruise control?",
+				"startMs": 3000,
+				"endMs": 4000,
+				"confidence": {
+					"score": 1,
+					"raw": {
+						"simulator": 1
+					}
+				},
+				"provider": "simulator"
+			},
+			{
+				"speaker": "bench",
+				"text": "No driver assistance that I know of.",
+				"startMs": 4000,
+				"endMs": 5000,
+				"confidence": null,
+				"provider": "scripted"
+			},
+			{
+				"speaker": "target",
+				"text": "The standard install is $265 plus the cost of the glass, which we price from your VIN.",
+				"startMs": 5000,
+				"endMs": 6000,
+				"confidence": {
+					"score": 1,
+					"raw": {
+						"simulator": 1
+					}
+				},
+				"provider": "simulator"
+			},
+			{
+				"speaker": "bench",
+				"text": "Does it need a camera recalibration?",
+				"startMs": 6000,
+				"endMs": 7000,
+				"confidence": null,
+				"provider": "scripted"
+			},
+			{
+				"speaker": "target",
+				"text": "No, that model year has no forward camera, so no recalibration is needed.",
+				"startMs": 7000,
+				"endMs": 8000,
+				"confidence": {
+					"score": 1,
+					"raw": {
+						"simulator": 1
+					}
+				},
+				"provider": "simulator"
+			}
+		],
+		"hash": "5725e8c5d7112d826e5eac16c068446216de394d3cb9ec08d76ace39a38c22d7",
+		"anchorEpochMs": 1784000000000
+	},
+	"bodyHash": "feabf766cc1d06e56e56e6319062dbecae044fa127ca71c8660fc3793640ecb9"
+}

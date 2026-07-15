@@ -139,11 +139,21 @@ deliberate defects make the right assertions fail.
 Freezes: the scenario contract, the report format, the judge contract and its
 cache key.
 
-## Increment 5 — The web UI
+## Increment 5 — The web UI 🟡 (scaffold, routes, run-artifact contract, and dial fence built; audio + rich dataviz ahead)
 
 **Done when** a QA engineer can open the app, see the tests, open a run, and
 hear the moment a finding is about — with the audio, the waveform, and the
 transcript in sync.
+
+Built so far: the SvelteKit app (`apps/web`), all four path-based routes
+rendering server-side from a frozen run artifact, the on-disk run-artifact
+contract (`@callbench/scenario` `artifact.ts`) that REFUSES on a hash mismatch,
+a mislabeled artifact, or an unknown version, and the dial fence — a
+`system-under-test` run is view-only and a structural test asserts NO dial path
+exists in the app at all. The audio engine (click-a-finding-to-hear-it) and the
+rich temporal dataviz are the next increments; the assertion matrix is a first
+cut. The gate now covers the app (see the amendment in
+[contracts/increment-00-scaffold.md](contracts/increment-00-scaffold.md)).
 
 Built after the engine, deliberately: **a UI over a non-existent engine is a
 facade, and the intended reader builds this stack for a living.** Rough real

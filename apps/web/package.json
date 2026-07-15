@@ -1,0 +1,27 @@
+{
+	"name": "@callbench/web",
+	"version": "0.0.1",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "vite dev",
+		"build": "vite build",
+		"preview": "vite preview",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json"
+	},
+	"dependencies": {
+		"@callbench/scenario": "workspace:*",
+		"@callbench/transcript": "workspace:*",
+		"@callbench/assert": "workspace:*",
+		"@callbench/judge": "workspace:*"
+	},
+	"devDependencies": {
+		"@sveltejs/adapter-node": "^5.2.12",
+		"@sveltejs/kit": "^2.15.0",
+		"@sveltejs/vite-plugin-svelte": "^5.0.3",
+		"svelte": "^5.19.0",
+		"svelte-check": "^4.1.4",
+		"typescript": "5.9.3",
+		"vite": "^6.0.7"
+	}
+}

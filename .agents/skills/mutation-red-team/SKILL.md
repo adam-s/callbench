@@ -84,8 +84,9 @@ nothing.
 The invariants each increment freezes, and the mutations it owes this catalog.
 Entries marked "verified CAUGHT" have run against landed code; the rest wait on
 their increment. Built so far: 1 (transport), 2 (speech: transcript, stt, tts,
-turn), 3 (simulator), 4a (assertion layer), 4b (the judge), the scenario runner.
-The web UI is not built.
+turn), 3 (simulator), 4a (assertion layer), 4b (the judge), the scenario runner,
+5 (web UI scaffold + routes + run-artifact contract + dial fence). The audio
+engine, the rich dataviz, and the live-run surfaces are ahead.
 
 - **Increment 1 (dial guard) — CRITICAL, verified CAUGHT:** in
   `scripts/lib/twilio.ts`, neuter `assertDialAllowed`'s ownership check
@@ -155,11 +156,48 @@ The web UI is not built.
     dropped without a word instead of refused loudly.
   - **Hash-refuse gate bypassed** — neuter the `verifyFrozen` refusal in
     `assess`; a drifted transcript must refuse a report, not produce one.
-- **Increment 5 (web):** render a report whose hash doesn't match the artifact
-  (must refuse, not warn); point a finding's deep link at the wrong span; derive
-  a displayed figure from the browser's `AnalyserNode` rather than the frozen
-  record. Also **the dial gate at the render surface**: give the play control the
-  real target as an argument and see whether anything stops it.
+- **Increment 5 (web) — verified CAUGHT:** the run-artifact contract
+  (`packages/scenario/src/artifact.ts`) and the server run store
+  (`apps/web/src/lib/server/runs.ts`). Each mutation below failed its suite when
+  injected:
+  - **Load without the hash-refuse** — bypass `verifyFrozen` in
+    `parseRunArtifact`. A drifted on-disk artifact would render as evidence; the
+    artifact suite fails.
+  - **Accept any artifact version** — neuter the `artifactVersion !== 1` refusal.
+    A future/unknown shape mis-parses instead of refusing.
+  - **Drop the mislabel refusal** — neuter the folder-vs-fields check in
+    `loadRun`. A run.json served under the wrong id (path→identity broken) is no
+    longer refused.
+  - **Fence always open** — make `canReplay` return `true`. A system-under-test
+    run would offer a replay control; the fence-predicate test fails.
+  - **THE DIAL FENCE, structural (capability-level)** — `runs.test.ts` walks
+    every app source file (`.ts/.mts/.cts/.js/.mjs/.cjs/.svelte`) and fails on
+    any outbound-network, media-egress, or telephony primitive: `fetch(`,
+    `XMLHttpRequest`, `RTCPeerConnection`, `WebSocket`, `getUserMedia`,
+    `@callbench/transport`, `sendAudio`, telephony vendor names (twilio, telnyx,
+    vonage, plivo, …), `Calls.json`, the dial guard, the number env vars, the
+    dial script. It asserts the ABSENCE of the dial CAPABILITY, not one vendor —
+    a dial fundamentally needs network egress or WebRTC/media egress, so a dial
+    built from any vendor or in any file type trips it (a `telnyx` fetch is
+    caught where a Twilio-only denylist would miss it). Still only as wide as the
+    capability list; extend it if a new egress primitive appears. Sneak any of
+    these into an app file and the test fails.
+  - **Report body drift** — bypass the `bodyHash` recomputation in
+    `parseRunArtifact`. A `run.json` with a FAIL edited to PASS (transcript
+    untouched, so `verifyFrozen` still passes) would render as evidence; the
+    body-drift test fails.
+  - **Assertion-name collision** — drop the uniqueness check in
+    `buildRunArtifact`. Two findings sharing a name make a deep link unreachable
+    and mislabeled; the collision test fails.
+  - **Path traversal** — remove `assertSafeSegment` in `loadRun`. A URL segment
+    of `../../…` reads outside the runs directory; the traversal test fails.
+  - **Silently dropping a broken run** — make `listRuns` drop a run that fails to
+    load instead of surfacing it as `broken`. Corrupt evidence vanishes from
+    every navigational surface (against append-only / surface-interventions); the
+    broken-surfacing test fails.
+  Still owed once the audio arrives: point a finding's deep link at the wrong
+  span; derive a displayed figure from the browser's `AnalyserNode` rather than
+  the frozen record (the replay-pipeline-measures-nothing rule).
 - **Increment 6 (hybrid tester):** probe-point enforcement — let the persona
   skip a probe and see whether the run still reports success.
 - **Increment 7 (live run):** **the dial gate** — remove the human checkpoint;

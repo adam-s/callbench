@@ -1,0 +1,158 @@
+/*
+ * The app's vocabulary. Colors carry meaning in exactly three places (ui.md):
+ * the three-state outcome, the two speakers, and pass/fail history. They are
+ * defined once here and reused everywhere; nothing else gets a status color.
+ *
+ * INCONCLUSIVE is a DISTINCT hue (indigo), never a pale PASS or a muted FAIL —
+ * the render is exactly where the third state gets quietly collapsed, so it is
+ * given its own color that reads as its own outcome. Every colored mark ships
+ * with its text label; identity is never color alone.
+ */
+
+:root {
+	color-scheme: light dark;
+
+	--bg: #fbfbfa;
+	--surface: #ffffff;
+	--surface-2: #f2f2f0;
+	--border: #e3e3df;
+	--ink: #1a1a19;
+	--ink-2: #55554f;
+	--ink-3: #8a8a82;
+	--accent: #2b6cb0;
+
+	/* three-state outcome — three hues, not two-plus-a-shade */
+	--pass: #1a7f4b;
+	--pass-bg: #e6f4ec;
+	--fail: #c0392b;
+	--fail-bg: #fbeae8;
+	--inconclusive: #5b4bd6;
+	--inconclusive-bg: #ece9fb;
+
+	/* the two speakers */
+	--bench: #2b6cb0;
+	--target: #b0632b;
+
+	--radius: 8px;
+	--mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+	--sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--bg: #17171a;
+		--surface: #1f1f23;
+		--surface-2: #27272c;
+		--border: #34343a;
+		--ink: #ededf0;
+		--ink-2: #b4b4bc;
+		--ink-3: #7d7d86;
+		--accent: #6ba3e0;
+
+		--pass: #4ecb84;
+		--pass-bg: #16321f;
+		--fail: #ef6b5c;
+		--fail-bg: #331a17;
+		--inconclusive: #9a8cf5;
+		--inconclusive-bg: #201c3a;
+
+		--bench: #6ba3e0;
+		--target: #e0a06b;
+	}
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--ink);
+	font-family: var(--sans);
+	font-size: 15px;
+	line-height: 1.5;
+}
+
+a {
+	color: var(--accent);
+	text-decoration: none;
+}
+a:hover {
+	text-decoration: underline;
+}
+
+.wrap {
+	max-width: 960px;
+	margin: 0 auto;
+	padding: 1.5rem 1.25rem 4rem;
+}
+
+.crumbs {
+	font-size: 0.85rem;
+	color: var(--ink-3);
+	margin-bottom: 1.25rem;
+}
+.crumbs a {
+	color: var(--ink-2);
+}
+
+h1 {
+	font-size: 1.4rem;
+	margin: 0 0 0.25rem;
+}
+h2 {
+	font-size: 1.05rem;
+	margin: 1.75rem 0 0.6rem;
+}
+.sub {
+	color: var(--ink-2);
+	margin: 0 0 1.25rem;
+}
+
+/* the outcome pill — always carries its text label */
+.pill {
+	display: inline-block;
+	font-family: var(--mono);
+	font-size: 0.72rem;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	padding: 0.12rem 0.44rem;
+	border-radius: 5px;
+	white-space: nowrap;
+}
+.pill.PASS {
+	color: var(--pass);
+	background: var(--pass-bg);
+}
+.pill.FAIL {
+	color: var(--fail);
+	background: var(--fail-bg);
+}
+.pill.INCONCLUSIVE {
+	color: var(--inconclusive);
+	background: var(--inconclusive-bg);
+}
+
+.card {
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	padding: 0.9rem 1rem;
+}
+
+.muted {
+	color: var(--ink-3);
+}
+.mono {
+	font-family: var(--mono);
+}
+
+.fence-note {
+	font-size: 0.8rem;
+	color: var(--ink-3);
+	border-left: 2px solid var(--border);
+	padding-left: 0.6rem;
+	margin-top: 0.5rem;
+}

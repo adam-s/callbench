@@ -1,4 +1,16 @@
 export {
+	artifactDigest,
+	buildRunArtifact,
+	parseRunArtifact,
+	RUN_FILENAME,
+	type RunArtifact,
+	type RunTarget,
+	readRunArtifact,
+	runIdOf,
+	serializeRunArtifact,
+	writeRunArtifact,
+} from './artifact.ts';
+export {
 	assess,
 	type CallerTurn,
 	driveSimulator,
