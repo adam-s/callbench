@@ -84,6 +84,15 @@ nothing.
 The invariants each increment is expected to freeze, and therefore the
 mutations it owes this catalog. Do not run these until the code exists.
 
+- **Increment 1 (dial guard) — CRITICAL, verified CAUGHT:** in
+  `scripts/lib/twilio.ts`, neuter `assertDialAllowed`'s ownership check
+  (`if (!match)` → `if (false && !match)`) so it dials any number. The
+  `scripts/lib/__tests__/twilio.test.mjs` suite must fail. This mutation
+  SURVIVED the first time it was run — the guard had no committed test — which
+  is why the test exists; a survival here means the single most
+  safety-critical check in the repo is unprotected. Also: change the
+  digit-normalized compare (`digits(to) === digits(target)`) to a raw `===`,
+  reintroducing the format-slip the guard was built to close.
 - **Increment 1 (transport):** in `packages/transport/src/twilio/frames.ts`:
   change `TWILIO_MEDIA_FORMAT.sampleRate` to 16000 (the frozen measured fact —
   verified CAUGHT at landing); coerce `sequenceNumber`/`chunk`/`timestamp` to
