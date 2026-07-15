@@ -67,12 +67,19 @@ meaning anything.
 
 1. **Plan first.** Scope the work and its "done when" gate before starting.
    Don't build what the maintainer hasn't asked for.
-2. **Look for the solved version before writing your own.** Most problems worth
-   solving here have been solved in public — by vendors, by open source, by
-   people who published a paper about it. Search before designing; taking the
-   solved thing is the default, and re-deriving it is the choice that needs a
-   reason. A primitive the platform already provides beats a mechanism you built
-   because you didn't check.
+2. **Search before you build — every feature, every time.** Before implementing
+   anything new, look for how it has already been solved: the vendor's own
+   documentation first (a platform primitive beats a mechanism you wrote because
+   you didn't read the page), then **GitHub** — working repositories, the
+   canonical sample, and the issue tracker, where the failure you are about to
+   hit is often already described — then academic research, then the wider web.
+   Record what you find in the references doc so the next agent inherits the
+   search instead of repeating it.
+
+   This is not a suggestion to be thorough; it is a rule because the cost is
+   asymmetric. A day spent re-deriving a solved thing looks identical, from the
+   inside, to a day spent working. The tell is that you are reasoning about
+   behavior instead of reading about it.
 3. **Probe before building.** When behavior is uncertain, write an empirical
    probe and observe — facts, then code. This outranks the rule above: someone
    else's documentation is a claim, and a claim is what a probe is for.
@@ -285,6 +292,23 @@ toggle makes a running process debuggable without a recompile. When stuck:
 hypothesize → targeted logging at the hot spot → reproduce → narrow → fix →
 remove the logs (or downgrade them to permanently useful ones) — none left
 stale.
+
+**Three failures in a row ends the guessing. Switch to instrumented debugging.**
+Not a fourth attempt at the same fix with one variable changed — a different
+activity. Build a minimal reproduction in an isolated copy (a `/tmp` scratch
+directory or a git worktree, never the working checkout), instrument it to print
+what actually happens at each step, and run it until the real cause is on screen
+rather than inferred.
+
+The rule exists because retry-with-a-tweak is indistinguishable from progress
+while you are doing it, and because each retry of an *outward* action —
+a dial, a provider call, a rate-limited resource — spends something real. The
+tell that you are in this hole: your last three attempts were each justified by
+a new hypothesis about a system you have not looked inside.
+
+Two things the isolated copy buys that the real one doesn't: you can print
+everything without shipping the noise, and you can fail fast and repeatedly
+without touching state anyone else depends on.
 
 Logging a live call is logging a conversation. Redact what the scenario itself
 supplied as fake identity (names, numbers, payment strings) at the log

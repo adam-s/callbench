@@ -140,6 +140,37 @@ transition, not when it occurred. They are not a latency baseline and must not
 be cited as one; that baseline needs frame-level stamps from one clock at one
 layer, per Increment 1.
 
+## Frame format — measured (2026-07-15, `scripts/probe-media-stream.ts`)
+
+Read off a real Media Stream, not documentation. One call to the loopback
+number, 413 messages captured; the raw capture and a summary are under
+`data/probes/media-*/`.
+
+**The 8kHz-mulaw label above is now a measurement.** Twilio's `start` event
+carried, verbatim:
+
+```json
+"mediaFormat": { "encoding": "audio/x-mulaw", "sampleRate": 8000, "channels": 1 }
+```
+
+- **Event sequence:** `connected` → `start` → a stream of `media`. Matches the
+  schema in [references.md](references.md).
+- **One track, `inbound`.** A `<Connect><Stream>` with no `track` attribute
+  forks only the caller-inbound audio. Capturing the far end's speech (what the
+  bench needs to transcribe) is the default; capturing both directions will need
+  the track configured explicitly — to confirm when the transport adapter is
+  built.
+- **Payload is base64 mulaw**, arriving continuously. Silence is `0xFF` bytes
+  (the long `///…` runs in the capture), which is mulaw digital silence — useful
+  to know for a dead-air detector.
+- **Media frames arrived at ~20ms cadence** measured at our own socket read.
+  This is packet spacing at one layer, **not** call latency, and must not be
+  promoted into a report — the same caveat as the timing note above.
+
+What this does **not** settle: outbound audio. Sending audio back to Twilio
+needs a bidirectional stream and base64 mulaw at 8000 with no header bytes (per
+[references.md](references.md)); that path is exercised when TTS lands, not here.
+
 ## Decision
 
 **Twilio Programmable Voice + Media Streams, with the hybrid tester on top.**
