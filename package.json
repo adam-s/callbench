@@ -1,6 +1,7 @@
 {
 	"name": "callbench",
 	"private": true,
+	"type": "module",
 	"scripts": {
 		"lint": "biome check .",
 		"lint:fix": "biome check --write .",
@@ -11,8 +12,12 @@
 		"@biomejs/biome": "2.5.4",
 		"@callbench/shared": "workspace:*",
 		"@types/node": "^24.13.3",
+		"@types/ws": "^8.18.1",
 		"typescript": "5.9.3",
 		"vitest": "^4.1.0"
 	},
-	"packageManager": "pnpm@10.34.5"
+	"packageManager": "pnpm@10.34.5",
+	"dependencies": {
+		"ws": "^8.21.1"
+	}
 }
