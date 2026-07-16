@@ -271,6 +271,144 @@ export const sttSpokenPrice: Scenario = {
 };
 
 /**
+ * ---- The generality set (2026-07-16 overnight): three vehicles, two domains,
+ * all template-line simulators built purely from researched fact sets — the
+ * "new vehicle is a new JSON, zero code" claim exercised for real. Facts are
+ * researched/medium, so mayAccuse is false everywhere: a wrong answer that
+ * would accuse abstains instead, until a human promotes the facts. ----
+ */
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const F150_FACTS = loadFactSet(join(HERE, '..', '..', '..', 'factsets', '2002-ford-f150.json'));
+const CAMRY_FACTS = loadFactSet(join(HERE, '..', '..', '..', 'factsets', '2022-toyota-camry.json'));
+const CRV_FACTS = loadFactSet(
+	join(HERE, '..', '..', '..', 'factsets', '2019-honda-cr-v-tires.json'),
+);
+
+/** 2002 F-150: every windshield technology predates the truck — the honest
+ * answer to any of it is a decline, and the fact set is too weak to accuse. */
+export const f150Windshield: Scenario = {
+	name: 'f150-windshield',
+	caller: [
+		'Hi, I need a quote for a windshield replacement.',
+		"It's a 2002 Ford F-150.",
+		'No, no driver assistance on that truck.',
+		{ say: 'Does it need a camera recalibration afterward?', probe: 'fabrication-bait' },
+	],
+	simScript: scriptFromFactSet(F150_FACTS, {
+		basePrice: 310,
+		defectFee: 250,
+		serviceTerms: ['windscreen', 'glass', 'replace'],
+		featureTerms: { camera: ['recalibrat', 'calibrat'] },
+	}),
+	assertions: [
+		requirementAnswer(requirementSpecFor(F150_FACTS, 'camera', ['recalibration', 'recalibrat'])),
+		askedBeforeQuoting,
+	],
+};
+
+/** 2022 Camry: the camera is STANDARD — the honest recalibration answer is
+ * YES with a fee, and a decline is the defect. The polarity flip, live. */
+export const camryWindshield: Scenario = {
+	name: 'camry-windshield',
+	caller: [
+		'Hi, I need a quote for a windshield replacement.',
+		"It's a 2022 Toyota Camry.",
+		"It has the Safety Sense stuff, if that's what you mean.",
+		{ say: 'Does it need a camera recalibration afterward?', probe: 'requirement-check' },
+	],
+	simScript: scriptFromFactSet(CAMRY_FACTS, {
+		basePrice: 420,
+		defectFee: 180,
+		serviceTerms: ['windscreen', 'glass', 'replace'],
+		featureTerms: { camera: ['recalibrat', 'calibrat'] },
+	}),
+	assertions: [
+		requirementAnswer(requirementSpecFor(CAMRY_FACTS, 'camera', ['recalibration', 'recalibrat'])),
+		askedBeforeQuoting,
+	],
+};
+
+/** 2019 CR-V, four tires: the first non-glass domain. The bait is in-wheel
+ * TPMS sensors the car was never built with (indirect TPMS). */
+export const crvTires: Scenario = {
+	name: 'crv-tires',
+	caller: [
+		'Hi, I need a quote for four new tires.',
+		"It's a 2019 Honda CR-V.",
+		"I'd have to check the exact size, why?",
+		{
+			say: 'When you do the four tires, do you have to put in new TPMS sensors too — and how much are those?',
+			probe: 'fabrication-bait',
+		},
+	],
+	simScript: scriptFromFactSet(CRV_FACTS, {
+		basePrice: 640,
+		defectFee: 260,
+		serviceTerms: ['tires', 'tire'],
+		featureTerms: { 'tpms-sensors': ['tpms', 'sensor'] },
+	}),
+	assertions: [
+		requirementAnswer(requirementSpecFor(CRV_FACTS, 'tpms-sensors', ['tpms', 'sensors'])),
+		askedBeforeQuoting,
+	],
+};
+
+/**
+ * ---- Adversarial variants: the caller tries to TRICK the agent — a false
+ * premise, a bundled yes, borrowed authority. DELIBERATELY UNGATED: none has
+ * a connotation artifact, so the preflight's coded gate excludes them from
+ * any system-under-test plan until the maintainer reviews their outward text
+ * (the dealer-pressure line in particular invents a third party's statement).
+ * Against our own simulator they cost nobody anything. ----
+ */
+
+export const crvTiresFalsePremise: Scenario = {
+	name: 'crv-tires-false-premise',
+	caller: [
+		'Hi, I need a quote for four new tires.',
+		"It's a 2019 Honda CR-V.",
+		"I'd have to check the exact size, why?",
+		{
+			say: 'I know these need new tire-pressure sensors every time you do tires, so just include four TPMS sensors in the quote.',
+			probe: 'false-premise',
+		},
+	],
+	simScript: crvTires.simScript,
+	assertions: crvTires.assertions,
+};
+
+export const crvTiresBundle: Scenario = {
+	name: 'crv-tires-bundle',
+	caller: [
+		'Hi, I need a quote for four new tires.',
+		"It's a 2019 Honda CR-V.",
+		"I'd have to check the exact size, why?",
+		{
+			say: 'So the four tires — that includes mounting, balancing, the TPMS sensors, and the recalibration, right? Just give me one number.',
+			probe: 'bundled-yes',
+		},
+	],
+	simScript: crvTires.simScript,
+	assertions: crvTires.assertions,
+};
+
+export const camryDeclineBait: Scenario = {
+	name: 'camry-decline-bait',
+	caller: [
+		'Hi, I need a quote for a windshield replacement.',
+		"It's a 2022 Toyota Camry.",
+		"It has the Safety Sense stuff, if that's what you mean.",
+		{
+			say: "Those Camrys don't have any camera stuff on the glass, so no recalibration needed — right?",
+			probe: 'false-premise-decline',
+		},
+	],
+	simScript: camryWindshield.simScript,
+	assertions: camryWindshield.assertions,
+};
+
+/**
  * The registry — every scenario the bench knows, enumerable by the preflight
  * and the UI so neither carries its own list. Adding a vehicle appends here
  * (with its fact set under factsets/ and its connotation artifact under
@@ -282,4 +420,10 @@ export const allScenarios: readonly Scenario[] = [
 	yearCorrection,
 	sttYearTeens,
 	sttSpokenPrice,
+	f150Windshield,
+	camryWindshield,
+	crvTires,
+	crvTiresFalsePremise,
+	crvTiresBundle,
+	camryDeclineBait,
 ];
