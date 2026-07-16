@@ -42,6 +42,7 @@ import {
 	twilioApi as api,
 	assertDialAllowed,
 	hangUp,
+	placeCall,
 	requireAccountSid,
 	required,
 } from './lib/twilio.ts';
@@ -72,8 +73,9 @@ async function main(): Promise<void> {
 	const token = required('TWILIO_AUTH_TOKEN');
 	const from = required('TWILIO_FROM_NUMBER');
 	const to = required('CALLBENCH_LOOPBACK_NUMBER');
-	// Ownership-checked destination guard (shared with the probes) — dials only
-	// account-owned numbers, no unset-env silent pass.
+	// Fail fast, before any tunnel or config write: refuse a non-owned destination
+	// up front. The actual dial goes through placeCall, which guards again — this
+	// early check just moves the refusal ahead of the setup work.
 	await assertDialAllowed(sid, token, to);
 
 	// One clock for everything in this process — the whole point of the run.
@@ -243,16 +245,11 @@ async function main(): Promise<void> {
 	// the tunnel — leaving a stranger-facing line connected is exactly the
 	// failure this bench must never cause, even against a number we own.
 	console.log(`\nDialing ${to} from ${from} — one call, no retry. No phone rings.`);
-	const placed = await api(
-		sid,
-		token,
-		`/Accounts/${sid}/Calls.json`,
-		new URLSearchParams({
-			To: to,
-			From: from,
-			Twiml: `<Response><Connect><Stream url="wss://${tunnel.host}/bench-media"/></Connect></Response>`,
-		}),
-	);
+	const placed = await placeCall(sid, token, {
+		to,
+		from,
+		twiml: `<Response><Connect><Stream url="wss://${tunnel.host}/bench-media"/></Connect></Response>`,
+	});
 	const callSid = String(placed.sid);
 	console.log(`call   : ${callSid} [${placed.status}]`);
 

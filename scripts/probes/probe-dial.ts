@@ -17,7 +17,7 @@
  *   node --env-file=.env scripts/probes/probe-dial.ts          # place ONE call
  */
 
-import { assertDialAllowed, hangUp } from '../lib/twilio.ts';
+import { assertDialAllowed, hangUp, placeCall } from '../lib/twilio.ts';
 
 const API = 'https://api.twilio.com/2010-04-01';
 
@@ -118,10 +118,12 @@ async function main(): Promise<void> {
 			`TWILIO_FROM_NUMBER ${from} is not owned by this account. Owned: ${owned.join(', ') || 'none'}`,
 		);
 	}
-	// The destination guard: ownership-checked against the account, so it has
-	// no unset-env silent pass. Red-team finding: the old check compared `to`
-	// against CALLBENCH_TARGET_NUMBER with `===` and no-opped when that var was
-	// unset — a guard that can evaporate is not a guard.
+	// Fail fast on a non-owned destination before dialing. The dial itself goes
+	// through placeCall, which runs the same ownership guard again — the guard is
+	// folded into the single dial primitive so it cannot be no-opped by deleting
+	// a call site. Red-team finding: the old check compared `to` against
+	// CALLBENCH_TARGET_NUMBER with `===` and no-opped when that var was unset — a
+	// guard that can evaporate is not a guard.
 	await assertDialAllowed(sid, token, to);
 
 	// Plain and self-identifying. The only listener is the maintainer, and a
@@ -131,11 +133,7 @@ async function main(): Promise<void> {
 
 	console.log(`\nDialing ${to} from ${from} — one call, no retry.`);
 	const started = Date.now();
-	const placed = await call(
-		`/Accounts/${sid}/Calls.json`,
-		auth,
-		new URLSearchParams({ To: to, From: from, Twiml: twiml }),
-	);
+	const placed = await placeCall(sid, token, { to, from, twiml });
 	const callSid = String(placed.sid);
 	console.log(`Call SID: ${callSid}  [${placed.status}]`);
 

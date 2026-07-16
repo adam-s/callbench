@@ -37,8 +37,29 @@ export async function twilioApi(
 		body,
 	});
 	const text = await res.text();
-	const parsed = JSON.parse(text) as Record<string, unknown>;
-	if (!res.ok) throw new Error(`HTTP ${res.status} from ${path}: ${parsed.message ?? text}`);
+	// Check the status BEFORE parsing, and never let a parse failure eat the
+	// diagnosis. Twilio answers a bad gateway with an HTML page, so `JSON.parse`
+	// first threw `SyntaxError: Unexpected token '<'` — no status, no endpoint, no
+	// error code — during a LIVE CALL, which is exactly when the operator must be
+	// able to tell what happened without dialing a stranger's line again to find
+	// out (AGENTS.md: surface interventions; never silently retry).
+	let parsed: Record<string, unknown> | null = null;
+	try {
+		parsed = JSON.parse(text) as Record<string, unknown>;
+	} catch {
+		// leave null — the body is not JSON, which is itself the finding
+	}
+	if (!res.ok) {
+		// Twilio's numeric `code` is the field its error docs are indexed by; it is
+		// the difference between "look up 31931" and "read a stack trace".
+		const code = parsed?.code !== undefined ? ` [Twilio ${parsed.code}]` : '';
+		const detail = parsed?.message ?? text.slice(0, 300).replace(/\s+/g, ' ').trim();
+		throw new Error(`HTTP ${res.status} from ${path}${code}: ${detail}`);
+	}
+	if (parsed === null)
+		throw new Error(
+			`non-JSON body from ${path} (HTTP ${res.status}): ${text.slice(0, 300).replace(/\s+/g, ' ').trim()}`,
+		);
 	return parsed;
 }
 
@@ -84,6 +105,48 @@ export async function assertDialAllowed(sid: string, token: string, to: string):
 		);
 	}
 	return String(match.phone_number);
+}
+
+/**
+ * The call-placement endpoint, named once. The dial fence imports this token
+ * rather than re-spelling it, so the fence and the dial site cannot drift apart
+ * — and a rogue dialer under scripts/ has to name the same string the fence
+ * scans for. (`/Calls/<sid>.json`, the poll and hang-up path, is a different
+ * endpoint and deliberately not this token.)
+ *
+ * A constant is not a wall: a dialer that assembles the path from parts spells
+ * nothing the fence sees, which is why the fence also scans for `Twiml` — the
+ * capital-T API parameter a placement POST cannot omit and no script names.
+ * Two independent tokens, both of which a dial needs.
+ */
+export const CALLS_ENDPOINT = 'Calls.json';
+
+/**
+ * The one place in the repo that can POST a dial. Every script that places a
+ * call goes through here, and this awaits the dial guard FIRST — the guard is
+ * folded into the primitive so it is inseparable from the POST. A prior design
+ * had each script call `assertDialAllowed` and then POST the endpoint itself,
+ * which meant deleting the guard line left a script that dials unguarded (and
+ * the suite green). Here there is no un-guarded POST to reach: refuse first,
+ * dial only what the guard returns as owned.
+ *
+ * `to` is dialed as the caller supplied it (the guard has already confirmed the
+ * account owns it); `from` and `twiml` are the call's other two required params.
+ * Returns Twilio's Calls resource. A structural test asserts no other file under
+ * scripts/ names `CALLS_ENDPOINT` or `Twiml`, so this stays the only dial site.
+ */
+export async function placeCall(
+	sid: string,
+	token: string,
+	params: { to: string; from: string; twiml: string },
+): Promise<Record<string, unknown>> {
+	await assertDialAllowed(sid, token, params.to);
+	return twilioApi(
+		sid,
+		token,
+		`/Accounts/${sid}/${CALLS_ENDPOINT}`,
+		new URLSearchParams({ To: params.to, From: params.from, Twiml: params.twiml }),
+	);
 }
 
 /** Best-effort hang-up; never throws. For finally-blocks and signal handlers. */
