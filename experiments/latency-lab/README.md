@@ -19,11 +19,12 @@ speed. All times are ms from `markTurnEnd`.
 
 ## The three contenders
 
-| Folder | Path | Stays on Modal? | Cost | Build effort |
+| Folder | Path | Expected v2v | Cost | Note |
 |---|---|---|---|---|
-| [`modal-selfhost/`](modal-selfhost/) | streaming Parakeet/Whisper + vLLM + Kokoro, all Modal, overlapped | yes | GPU keep-warm | highest |
-| [`managed-deepgram-cartesia/`](managed-deepgram-cartesia/) | Deepgram Flux STT + LLM + Cartesia Sonic TTS | no | per-minute API | medium |
-| [`s2s-realtime/`](s2s-realtime/) | one realtime S2S model IS the caller; transcript offline | no | per-minute API | lowest (new design) |
+| [`modal-selfhost/`](modal-selfhost/) | streaming Parakeet/Whisper + vLLM + Kokoro, all Modal, overlapped | ~1s warm | GPU keep-warm | on your infra, full control |
+| [`managed-deepgram-cartesia/`](managed-deepgram-cartesia/) | Deepgram Flux STT + LLM + Cartesia Sonic TTS | ~700ms–1s | per-min API | Flux eager-EoT is the lever |
+| [`s2s-realtime/`](s2s-realtime/) | one realtime model IS the caller; transcript offline | ~200–500ms | per-min API | fastest; approximate transcript |
+| [`twilio-native/`](twilio-native/) | Twilio Real-Time Transcription + Media Streams | a hop, not a win | $0.027/min | text+confidence, but not faster than direct Deepgram |
 
 Each folder has its own README naming the exact env keys / Modal deploy it
 needs, and an adapter implementing `TurnPipeline`.
