@@ -50,6 +50,13 @@ export interface TurnDetectorConfig {
 export const DEFAULT_TURN_CONFIG: TurnDetectorConfig = {
 	speechEnergy: 500,
 	provisionalSilenceMs: 300,
+	// A/B'd live 900 vs 600 (takes 1784207852425 / 1784208362852, 2026-07-16):
+	// 600 was a WASH on perceived gap — the shorter window steals exactly the
+	// overlap the speculative STT hides in (turn-paid STT went 0ms → 163ms
+	// median) — with no clear split-rate change at n=1. Staying at 900 until
+	// the offline endpointing replay (experiments/endpointing) picks a winner
+	// on the full take corpus; the real cut is semantic endpointing, not a
+	// shorter energy window.
 	confirmSilenceMs: 900,
 	minSpeechMs: 200,
 	frameMs: 20,
@@ -59,12 +66,22 @@ export type TurnEvent =
 	/** The far end started speaking (first speech frame after silence). */
 	| { readonly type: 'speech-start'; readonly atMs: number }
 	/** Silence long enough that the turn is PLAUSIBLY over — advisory, may be
-	 * followed by more speech (then it meant nothing) or by 'turn-end'. */
+	 * followed by 'turn-resumed' (then it meant nothing) or by 'turn-end'.
+	 * Speculative work (an early STT) may start here and must be discarded on
+	 * resume. */
 	| { readonly type: 'turn-maybe-end'; readonly atMs: number }
+	/** Speech resumed inside the confirm window: the SAME turn continues (the
+	 * re-attach that keeps a mid-sentence pause from splitting an utterance),
+	 * and anything speculated at maybe-end is now stale — cancel it. This is
+	 * the energy-VAD analogue of Deepgram Flux's TurnResumed. */
+	| { readonly type: 'turn-resumed'; readonly atMs: number }
 	/** The far end has been silent past the confirm window — reply now. */
 	| { readonly type: 'turn-end'; readonly atMs: number; readonly spokeMs: number };
 
-function frameEnergy(mulaw: Uint8Array): number {
+/** Mean |PCM| of one mulaw frame — the same speech/silence measure the
+ * detector uses, exported so a consumer (e.g. a barge-in guard needing
+ * "sustained speech, not a blip") applies the identical yardstick. */
+export function frameEnergy(mulaw: Uint8Array): number {
 	const pcm = decodeMulaw(mulaw);
 	let sum = 0;
 	for (const s of pcm) sum += Math.abs(s);
@@ -108,9 +125,10 @@ export class EnergyTurnDetector {
 		if (isSpeech) {
 			this.#lastSpeechMs = atMs;
 			this.#spokeMs += this.#cfg.frameMs;
-			// Resuming inside the confirm window re-attaches silently: the
-			// provisional flag drops, the same turn continues, no event. That IS
-			// the fix for the mid-sentence split.
+			// Resuming inside the confirm window re-attaches — the same turn
+			// continues (the fix for the mid-sentence split) — and SAYS SO, so a
+			// consumer that speculated at maybe-end knows to discard.
+			const resumed = this.#maybeEnded;
 			this.#maybeEnded = false;
 			if (!this.#speaking) {
 				this.#speaking = true;
@@ -119,7 +137,7 @@ export class EnergyTurnDetector {
 					return { type: 'speech-start', atMs };
 				}
 			}
-			return null;
+			return resumed ? { type: 'turn-resumed', atMs } : null;
 		}
 
 		this.#speaking = false;

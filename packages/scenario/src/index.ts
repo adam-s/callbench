@@ -38,4 +38,10 @@ export {
 	disambiguationRubricFor,
 	windshieldQuote,
 } from './scenarios.ts';
-export { agentReply, NEXUS_IMITATION, type ShopAgentSpec, shopAgentPrompt } from './shop-agent.ts';
+export {
+	agentReply,
+	agentReplyStreaming,
+	NEXUS_IMITATION,
+	type ShopAgentSpec,
+	shopAgentPrompt,
+} from './shop-agent.ts';

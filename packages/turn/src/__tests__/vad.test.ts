@@ -76,6 +76,20 @@ describe('EnergyTurnDetector', () => {
 		expect(end.spokeMs).toBe(200 - 0 + 20);
 	});
 
+	it('announces the re-attach as turn-resumed — the cancel signal for speculative work', () => {
+		// Same shape as the re-attach pin: maybe-end fires during the 100ms
+		// pause, so the resume must announce itself (a speculative STT started
+		// at maybe-end is now stale). Exactly one, at the resuming frame.
+		const events = run([...v(3), ...s(5), ...v(3), ...s(10)]);
+		const resumed = events.filter((e) => e?.type === 'turn-resumed');
+		expect(resumed).toHaveLength(1);
+		expect(resumed[0]?.atMs).toBe(160); // first voiced frame of the second run
+		// A pause SHORTER than provisional never fired maybe-end, so resuming
+		// from it is silent — no stale speculation exists to cancel.
+		const quick = run([...v(3), ...s(2), ...v(3), ...s(10)]);
+		expect(quick.filter((e) => e?.type === 'turn-resumed')).toHaveLength(0);
+	});
+
 	it('reports spokeMs as (last-speech − start + one frame), exactly', () => {
 		const events = run([...v(3), ...s(10)]);
 		const end = events.find((e) => e?.type === 'turn-end');
