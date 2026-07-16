@@ -13,7 +13,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { assertDialAllowed, CALLS_ENDPOINT, placeCall } from '../twilio.ts';
+import { assertDialAllowed, CALLS_ENDPOINT, placeCall, twilioApi } from '../twilio.ts';
 
 const OWNED = [{ phone_number: '+15042177595' }, { phone_number: '+15047663198' }];
 
@@ -185,5 +185,54 @@ describe('STRUCTURAL: exactly one dial site exists under scripts/', () => {
 		// and the primitive really is the one place that names them
 		const primitive = readFileSync(PRIMITIVE, 'utf8');
 		for (const token of DIAL_TOKENS) expect(primitive).toContain(token);
+	});
+});
+
+describe('twilioApi error reporting — what an operator sees mid-call', () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	it('reports status, path and Twilio code on a JSON error, without parsing first', () => {
+		// The fix this pins: JSON.parse ran BEFORE the res.ok check, so any
+		// non-JSON error body threw a SyntaxError and took the diagnosis with it.
+		// Committed as "a provider error survives the trip" — and a mutation run
+		// showed reverting it left the whole suite green. Every existing stub sets
+		// ok:true, so the error path had no coverage at all. Pin what you fix.
+		globalThis.fetch = vi.fn(async () => ({
+			ok: false,
+			status: 400,
+			text: async () => JSON.stringify({ message: 'Invalid To number', code: 21211 }),
+		}));
+		return expect(twilioApi('AC1', 'tok', '/Accounts/AC1/Calls.json')).rejects.toThrow(
+			/HTTP 400.*Calls\.json.*21211.*Invalid To number/s,
+		);
+	});
+
+	it('survives an HTML error page instead of dying on it', () => {
+		// The real failure, during a LIVE CALL: Twilio answers a bad gateway with
+		// HTML, JSON.parse threw `Unexpected token '<'`, and the operator got a
+		// stack trace with no status, no endpoint, and no way to tell what happened
+		// short of redialing a stranger to find out.
+		globalThis.fetch = vi.fn(async () => ({
+			ok: false,
+			status: 502,
+			text: async () => '<html><head><title>502 Bad Gateway</title></head></html>',
+		}));
+		return expect(twilioApi('AC1', 'tok', '/Accounts/AC1/Calls.json')).rejects.toThrow(
+			/HTTP 502.*Calls\.json.*Bad Gateway/s,
+		);
+	});
+
+	it('refuses a non-JSON body that arrives with a 200', () => {
+		// A 200 carrying HTML is not a success — it is a proxy or a login page
+		// wearing one. Returning it as a parsed object would hand the caller
+		// nonsense; the refusal names what came back.
+		globalThis.fetch = vi.fn(async () => ({
+			ok: true,
+			status: 200,
+			text: async () => '<html>login</html>',
+		}));
+		return expect(twilioApi('AC1', 'tok', '/Accounts/AC1/Calls.json')).rejects.toThrow(/non-JSON/);
 	});
 });

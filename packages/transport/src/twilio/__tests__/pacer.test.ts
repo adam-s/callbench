@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { createPacer, FRAME_MS, toFrames } from '../pacer.ts';
+import { createPacer, FRAME_MS, LEAD_MS, toFrames } from '../pacer.ts';
 
 /** A clock the test moves by hand, plus a timer queue keyed to it. */
 function harness(leadMs = 60) {
@@ -26,6 +26,13 @@ function harness(leadMs = 60) {
 		},
 		leadMs,
 	});
+	/** How late every timer fires. Real setTimeout NEVER fires early and rarely
+	 * fires on time — a harness that is punctual is kinder than reality and
+	 * cannot see the failure the absolute schedule exists to prevent. */
+	let latenessMs = 0;
+	const setLateness = (ms: number) => {
+		latenessMs = ms;
+	};
 	/** Advance the clock, firing anything due. */
 	const advance = (ms: number) => {
 		const target = t + ms;
@@ -36,12 +43,13 @@ function harness(leadMs = 60) {
 				.shift();
 			if (!next) break;
 			timers.splice(timers.indexOf(next), 1);
-			t = Math.max(t, next.at);
+			// Fire LATE, as a real timer does.
+			t = Math.max(t, Math.min(next.at + latenessMs, target));
 			next.fn();
 		}
 		t = target;
 	};
-	return { pacer, sent, advance, now: () => t };
+	return { pacer, sent, advance, setLateness, now: () => t };
 }
 
 const frame = (n: number) => new Uint8Array(160).fill(n);
@@ -151,5 +159,78 @@ describe('toFrames', () => {
 		const frames = toFrames(src, 160);
 		expect(frames[1][0]).toBe(7);
 		expect(frames.length).toBe(2);
+	});
+});
+
+describe('the absolute schedule — the reason this module exists', () => {
+	it('does not drift when every timer fires late', () => {
+		// THE test for this module, and it was missing. A mutation that re-anchors
+		// the schedule on every pump — reintroducing exactly the drift the docstring
+		// warns about — passed all 211 tests, because the harness fired timers
+		// exactly on time. Re-anchoring at the instant a frame is due IS absolute
+		// scheduling; the two only diverge when a timer is LATE, which is the only
+		// thing real timers ever are.
+		//
+		// setTimeout(20) fires at 20+something. A relative schedule adds that
+		// something every frame: over a 10-second utterance it lands seconds late
+		// and starves the stream it was meant to feed — Twilio's audio-timeout, the
+		// opposite failure from the one that motivated the pacer.
+		const { pacer, sent, advance, setLateness } = harness(0);
+		setLateness(5); // every timer 5ms late — modest, and relentless
+		pacer.push(Array.from({ length: 50 }, (_, i) => frame(i))); // 1s of audio
+
+		advance(1000);
+
+		// An absolute schedule delivers a second of audio in about a second: each
+		// late pump catches up rather than pushing the rest later. A relative one
+		// would have sent ~40 frames by now (25% behind) and would fall further
+		// behind the longer it ran.
+		expect(sent.length).toBe(50);
+		// And the last frame is not dragged past its slot by the accumulated
+		// lateness — 5ms x 50 frames would be 250ms of drift.
+		expect(sent[49].at).toBeLessThan(1000 + 50);
+	});
+
+	it('keeps the audio the right length even when the loop stalls hard', () => {
+		const { pacer, sent, advance, setLateness } = harness(0);
+		setLateness(60); // three frames' worth of lateness, every time
+		pacer.push(Array.from({ length: 25 }, (_, i) => frame(i))); // 500ms of audio
+		advance(600);
+		// Still 500ms of audio in ~500ms of clock. The stall is absorbed by
+		// catch-up bursts, not by stretching the utterance.
+		expect(sent.length).toBe(25);
+		expect(sent[24].at).toBeLessThan(500 + 100);
+	});
+});
+
+describe('the shipped default lead', () => {
+	it('is at least one frame — a lead of zero has no cushion at all', () => {
+		// Every other test injects leadMs, so the value session.ts actually uses was
+		// reachable by nothing: a mutation setting LEAD_MS to 0 passed the suite.
+		// The constant is honestly labelled UNMEASURED (it is Twilio's and pipecat's
+		// number, not one we took from a call), so this pins the PROPERTY rather
+		// than the number: below one frame there is no jitter buffer, and a single
+		// late timer becomes a gap of silence — which is the audio-timeout failure,
+		// the opposite of the one the pacer was built for.
+		expect(LEAD_MS).toBeGreaterThanOrEqual(FRAME_MS);
+		// And an upper bound, because a large enough lead IS the original bug:
+		// queue far enough ahead and you are dumping again.
+		expect(LEAD_MS).toBeLessThanOrEqual(FRAME_MS * 10);
+	});
+
+	it('paces with the default, not only with an injected lead', () => {
+		// Exercise the real default through the API — no leadMs argument.
+		const t = 0;
+		const sent: number[] = [];
+		const pacer = createPacer({
+			send: () => sent.push(t),
+			now: () => t,
+			setTimer: () => null,
+			clearTimer: () => {},
+		});
+		pacer.push(Array.from({ length: 50 }, () => new Uint8Array(160)));
+		expect(sent.length).toBeGreaterThan(0); // something leaves immediately
+		expect(sent.length).toBeLessThan(50); // but not the whole utterance
+		pacer.stop();
 	});
 });
