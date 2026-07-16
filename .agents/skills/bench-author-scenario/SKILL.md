@@ -50,10 +50,11 @@ maintainer and keep building below the gate.
 `packages/scenario/src/scenarios.ts`, appended to `allScenarios`:
 
 - **assertions** — derive with `requirementSpecFor(factSet, featureId,
-  extraTerms)` (`packages/factset/src/spec.ts`) feeding `requirementAnswer`;
-  add order checks (`askedBeforeQuoting`, `correctionPropagated`). Prefer code;
-  a judged rubric (`disambiguationRubricFor`) owes its own calibration run
-  before its verdicts count.
+  extraTerms)` (`packages/factset/src/spec.ts`) feeding `requirementAnswer`
+  (`packages/assert/src/assertions.ts`); add order checks
+  (`askedBeforeQuoting`, `correctionPropagated`). Prefer code; a judged rubric
+  (`disambiguationRubricFor`, `packages/scenario/src/scenarios.ts`) owes its
+  own calibration run before its verdicts count.
 - **simScript** — `scriptFromFactSet(factSet, opts)`
   (`packages/simulator/src/flow.ts`): honest answers derive from fitment, the
   `fabricateAnswer` defect speaks the exact opposite — both polarities from one

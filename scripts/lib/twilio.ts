@@ -138,6 +138,11 @@ export const CALLS_ENDPOINT = 'Calls.json';
  * account owns it); `from` and `twiml` are the call's other two required params.
  * Returns Twilio's Calls resource. A structural test asserts no other file under
  * scripts/ names `CALLS_ENDPOINT` or `Twiml`, so this stays the only dial site.
+ *
+ * Policy provenance: dials BETWEEN bench-owned numbers may run unattended —
+ * maintainer decision, 2026-07-16 — because this guard checks live ownership
+ * on every dial, caps are enforced in code, and every attempt is recorded.
+ * The principle lives in AGENTS.md (Product invariants); the date lives here.
  */
 export async function placeCall(
 	sid: string,

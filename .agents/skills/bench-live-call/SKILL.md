@@ -9,18 +9,23 @@ The procedure for a phone ringing in somebody's business. Scenarios arrive
 already built and rehearsed ([bench-author-scenario](../bench-author-scenario/SKILL.md));
 this skill spends them, one human-started call at a time.
 
-## Prerequisite the code makes honest: the dial primitive does not exist
+## The dial primitive and its guards (built 2026-07-16; the code makes them honest)
 
-`placeCall` (`scripts/lib/twilio.ts`) refuses any number the account does not
-own, and refuses `CALLBENCH_TARGET_NUMBER` by name — BY DESIGN. There is no
-target-mode dial in the repo today. Building it is this skill's first
-prerequisite, and it goes in `scripts/lib/twilio.ts` and nowhere else: a
-structural fence test pins that file as the single dial site (no other file
-under `scripts/` may name `CALLS_ENDPOINT` or `Twiml`). The target-mode
-primitive must require an interactive typed confirmation at the moment of the
-dial — a human typing the go-ahead into the terminal, not a flag, not an env
-var, nothing a loop can supply. Raise the design with the maintainer before
-writing it; the fence and the guard are published contracts.
+Two primitives live in `scripts/lib/twilio.ts` and nowhere else — a structural
+fence test pins that file as the single dial site (no other file under
+`scripts/` may name `CALLS_ENDPOINT` or `Twiml`):
+
+- `placeCall` — the unattended path. Refuses any number the account does not
+  own, and refuses `CALLBENCH_TARGET_NUMBER` by name, BY DESIGN.
+- `dialSystemUnderTest` — the attended path. Dials ONLY the configured system
+  under test, and requires an interactive typed confirmation (`DIAL <last4>`)
+  read from a TTY at the moment of the dial — a human's keystrokes are the
+  ignition; nothing a loop, flag, or env var can supply. One POST, no retry.
+  `scripts/live-scenario.ts --target` is its one caller.
+
+The fence and both guards are published contracts, each pinned by tests
+(`scripts/lib/__tests__/twilio.test.mjs`). Changing any of them is a flag to
+raise with the maintainer, never a silent edit.
 
 ## Pre-flight — all of it, every run
 
