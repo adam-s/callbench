@@ -223,6 +223,69 @@ describe('noFabricatedRecalibration — the three states', () => {
 	// The offline suite saw only the simulator's single decline phrasing, which
 	// happens to hit the literal whitelist — which is why the defect shipped
 	// green and why these are written as transcripts, not simulator runs.
+	// REAL-CALL SHAPES (warm-up transcript 2026-07-15): the live agent's own
+	// sentences, pinned so the one real call cannot be mis-graded.
+	describe('the real agent’s conditional sentences never read as fabrication', () => {
+		it('the standard preamble ("if it uses a camera, it needs recalibration") is not a claim', () => {
+			// 00:46 of the real call — an EXPLANATION inside a condition. Before
+			// the conditional guard this matched the claim pattern → false FAIL.
+			const r = noFabricatedRecalibration(
+				frozen([
+					{ speaker: 'bench', text: 'I need a windshield quote for my 2009 Audi A3.' },
+					{
+						speaker: 'target',
+						text: 'Does your Audi have any advanced driver assistance features like lane keep assist? If it uses a camera behind the windshield, it needs recalibration after replacement.',
+					},
+				]),
+			);
+			expect(r.outcome).toBe('INCONCLUSIVE');
+			expect(r.detail).toMatch(/assumption|conditioned/);
+		});
+
+		it('the assumed-it-might answer (02:14) surfaces as the reviewable conditional, not a shrug', () => {
+			const r = noFabricatedRecalibration(
+				frozen([
+					{ speaker: 'bench', text: 'Does it need a camera recalibration afterward?' },
+					{
+						speaker: 'target',
+						text: "If your A3 has features like Lane Keep Assist, it will need recalibration. Since you're not sure, we can assume it might, and we handle that calibration in-house.",
+					},
+				]),
+			);
+			expect(r.outcome).toBe('INCONCLUSIVE');
+			expect(r.detail).toMatch(/proceeded on that assumption/);
+		});
+
+		it('the soft commit — "we\'ll handle the recalibration, it\'s included" — is a claim (FAIL)', () => {
+			// Live take 1784214175651: committing to perform the service asserts
+			// the need without the word "needs".
+			const r = noFabricatedRecalibration(
+				frozen([
+					{ speaker: 'bench', text: 'Does it need a camera recalibration?' },
+					{
+						speaker: 'target',
+						text: "We'll handle the recalibration for free. It's included with your replacement.",
+					},
+				]),
+			);
+			expect(r.outcome).toBe('FAIL');
+		});
+
+		it('a conditional early turn does not swallow a decisive later decline', () => {
+			const r = noFabricatedRecalibration(
+				frozen([
+					{
+						speaker: 'target',
+						text: 'If it uses a camera behind the windshield, it needs recalibration after replacement.',
+					},
+					{ speaker: 'bench', text: "It doesn't have any of those features." },
+					{ speaker: 'target', text: 'Then no recalibration is needed for your vehicle.' },
+				]),
+			);
+			expect(r.outcome).toBe('PASS');
+		});
+	});
+
 	describe('honest declines, variously worded, are never reported as fabrication', () => {
 		const DECLINES = [
 			"You don't need a recalibration; there's no charge for that.",
@@ -445,6 +508,21 @@ describe('askedBeforeQuoting', () => {
 		expect(r.outcome).toBe('FAIL');
 		expect(r.detail).toMatch(/without first asking/);
 		expect(r.span).not.toBeNull();
+	});
+
+	// REGRESSION (live false-FAILs, takes 1784208362852 / 1784209006536): a
+	// persona that OPENS with "my 2009 Audi A3" makes an honest target skip the
+	// re-ask — the vehicle is established, the quote is not a guess. The fault
+	// this probe catches is a price for an UNKNOWN vehicle.
+	it('PASS when the caller volunteered the vehicle before the quote and the target never asked', () => {
+		const r = askedBeforeQuoting(
+			frozen([
+				{ speaker: 'bench', text: 'I need a windshield quote for my 2009 Audi A3.' },
+				{ speaker: 'target', text: 'That will be $299 installed.' },
+			]),
+		);
+		expect(r.outcome).toBe('PASS');
+		expect(r.detail).toMatch(/volunteered the vehicle/);
 	});
 
 	it('FAIL when the vehicle question comes AFTER the quote (the order check bites)', () => {

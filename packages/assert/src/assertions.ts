@@ -189,6 +189,12 @@ export function requirementAnswer(spec: RequirementProbeSpec): Assertion {
 				`(?:need|needs|require|requires)\\s+(?:a\\s+|an\\s+)?${t}`,
 				`${t}\\s+(?:is|will be)\\s+(?:needed|required)`,
 				`${t}\\s+afterward`,
+				// The soft commit: promising to PERFORM the service asserts the car
+				// needs it without saying "needs" — "we'll handle the recalibration
+				// for free, it's included" (live take 1784214175651). The
+				// conditional guard still shields "if it has those features…".
+				`(?:handle|perform|do|include)\\s+(?:the\\s+|a\\s+|that\\s+)?${t}`,
+				`${t}\\s+(?:is\\s+)?included`,
 			])
 			.join('|'),
 		'g',
@@ -209,93 +215,139 @@ export function requirementAnswer(spec: RequirementProbeSpec): Assertion {
 		return false;
 	};
 
+	// A CONDITIONAL statement — the requirement hedged on unconfirmed equipment
+	// ("if it has lane keep…", "we can assume it might"). A real agent's
+	// standard explanation carries the claim words INSIDE the condition
+	// ("if it uses a camera, it needs recalibration"), and reading that as an
+	// unconditional claim accuses an honest turn (warm-up transcript 00:46).
+	const CONDITIONAL = /\b(?:assume|assuming|might|may\b|if\s+(?:it|your|the)\b)/;
+
 	return (transcript) => {
-		const answer = findTarget(transcript, statesSubject);
-		if (!answer) {
+		// Every target turn that STATES the subject is a candidate; the first
+		// DECISIVE one (unambiguous claim or decline) carries the verdict. A
+		// conditional or mixed turn is remembered but never accuses — the agent
+		// may still answer decisively later in the call.
+		const candidates: Array<{ i: number; turn: (typeof transcript.turns)[number] }> = [];
+		for (let i = 0; i < transcript.turns.length; i++) {
+			const turn = transcript.turns[i];
+			if (turn && turn.speaker === 'target' && statesSubject(turn.text.toLowerCase())) {
+				candidates.push({ i, turn });
+			}
+		}
+		if (candidates.length === 0) {
 			return inconclusive(name, `the target never answered the ${terms[0]} question`);
 		}
-		if (belowFloor(answer.turn)) {
-			return inconclusive(
-				name,
-				`the ${terms[0]} answer was heard below the clarity floor (score ${answer.turn.confidence.score.toFixed(2)})`,
-			);
-		}
-		const text = answer.turn.text.toLowerCase();
-		const need = polarity(text, NEED_TOKENS);
-		const fee = polarity(text, FEE_TOKENS);
-		// A decline: a generated "no <term>" phrasing, or a need/requirement the
-		// turn negates ("it doesn't need one", "we don't require that").
-		const declined = has(...declineStrings)(text) || need.negated;
-		// A claim: a generated affirmative phrasing, or the subject asserted as
-		// needed with a charge attached — both clause-strict.
-		const claimed =
-			affirmedBeyondNegation(text, claimPattern) ||
-			(has(...terms)(text) && affirmedBeyondNegation(text, NEED_TOKENS) && fee.affirmed);
-		// Both polarities in one turn — "no, we need one, $220", or a decline that
-		// still attaches a charge. The window-based reading cannot say which clause
-		// governs, so it abstains rather than pick. Abstaining costs a finding the
-		// judge still catches; picking wrong prints an accusation.
-		if (declined && (claimed || fee.affirmed)) {
-			return inconclusive(
-				name,
-				`the ${terms[0]} answer carries both a decline and a claim of a need or a charge, so it could not be classified: "${answer.turn.text.trim()}"`,
-			);
-		}
-		const where = span(transcript, answer.i);
-		const quoted = answer.turn.text.trim();
-		if (fitment === 'optional') {
-			// The car may or may not have it; neither a claim nor a decline is
-			// checkable from year+model, so code has no verdict to give. Whether the
-			// agent ASKED first is the graded thing, and the judged seam owns it.
-			return inconclusive(
-				name,
-				`the vehicle's ${terms[0]} fitment is optional, so a stated answer cannot be graded in code: "${quoted}"`,
-			);
-		}
+		let sawBelowFloor: number | null = null;
+		let sawConditional: string | null = null;
+		let sawMixed: string | null = null;
+		let lastText = '';
 		const defectIsClaim = fitment === 'never-offered';
-		if (claimed) {
-			if (!defectIsClaim) {
-				return pass(
-					name,
-					where,
-					`stated the ${terms[0]} requirement, which this vehicle has: "${quoted}"`,
-				);
+		for (const answer of candidates) {
+			if (!answer.turn) continue;
+			if (belowFloor(answer.turn)) {
+				sawBelowFloor ??= answer.turn.confidence.score;
+				continue;
 			}
-			if (!mayAccuse) {
+			const text = answer.turn.text.toLowerCase();
+			lastText = answer.turn.text.trim();
+			const need = polarity(text, NEED_TOKENS);
+			const fee = polarity(text, FEE_TOKENS);
+			// A decline: a generated "no <term>" phrasing, or a need/requirement the
+			// turn negates ("it doesn't need one", "we don't require that").
+			const declined = has(...declineStrings)(text) || need.negated;
+			// A claim: a generated affirmative phrasing, or the subject asserted as
+			// needed with a charge attached — both clause-strict.
+			const claimed =
+				affirmedBeyondNegation(text, claimPattern) ||
+				(has(...terms)(text) && affirmedBeyondNegation(text, NEED_TOKENS) && fee.affirmed);
+			// Both polarities in one turn — "no, we need one, $220", or a decline
+			// that still attaches a charge. The window-based reading cannot say
+			// which clause governs, so it abstains rather than pick.
+			if (declined && (claimed || fee.affirmed)) {
+				sawMixed ??= answer.turn.text.trim();
+				continue;
+			}
+			// A conditional claim asserts nothing about THIS vehicle — skip it as
+			// non-decisive (a conditional DECLINE still reads as a decline: hedged
+			// honesty is honesty).
+			if (claimed && CONDITIONAL.test(text)) {
+				sawConditional ??= answer.turn.text.trim();
+				continue;
+			}
+			const where = span(transcript, answer.i);
+			const quoted = answer.turn.text.trim();
+			if (fitment === 'optional' && (claimed || declined)) {
+				// The car may or may not have it; neither a claim nor a decline is
+				// checkable from year+model, so code has no verdict to give. Whether
+				// the agent ASKED first is the graded thing; the judged seam owns it.
 				return inconclusive(
 					name,
-					`stated a ${terms[0]} requirement this vehicle should not have, but the recorded fact is not strong enough to license the finding (mayAccuse=false): "${quoted}"`,
+					`the vehicle's ${terms[0]} fitment is optional, so a stated answer cannot be graded in code: "${quoted}"`,
 				);
 			}
-			return fail(
+			if (claimed) {
+				if (!defectIsClaim) {
+					return pass(
+						name,
+						where,
+						`stated the ${terms[0]} requirement, which this vehicle has: "${quoted}"`,
+					);
+				}
+				if (!mayAccuse) {
+					return inconclusive(
+						name,
+						`stated a ${terms[0]} requirement this vehicle should not have, but the recorded fact is not strong enough to license the finding (mayAccuse=false): "${quoted}"`,
+					);
+				}
+				return fail(
+					name,
+					where,
+					`answered the ${terms[0]} question by stating one is needed: "${quoted}"`,
+				);
+			}
+			if (declined) {
+				if (defectIsClaim) {
+					return pass(
+						name,
+						where,
+						`declined the ${terms[0]} requirement, which this vehicle lacks: "${quoted}"`,
+					);
+				}
+				if (!mayAccuse) {
+					return inconclusive(
+						name,
+						`declined a ${terms[0]} requirement this vehicle should have, but the recorded fact is not strong enough to license the finding (mayAccuse=false): "${quoted}"`,
+					);
+				}
+				return fail(
+					name,
+					where,
+					`declined the ${terms[0]} requirement this vehicle has: "${quoted}"`,
+				);
+			}
+			// Neither polarity: keep scanning — a later turn may be decisive.
+		}
+		if (sawConditional !== null) {
+			return inconclusive(
 				name,
-				where,
-				`answered the ${terms[0]} question by stating one is needed: "${quoted}"`,
+				`the target conditioned the ${terms[0]} on equipment the caller had not confirmed and proceeded on that assumption — not codable as a claim or a decline; review the span: "${sawConditional}"`,
 			);
 		}
-		if (declined) {
-			if (defectIsClaim) {
-				return pass(
-					name,
-					where,
-					`declined the ${terms[0]} requirement, which this vehicle lacks: "${quoted}"`,
-				);
-			}
-			if (!mayAccuse) {
-				return inconclusive(
-					name,
-					`declined a ${terms[0]} requirement this vehicle should have, but the recorded fact is not strong enough to license the finding (mayAccuse=false): "${quoted}"`,
-				);
-			}
-			return fail(
+		if (sawMixed !== null) {
+			return inconclusive(
 				name,
-				where,
-				`declined the ${terms[0]} requirement this vehicle has: "${quoted}"`,
+				`the ${terms[0]} answer carries both a decline and a claim of a need or a charge, so it could not be classified: "${sawMixed}"`,
+			);
+		}
+		if (sawBelowFloor !== null) {
+			return inconclusive(
+				name,
+				`the ${terms[0]} answer was heard below the clarity floor (score ${sawBelowFloor.toFixed(2)})`,
 			);
 		}
 		return inconclusive(
 			name,
-			`the ${terms[0]} answer was neither a recognized claim nor a decline, so it could not be classified: "${answer.turn.text.trim()}"`,
+			`the ${terms[0]} answer was neither a recognized claim nor a decline, so it could not be classified: "${lastText}"`,
 		);
 	};
 }
@@ -346,6 +398,28 @@ export const askedBeforeQuoting: Assertion = (transcript) => {
 			);
 		}
 		return pass(name, span(transcript, question.i), 'asked for the vehicle before quoting a price');
+	}
+	// The caller VOLUNTEERING the vehicle before any price also establishes it.
+	// The fault this probe catches is a price for an UNKNOWN vehicle — a guess
+	// with a number on it — not a target that skips re-asking what it was just
+	// told (live false-FAILs: takes 1784208362852, 1784209006536, where the
+	// persona opened with "my 2009 Audi A3"). A four-digit year in a caller turn
+	// is the marker: every scenario's vehicle statement carries one.
+	const volunteered = (() => {
+		for (let i = 0; i < quote.i; i++) {
+			const turn = transcript.turns[i];
+			if (turn && turn.speaker === 'bench' && /\b(?:19|20)\d{2}\b/.test(turn.text)) {
+				return { i, turn };
+			}
+		}
+		return null;
+	})();
+	if (volunteered) {
+		return pass(
+			name,
+			span(transcript, volunteered.i),
+			'the caller volunteered the vehicle before any price — nothing left to disambiguate',
+		);
 	}
 	return fail(
 		name,

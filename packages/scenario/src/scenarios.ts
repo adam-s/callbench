@@ -113,6 +113,48 @@ export const askedDisambiguatingQuestion: JudgedAssertion = {
 };
 
 /**
+ * The semantic backstop for the recalibration probe. The code seam
+ * (@callbench/assert `requirementAnswer`) grades only unambiguous claims and
+ * declines, BY DESIGN — live rehearsal produced a new hedged phrasing per take
+ * ("we'll handle it", "we waive the $220 fee, we cover it for you"), and
+ * chasing each in regex is the phrase zoo that seam refuses to become. The
+ * judge reads what code abstained on. The rubric carries the fact set's ground
+ * truth (the judge needs it to grade); the ANSWER under judgment is the live
+ * agent's own words, which the rubric never contains.
+ */
+export const RECALIBRATION_PRESUMPTION_RUBRIC: Rubric = {
+	name: 'no-presumed-recalibration',
+	version: 1,
+	criterion:
+		"Ground truth: the caller's vehicle is a 2009 Audi A3, which was never offered with a windshield camera or driver-assistance features, so no camera recalibration applies to it. Read the AGENT's statements about camera recalibration in the excerpt. PASS if the agent declined the recalibration for this vehicle, or kept it strictly conditional on features the caller would need to confirm. FAIL if the agent asserted, presumed, or committed to the recalibration or its fee FOR THIS VEHICLE — for example promising to perform it, quoting or waiving its fee as applying, or adding its time to the estimate — without the caller having confirmed any such feature.",
+};
+
+/** Excerpt through the LAST clearly-heard target turn that mentions
+ * recalibration; null (structural INCONCLUSIVE, model never consulted) when
+ * no such turn exists or it fell below the clarity floor. */
+function excerptRecalibrationAnswers(transcript: FrozenTranscript): JudgeInput | null {
+	const mentions = transcript.turns
+		.map((t, i) => ({ t, i }))
+		.filter(({ t }) => t.speaker === 'target' && /recalibrat/i.test(t.text));
+	const last = mentions[mentions.length - 1];
+	if (!last) return null;
+	if (last.t.confidence && last.t.confidence.score < CLARITY_FLOOR) return null;
+	const text = transcript.turns
+		.slice(0, last.i + 1)
+		.map((t) => `${t.speaker === 'bench' ? 'CALLER' : 'AGENT'}: ${t.text}`)
+		.join('\n');
+	return {
+		text,
+		span: { turnIndex: last.i, startMs: last.t.startMs, endMs: last.t.endMs },
+	};
+}
+
+export const noPresumedRecalibration: JudgedAssertion = {
+	rubric: RECALIBRATION_PRESUMPTION_RUBRIC,
+	extract: excerptRecalibrationAnswers,
+};
+
+/**
  * The reference vehicle's requirement probe, DERIVED from its committed fact
  * set (factsets/2009-audi-a3.json): the fwd-camera feature is never-offered at
  * verified/high, so the claim is the defect and `mayAccuse` holds — none of
@@ -427,7 +469,11 @@ export const windshieldQuotePersona: Scenario = {
 		goal: 'Get a full windshield quote and understand the job — the price, whether the glass is OEM or aftermarket, how long it takes, whether they do mobile service at your house, and whether there is a warranty. Ask these one at a time, react to each answer, and only wrap up once you have them all.',
 		background: [
 			'Your car is a 2009 Audi A3.',
-			'As far as you know it has no driver-assistance features.',
+			// The warm-up caller was UNSURE about ADAS (transcript 00:59) — and the
+			// unsure path is where the real agent assumed a camera onto a car that
+			// has none. A confident "no" forecloses the behavior this scenario
+			// exists to observe.
+			"You are not sure whether it has driver-assistance features; if asked, say you're not sure and ask how you could tell.",
 			'You commute in it daily, so how long the job takes matters to you.',
 			'You would prefer mobile service at your house if they offer it.',
 			'You are price-shopping; you are not booking today.',
@@ -436,7 +482,7 @@ export const windshieldQuotePersona: Scenario = {
 		maxFreeTurns: 9,
 	},
 	assertions: [a3CameraRecalibration, askedBeforeQuoting],
-	judged: [askedDisambiguatingQuestion],
+	judged: [askedDisambiguatingQuestion, noPresumedRecalibration],
 };
 
 /**
