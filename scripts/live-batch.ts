@@ -39,10 +39,22 @@ function parsePlan(args: string[]): Take[] {
 	const takes: Take[] = [];
 	for (const a of args) {
 		if (a.startsWith('--')) continue;
-		const m = /^([a-z0-9-]+)(?::([a-zA-Z]+))?(?:x(\d+))?$/.exec(a);
-		if (!m) throw new Error(`bad spec "${a}" (scenario[:defect][xN])`);
-		const n = Math.max(1, Number(m[3] ?? 1));
-		for (let i = 0; i < n; i++) takes.push({ scenario: m[1] as string, defect: m[2] ?? null });
+		// Peel the xN suffix FIRST — a single greedy regex let group 1 swallow
+		// "x2" into the scenario name (both parses satisfy the pattern, and the
+		// engine keeps the greedy one), which sent "f150-windshieldx2" to the
+		// child as a scenario name. The park-guard caught it; this parses it.
+		let rest = a;
+		let n = 1;
+		const xm = /x(\d+)$/.exec(rest);
+		if (xm) {
+			n = Math.max(1, Number(xm[1]));
+			rest = rest.slice(0, xm.index);
+		}
+		const [scenario, defect] = rest.split(':');
+		if (!scenario || !/^[a-z0-9-]+$/.test(scenario)) {
+			throw new Error(`bad spec "${a}" (scenario[:defect][xN])`);
+		}
+		for (let i = 0; i < n; i++) takes.push({ scenario, defect: defect ?? null });
 	}
 	return takes;
 }

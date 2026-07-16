@@ -140,3 +140,141 @@ export function processBuffer(pcm: Int16Array, stage: FrameStage, frameLen = 160
 	}
 	return out;
 }
+
+/** Deterministic xorshift32 — reproducible noise without an RNG dependency;
+ * the same seed always renders the same take (a flaky fixture tests nothing). */
+function xorshift32(seed: number): () => number {
+	let s = seed >>> 0 || 1;
+	return () => {
+		s ^= s << 13;
+		s ^= s >>> 17;
+		s ^= s << 5;
+		s >>>= 0;
+		return s / 0xffffffff;
+	};
+}
+
+/**
+ * Additive babble-ish noise at a target SNR against the stage's own running
+ * speech level. True babble is recorded crowd speech; this synthesizes a
+ * speech-SHAPED stand-in (several detuned low-frequency oscillators with
+ * amplitude wobble, band-passed by construction) — non-stationary the way the
+ * literature says matters, and fully reproducible from the committed seed.
+ * SNR is tracked against a slow EMA of frame RMS so the noise follows the
+ * voice level instead of a guessed constant.
+ */
+export function babble(snrDb: number, seed = 0x5eed): FrameStage {
+	const rand = xorshift32(seed);
+	const oscs = Array.from({ length: 6 }, () => ({
+		freq: 120 + rand() * 800,
+		phase: rand() * Math.PI * 2,
+		wobble: 0.3 + rand() * 0.7,
+		wobblePhase: rand() * Math.PI * 2,
+	}));
+	let t = 0;
+	let speechRmsEma = 2000;
+	const snrLin = 10 ** (snrDb / 20);
+	return {
+		name: `babble(${snrDb}dB,seed=${seed})`,
+		process(frame) {
+			let sum = 0;
+			for (const s of frame) sum += s * s;
+			const rms = Math.sqrt(sum / Math.max(1, frame.length));
+			if (rms > 500) speechRmsEma = 0.95 * speechRmsEma + 0.05 * rms;
+			const noiseRms = speechRmsEma / snrLin;
+			const out = new Int16Array(frame.length);
+			for (let i = 0; i < frame.length; i++) {
+				let n = 0;
+				for (const o of oscs) {
+					const wob = 0.5 + 0.5 * Math.sin(o.wobblePhase + (t / 8000) * 2 * Math.PI * o.wobble);
+					n += wob * Math.sin(o.phase + (t / 8000) * 2 * Math.PI * o.freq);
+				}
+				// Normalize by the ensemble's actual RMS, not its count: each term is
+				// wob*sin with E[(wob*sin)^2] = 0.375 * 0.5, so the 6-osc sum has rms
+				// sqrt(6 * 0.1875) ≈ 1.06 — dividing by 6 shipped noise ~13dB quiet
+				// (measured 24.9dB at a 12dB target; the test caught it).
+				n = (n / 1.06) * noiseRms;
+				out[i] = clamp((frame[i] ?? 0) + n);
+				t++;
+			}
+			return out;
+		},
+		reset() {
+			t = 0;
+			speechRmsEma = 2000;
+		},
+	};
+}
+
+/** Crude band-limit: one-pole high-pass at `lowHz` + one-pole low-pass at
+ * `highHz` — the "cheap handset" squeeze inside the already-narrow phone band. */
+export function bandLimit(lowHz: number, highHz: number, rate = 8000): FrameStage {
+	const aHp = Math.exp((-2 * Math.PI * lowHz) / rate);
+	const aLp = 1 - Math.exp((-2 * Math.PI * highHz) / rate);
+	let hx = 0;
+	let hy = 0;
+	let ly1 = 0;
+	let ly2 = 0;
+	return {
+		name: `bandLimit(${lowHz}-${highHz}Hz)`,
+		process(frame) {
+			const out = new Int16Array(frame.length);
+			for (let i = 0; i < frame.length; i++) {
+				const x = frame[i] ?? 0;
+				hy = aHp * (hy + x - hx);
+				hx = x;
+				// TWO cascaded low-pass poles (12dB/oct): a single EMA pole this
+				// close to Nyquist is so shallow that the high-pass's collateral
+				// attenuation of in-band content outweighed it — the filter cut
+				// 1kHz harder than 3.7kHz (the test caught it).
+				ly1 += aLp * (hy - ly1);
+				ly2 += aLp * (ly1 - ly2);
+				out[i] = clamp(ly2);
+			}
+			return out;
+		},
+		reset() {
+			hx = 0;
+			hy = 0;
+			ly1 = 0;
+			ly2 = 0;
+		},
+	};
+}
+
+/**
+ * Frame erasure on the Gilbert-Elliott two-state model (ITU-T G.191's shape):
+ * bursty, the way real transport loss arrives — iid loss under-models it.
+ * `lossProb` is the long-run loss rate; `burstiness` (0..1) is the chance a
+ * lost frame is followed by another. Concealment mimics what a receiver
+ * actually does: 'repeat' plays the last good frame, 'silence' plays zeros.
+ */
+export function frameErase(
+	lossProb: number,
+	burstiness = 0.5,
+	conceal: 'repeat' | 'silence' = 'repeat',
+	seed = 0xe4a5e,
+): FrameStage {
+	const rand = xorshift32(seed);
+	// Derive the two-state transition probabilities from loss rate + burstiness.
+	const pBadToBad = burstiness;
+	const pGoodToBad = (lossProb * (1 - pBadToBad)) / Math.max(0.01, 1 - lossProb);
+	let bad = false;
+	let last: Int16Array | null = null;
+	return {
+		name: `frameErase(${(lossProb * 100).toFixed(0)}%,burst=${burstiness},${conceal})`,
+		process(frame) {
+			bad = bad ? rand() < pBadToBad : rand() < pGoodToBad;
+			if (!bad) {
+				last = frame;
+				return frame;
+			}
+			if (conceal === 'repeat' && last) return last;
+			return new Int16Array(frame.length);
+		},
+		reset() {
+			bad = false;
+			last = null;
+		},
+	};
+}

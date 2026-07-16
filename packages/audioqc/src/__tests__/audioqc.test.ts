@@ -141,3 +141,47 @@ describe('stages, verified by the metrics they should move', () => {
 		expect(Math.abs(m.dcOffset)).toBeLessThan(50);
 	});
 });
+
+describe('degradation stages (deterministic by seed)', () => {
+	it('babble hits its target SNR within tolerance and reproduces exactly', async () => {
+		const { babble } = await import('../stages.ts');
+		// 2s speech then 1s digital silence: the silent tail carries noise ONLY,
+		// so its RMS measures the injected noise directly — no reliance on the
+		// metric's speech gate, which loud noise legitimately crosses.
+		const clean = concat(sine(2, 300, 8000), new Int16Array(RATE));
+		const a = processBuffer(clean, babble(12, 42));
+		const b = processBuffer(clean, babble(12, 42));
+		expect(Array.from(a.slice(0, 400))).toEqual(Array.from(b.slice(0, 400))); // same seed, same take
+		const rms = (seg: Int16Array) => Math.sqrt(seg.reduce((s, x) => s + x * x, 0) / seg.length);
+		const speechRms = rms(clean.slice(0, 2 * RATE));
+		const noiseRms = rms(a.slice(2 * RATE + 800)); // past the tail, noise only
+		const measuredSnr = 20 * Math.log10(speechRms / noiseRms);
+		expect(measuredSnr).toBeGreaterThan(7); // 12dB target, generous tolerance
+		expect(measuredSnr).toBeLessThan(17);
+		// Monotone with severity: harsher SNR target → louder noise in the tail.
+		const harder = processBuffer(clean, babble(3, 42));
+		expect(rms(harder.slice(2 * RATE + 800))).toBeGreaterThan(noiseRms * 1.5);
+	});
+
+	it('frameErase with silence concealment produces dropouts; repeat conceals them', async () => {
+		const { frameErase } = await import('../stages.ts');
+		const clean = sine(4, 300, 8000);
+		const silenced = analyzeChannel(ch(processBuffer(clean, frameErase(0.15, 0.7, 'silence', 7))));
+		const repeated = analyzeChannel(ch(processBuffer(clean, frameErase(0.15, 0.7, 'repeat', 7))));
+		expect(silenced.dropoutGaps + silenced.clicksPerSec).toBeGreaterThan(
+			repeated.dropoutGaps + repeated.clicksPerSec,
+		);
+	});
+
+	it('bandLimit attenuates out-of-band content more than in-band', async () => {
+		// A pure tone keeps a high energy FRACTION however much a filter cuts its
+		// LEVEL — the honest measurement is relative attenuation: the 3.7kHz tone
+		// must lose clearly more level through the filter than a 1kHz tone does.
+		const { bandLimit } = await import('../stages.ts');
+		const rms = (seg: Int16Array) => Math.sqrt(seg.reduce((s, x) => s + x * x, 0) / seg.length);
+		const through = (hz: number) =>
+			rms(processBuffer(sine(2, hz, 8000), bandLimit(400, 2800)).slice(800)) /
+			rms(sine(2, hz, 8000).slice(800));
+		expect(through(3700)).toBeLessThan(through(1000) * 0.85);
+	});
+});
