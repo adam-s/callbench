@@ -104,8 +104,8 @@ describe('assess — code assertions through the scenario surface', () => {
 		expect(report.results.every((r) => r.outcome === 'PASS')).toBe(true);
 	});
 
-	it('the fabricateCamera defect flips no-fabricated-recalibration to FAIL', async () => {
-		const t = driveSimulator(windshieldQuote, { ...NO_DEFECTS, fabricateCamera: true });
+	it('the fabricateAnswer defect flips no-fabricated-recalibration to FAIL', async () => {
+		const t = driveSimulator(windshieldQuote, { ...NO_DEFECTS, fabricateAnswer: true });
 		const report = await assess(windshieldQuote, t, judgeCtx(scriptedRunner));
 		const fab = report.results.find((r) => r.assertion === 'no-fabricated-recalibration');
 		expect(fab?.outcome).toBe('FAIL');

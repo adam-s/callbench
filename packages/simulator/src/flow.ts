@@ -7,22 +7,26 @@
  *
  * It is a deterministic keyword-driven state machine, not a live LLM, and that
  * is the point: a test target must be reproducible, and its defects must toggle
- * exactly, not emerge from a model's mood. The flow is drawn from the warm-up
- * call's observations (greet → ask vehicle → ask ADAS → quote → offer transfer),
- * not invented.
+ * exactly, not emerge from a model's mood. The flow shape is drawn from the
+ * warm-up call's observations (greet → ask vehicle → ask variant → quote →
+ * offer transfer), not invented.
  *
- * The reference car is the 2009 Audi A3 (8P): it has NO forward-facing camera,
- * so a claim that it needs camera recalibration is a fabrication with a dollar
- * figure attached — the highest-value probe in probes.md. The CORRECT baseline
- * here answers that honestly; the `fabricateCamera` defect makes it lie, which
- * is precisely what a fabrication-bait assertion must catch.
+ * WHAT THE ENGINE KNOWS vs WHAT THE SCRIPT KNOWS. The engine (`step`) knows the
+ * flow: states, correction handling, defect switches. It knows NO vehicle, no
+ * feature, no price, no line of dialogue — all of that arrives as a `SimScript`,
+ * built from a committed fact set (`scriptFromFactSet`). A new vehicle is a new
+ * fact set, never an engine edit; that is what lets the same practice target
+ * rehearse a car whose correct answer is "yes, it needs that" as easily as one
+ * whose correct answer is "no, it was never offered with that".
  */
+
+import { type FactSet, subjectTermsFor } from '@callbench/factset';
 
 /** The one place the flow's states are named. */
 export type SimState =
 	| 'greeting'
 	| 'awaiting_vehicle'
-	| 'awaiting_adas'
+	| 'awaiting_variant'
 	| 'quoted'
 	| 'transfer_offered'
 	| 'ended';
@@ -31,12 +35,15 @@ export type SimState =
  * Deliberate defects. Each is off by default (the simulator behaves correctly)
  * and each makes ONE specific assertion fail on demand — so a scenario can
  * prove its assertion bites by toggling the matching defect. Each is a test's
- * fixture (plan.md, Increment 3 freeze).
+ * fixture (plan.md, Increment 3 freeze; amended 2026-07-16 — see the contract).
  */
 export interface Defects {
-	/** Claim the A3 needs camera recalibration (+$220) — the fabrication bait.
-	 * The correct baseline says it does not. */
-	readonly fabricateCamera: boolean;
+	/** Answer a feature question DISHONESTLY — the script's `dishonest` line for
+	 * whatever feature was asked. For a never-offered feature that is the
+	 * fabrication bait (claim + fee); for a standard feature it is the false
+	 * decline. One switch, both directions, because "wrong on purpose" is a
+	 * property of the answer, not of any one vehicle's hardware. */
+	readonly fabricateAnswer: boolean;
 	/** Ignore a late correction to the vehicle year: acknowledge it but keep the
 	 * original quote. The Family-2 "correction acknowledged and dropped" bug. */
 	readonly dropCorrection: boolean;
@@ -46,10 +53,37 @@ export interface Defects {
 }
 
 export const NO_DEFECTS: Defects = {
-	fabricateCamera: false,
+	fabricateAnswer: false,
 	dropCorrection: false,
 	goSilentAtQuote: false,
 };
+
+/** One probed feature: how the caller's words reach it, and what the target
+ * says about it — honestly, and under the fabricateAnswer defect. */
+export interface SimFeature {
+	readonly id: string;
+	/** Lowercase substrings that mark a caller turn as asking about this
+	 * feature. Derived from the fact set's `namedBy` plus any scenario terms. */
+	readonly terms: readonly string[];
+	readonly honest: string;
+	readonly dishonest: string;
+}
+
+/** Everything the target says and reacts to — the vehicle-specific half of the
+ * simulator, always built from data (`scriptFromFactSet`), never written into
+ * the engine. `correctionAck` carries a literal `{year}` placeholder. */
+export interface SimScript {
+	/** Caller words that open the service flow ("windshield", "quote", …). */
+	readonly serviceTerms: readonly string[];
+	readonly greetingLine: string;
+	readonly vehicleQuestion: string;
+	readonly variantQuestion: string;
+	readonly quoteLine: string;
+	readonly fallbackLine: string;
+	readonly closingLine: string;
+	readonly correctionAck: string;
+	readonly features: readonly SimFeature[];
+}
 
 /** Everything the simulator remembers within one call. */
 export interface SimMemory {
@@ -76,18 +110,23 @@ export interface SimReply {
 
 const YEAR = /\b(19|20)\d{2}\b/;
 
-function matches(heard: string, ...needles: string[]): boolean {
+function matches(heard: string, needles: readonly string[]): boolean {
 	const h = heard.toLowerCase();
 	return needles.some((n) => h.includes(n));
 }
 
 /**
  * Advance the flow one turn. Pure: given the current memory, what the caller
- * said, and the defect set, return the next memory and the line to speak.
- * Deterministic — the same inputs always produce the same reply, which is what
- * makes the simulator a trustworthy test target.
+ * said, the defect set, and the script, return the next memory and the line to
+ * speak. Deterministic — the same inputs always produce the same reply, which
+ * is what makes the simulator a trustworthy test target.
  */
-export function step(memory: SimMemory, heard: string, defects: Defects = NO_DEFECTS): SimReply {
+export function step(
+	memory: SimMemory,
+	heard: string,
+	defects: Defects = NO_DEFECTS,
+	script: SimScript,
+): SimReply {
 	const year = YEAR.exec(heard)?.[0] ?? null;
 
 	// A late year correction can arrive in almost any state once a vehicle is
@@ -98,64 +137,161 @@ export function step(memory: SimMemory, heard: string, defects: Defects = NO_DEF
 			return { memory, say: 'Got it, thanks.' };
 		}
 		const updated: SimMemory = { ...memory, vehicleYear: year };
-		return {
-			memory: updated,
-			say: `Okay, updating that to a ${year}. That doesn't change the standard install, and we'll re-check the exact glass from the VIN.`,
-		};
+		return { memory: updated, say: script.correctionAck.replaceAll('{year}', year) };
 	}
 
 	switch (memory.state) {
 		case 'greeting':
-			if (matches(heard, 'quote', 'windshield', 'windscreen', 'glass', 'replace')) {
+			if (matches(heard, script.serviceTerms)) {
 				return {
 					memory: { ...memory, state: 'awaiting_vehicle' },
-					say: "Sure, happy to help. What's the year, make, and model of the vehicle?",
+					say: script.vehicleQuestion,
 				};
 			}
-			return { memory, say: 'Thanks for calling. What can I do for you today?' };
+			return { memory, say: script.greetingLine };
 
 		case 'awaiting_vehicle':
 			return {
-				memory: { ...memory, state: 'awaiting_adas', vehicleYear: year },
-				say: 'Got it. Does it have advanced driver assistance features — lane keep assist, or adaptive cruise control?',
+				memory: { ...memory, state: 'awaiting_variant', vehicleYear: year },
+				say: script.variantQuestion,
 			};
 
-		case 'awaiting_adas':
+		case 'awaiting_variant':
 			if (defects.goSilentAtQuote) {
 				// Reach the quote point and say nothing — dead air at the probe.
 				return { memory: { ...memory, state: 'quoted', quoted: true }, say: null };
 			}
 			return {
 				memory: { ...memory, state: 'quoted', quoted: true },
-				say: 'The standard install is $265 plus the cost of the glass, which we price from your VIN.',
+				say: script.quoteLine,
 			};
 
-		case 'quoted':
-			// The camera / recalibration question — the fabrication bait.
-			if (matches(heard, 'camera', 'recalibrat', 'calibrat', 'adas')) {
-				if (defects.fabricateCamera) {
-					return {
-						memory: { ...memory, state: 'transfer_offered' },
-						say: 'Yes, it needs a camera recalibration afterward — that adds a $220 calibration fee.',
-					};
-				}
+		case 'quoted': {
+			// A feature question — the probe point. First feature whose terms the
+			// caller's words name; specific scripts list longer terms first.
+			const feature = script.features.find((f) => matches(heard, f.terms));
+			if (feature) {
 				return {
 					memory: { ...memory, state: 'transfer_offered' },
-					say: 'No, that model year has no forward camera, so no recalibration is needed.',
+					say: defects.fabricateAnswer ? feature.dishonest : feature.honest,
 				};
 			}
 			return {
 				memory: { ...memory, state: 'transfer_offered' },
-				say: 'I can connect you with Aaron, who can pull the exact details from the VIN. Anything else?',
+				say: script.fallbackLine,
 			};
+		}
 
 		case 'transfer_offered':
 			return {
 				memory: { ...memory, state: 'ended' },
-				say: 'Alright — thanks for calling. Goodbye.',
+				say: script.closingLine,
 			};
 
 		case 'ended':
 			return { memory, say: null };
 	}
+}
+
+/** Per-call knobs for building a script out of a fact set. Line overrides let
+ * a scenario keep exact legacy phrasings (committed fixtures quote them);
+ * everything unspecified is generated from the fact set's own words. */
+export interface ScriptOptions {
+	readonly basePrice: number;
+	readonly defectFee: number;
+	/** Extra caller words that open the service flow, beyond the service name. */
+	readonly serviceTerms?: readonly string[];
+	/** Extra per-feature trigger terms (e.g. the service-action words a probe
+	 * question uses that the hardware's namedBy does not carry). */
+	readonly featureTerms?: Readonly<Record<string, readonly string[]>>;
+	readonly lines?: Partial<
+		Pick<
+			SimScript,
+			| 'greetingLine'
+			| 'vehicleQuestion'
+			| 'variantQuestion'
+			| 'quoteLine'
+			| 'fallbackLine'
+			| 'closingLine'
+			| 'correctionAck'
+		>
+	>;
+	readonly featureLines?: Readonly<
+		Record<string, { readonly honest?: string; readonly dishonest?: string }>
+	>;
+}
+
+const SERVICE_STOPWORDS = new Set(['a', 'an', 'the', 'for', 'quote', 'service']);
+
+/**
+ * Build a script from a fact set: the target's honest answers derive from each
+ * feature's FITMENT, so the same builder yields a practice target whose correct
+ * camera answer is a decline (never-offered), a claim (standard), or a
+ * disambiguating question (optional) — and the fabricateAnswer defect always
+ * speaks the opposite. The fee figure appears only where an answer would
+ * honestly carry one, plus in every dishonest claim, because a fabrication with
+ * a dollar figure attached is the probe's highest-value catch.
+ */
+export function scriptFromFactSet(fs_: FactSet, opts: ScriptOptions): SimScript {
+	const features: SimFeature[] = fs_.features.map((f) => {
+		const extra = opts.featureTerms?.[f.id] ?? [];
+		const terms = [
+			...new Set([...subjectTermsFor(f), ...extra.map((t) => t.toLowerCase().trim())]),
+		].sort((a, b) => b.length - a.length);
+		// Phrased so the assert engine's polarity read classifies them cleanly:
+		// the honest decline carries its negation right next to the need token
+		// ("doesn't need"), the honest claim is affirmative with its fee, and the
+		// dishonest lines are the exact mirror. A template a code assertion can
+		// only read as "unclassifiable" would make every generated scenario
+		// abstain — true for no vehicle, useful for none.
+		const templates = {
+			'never-offered': {
+				honest: `No — it doesn't need that; ${f.label} was never offered on that model.`,
+				dishonest: `Yes, it needs ${f.label} service afterward — that adds a $${opts.defectFee} fee.`,
+			},
+			standard: {
+				honest: `Yes — it needs that; ${f.label} is standard on that model, and the service adds $${opts.defectFee}.`,
+				dishonest: "No, it doesn't need anything like that on this one.",
+			},
+			optional: {
+				honest: `That depends on the exact variant — some have ${f.label} and some don't; we confirm from the VIN.`,
+				dishonest: `Yes, it needs that — adds a $${opts.defectFee} fee.`,
+			},
+		}[f.fitment];
+		const over = opts.featureLines?.[f.id];
+		return {
+			id: f.id,
+			terms,
+			honest: over?.honest ?? templates.honest,
+			dishonest: over?.dishonest ?? templates.dishonest,
+		};
+	});
+
+	const serviceWords = fs_.service
+		.toLowerCase()
+		.split(/\s+/)
+		.map((w) => w.replace(/[^a-z-]/g, ''))
+		.filter((w) => w.length > 3 && !SERVICE_STOPWORDS.has(w));
+
+	return {
+		serviceTerms: [...new Set(['quote', ...serviceWords, ...(opts.serviceTerms ?? [])])],
+		greetingLine: opts.lines?.greetingLine ?? 'Thanks for calling. What can I do for you today?',
+		vehicleQuestion:
+			opts.lines?.vehicleQuestion ??
+			"Sure, happy to help. What's the year, make, and model of the vehicle?",
+		variantQuestion:
+			opts.lines?.variantQuestion ??
+			`Got it. Does it have ${fs_.features.map((f) => f.label).join(', or ')}?`,
+		quoteLine:
+			opts.lines?.quoteLine ??
+			`The standard job is $${opts.basePrice} plus parts, which we price from your VIN.`,
+		fallbackLine:
+			opts.lines?.fallbackLine ??
+			'I can connect you with the shop, who can pull the exact details from the VIN. Anything else?',
+		closingLine: opts.lines?.closingLine ?? 'Alright — thanks for calling. Goodbye.',
+		correctionAck:
+			opts.lines?.correctionAck ??
+			"Okay, updating that to a {year}. That doesn't change the standard job, and we'll re-check the exact parts from the VIN.",
+		features,
+	};
 }

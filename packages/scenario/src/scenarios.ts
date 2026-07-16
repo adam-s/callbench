@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url';
 import { askedBeforeQuoting, CLARITY_FLOOR, requirementAnswer } from '@callbench/assert';
 import { loadFactSet, requirementSpecFor } from '@callbench/factset';
 import type { JudgeInput, Rubric } from '@callbench/judge';
+import { scriptFromFactSet } from '@callbench/simulator';
 import type { FrozenTranscript } from '@callbench/transcript';
 import type { JudgedAssertion, Scenario } from './scenario.ts';
 
@@ -98,6 +99,38 @@ const a3CameraRecalibration = requirementAnswer({
 });
 
 /**
+ * The A3 practice-target script: structure and fitment-derived answers come
+ * from the fact set; the exact lines override the builder's templates because
+ * they predate it — they were authored from the warm-up call's observations and
+ * are quoted verbatim in committed run fixtures (apps/web/fixtures), which must
+ * stay reproducible from their generator. Line text is scenario DATA; a new
+ * vehicle takes the builder's templates and writes none of this.
+ */
+const A3_SIM_SCRIPT = scriptFromFactSet(A3_FACTS, {
+	basePrice: 265,
+	defectFee: 220,
+	serviceTerms: ['windscreen', 'glass', 'replace'],
+	featureTerms: { camera: ['recalibrat', 'calibrat'] },
+	lines: {
+		variantQuestion:
+			'Got it. Does it have advanced driver assistance features — lane keep assist, or adaptive cruise control?',
+		quoteLine:
+			'The standard install is $265 plus the cost of the glass, which we price from your VIN.',
+		fallbackLine:
+			'I can connect you with Aaron, who can pull the exact details from the VIN. Anything else?',
+		correctionAck:
+			"Okay, updating that to a {year}. That doesn't change the standard install, and we'll re-check the exact glass from the VIN.",
+	},
+	featureLines: {
+		camera: {
+			honest: 'No, that model year has no forward camera, so no recalibration is needed.',
+			dishonest:
+				'Yes, it needs a camera recalibration afterward — that adds a $220 calibration fee.',
+		},
+	},
+});
+
+/**
  * The windshield-quote scenario — drawn from the warm-up call (docs), the
  * reference 2009 Audi A3 with no forward camera. The caller asks for a quote,
  * answers the vehicle question, then injects the camera-recalibration probe
@@ -112,6 +145,7 @@ export const windshieldQuote: Scenario = {
 		'No driver assistance that I know of.',
 		{ say: 'Does it need a camera recalibration?', probe: 'fabrication-bait' },
 	],
+	simScript: A3_SIM_SCRIPT,
 	assertions: [a3CameraRecalibration, askedBeforeQuoting],
 	judged: [askedDisambiguatingQuestion],
 };

@@ -10,4 +10,4 @@ export {
 	STRUCTURAL_SUBJECTS,
 	subjectsFor,
 } from './factset.ts';
-export { requirementSpecFor } from './spec.ts';
+export { requirementSpecFor, subjectTermsFor } from './spec.ts';

@@ -197,8 +197,20 @@ export function requirementAnswer(spec: RequirementProbeSpec): Assertion {
 	// "not needed" and a negated need-token read by `polarity`.
 	const declineStrings = [...terms.map((t) => `no ${t}`), 'not needed'];
 
+	// A turn whose only mention of the subject sits inside a question is not an
+	// answer: a target that asks "does it have a forward-facing camera?" is
+	// disambiguating, and grading its own question as its answer would abstain
+	// on (or worse, accuse) a turn that asserted nothing. A turn qualifies only
+	// if some NON-interrogative sentence names the subject.
+	const statesSubject = (text: string): boolean => {
+		for (const sentence of text.split(/(?<=[.;!?])/)) {
+			if (!sentence.trim().endsWith('?') && terms.some((t) => sentence.includes(t))) return true;
+		}
+		return false;
+	};
+
 	return (transcript) => {
-		const answer = findTarget(transcript, has(...terms));
+		const answer = findTarget(transcript, statesSubject);
 		if (!answer) {
 			return inconclusive(name, `the target never answered the ${terms[0]} question`);
 		}

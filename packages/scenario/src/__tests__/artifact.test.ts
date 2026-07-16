@@ -210,7 +210,7 @@ describe('building refuses a mismatched report/transcript pair', () => {
 	it('throws when the report was computed over a different transcript', async () => {
 		const transcript = driveSimulator(windshieldQuote);
 		const other = driveSimulator(windshieldQuote, {
-			fabricateCamera: true,
+			fabricateAnswer: true,
 			dropCorrection: false,
 			goSilentAtQuote: false,
 		});

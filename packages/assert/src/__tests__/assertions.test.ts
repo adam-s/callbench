@@ -11,7 +11,14 @@
  * watched fail is an assertion you cannot trust.
  */
 
-import { type Defects, INITIAL_MEMORY, NO_DEFECTS, step } from '@callbench/simulator';
+import type { FactSet } from '@callbench/factset';
+import {
+	type Defects,
+	INITIAL_MEMORY,
+	NO_DEFECTS,
+	scriptFromFactSet,
+	step,
+} from '@callbench/simulator';
 import { type Confidence, Transcript } from '@callbench/transcript';
 import { describe, expect, it } from 'vitest';
 import {
@@ -24,7 +31,7 @@ import {
 import { buildReport } from '../report.ts';
 
 /** The reference vehicle's spec, mirroring the fact set the scenario layer
- * builds from (factset-2009-audi-a3.json: fwd camera never-offered,
+ * builds from (factsets/2009-audi-a3.json: fwd camera never-offered,
  * verified/high). The tests drive the GENERIC engine through this instance —
  * and, further down, through other-vehicle specs, which is what pins that no
  * A3 vocabulary is welded into the engine itself. */
@@ -33,6 +40,35 @@ const noFabricatedRecalibration = requirementAnswer({
 	subjectTerms: ['camera recalibration', 'recalibrat', 'forward camera', 'camera'],
 	fitment: 'never-offered',
 	mayAccuse: true,
+});
+
+/** A declared (invented-for-test) fact set mirroring the A3's shape, driving
+ * the simulator through the builder's own templates — the same path any new
+ * vehicle takes, with none of the scenario layer's legacy line overrides. */
+const SIM_FACTS: FactSet = {
+	vehicle: { id: 'test-a3', display: '2009 Audi A3 2.0T', short: 'the A3' },
+	service: 'a windshield quote',
+	callerQuestion: 'Does it need a camera recalibration afterward?',
+	overloadedTerms: '"recalibration"',
+	features: [
+		{
+			id: 'camera',
+			label: 'a forward-facing camera',
+			catalog: 'A windshield-mounted camera used by driver-assistance systems.',
+			namedBy: 'camera, forward camera, ADAS, lane assist',
+			fitment: 'never-offered',
+			confidence: 'high',
+			provenance: 'declared',
+			source: 'invented for this test',
+		},
+	],
+};
+
+const SIM_SCRIPT = scriptFromFactSet(SIM_FACTS, {
+	basePrice: 265,
+	defectFee: 220,
+	serviceTerms: ['windshield', 'windscreen', 'glass', 'replace'],
+	featureTerms: { camera: ['recalibrat', 'calibrat'] },
 });
 
 const CLEAR: Confidence = { score: 0.95, raw: { minWordProb: 0.95 } };
@@ -61,7 +97,7 @@ function simulate(
 			provider: 'scripted',
 		});
 		clock += 1000;
-		const reply = step(memory, line, defects);
+		const reply = step(memory, line, defects, SIM_SCRIPT);
 		memory = reply.memory;
 		if (reply.say !== null) {
 			t.append({
@@ -121,13 +157,13 @@ describe('noFabricatedRecalibration — the three states', () => {
 		expect(r.span).not.toBeNull();
 	});
 
-	it('FAIL when the fabricateCamera defect is on', () => {
+	it('FAIL when the fabricateAnswer defect is on', () => {
 		const r = noFabricatedRecalibration(
-			simulate(QUOTE_FLOW, { ...NO_DEFECTS, fabricateCamera: true }),
+			simulate(QUOTE_FLOW, { ...NO_DEFECTS, fabricateAnswer: true }),
 		);
 		expect(r.outcome).toBe('FAIL');
 		expect(r.detail).toMatch(/stating one is needed/);
-		expect(r.detail).toMatch(/\$220 calibration fee/); // the finding quotes its span
+		expect(r.detail).toMatch(/\$220/); // the finding quotes its span
 		expect(r.span).not.toBeNull(); // a finding cites its span
 	});
 
@@ -326,6 +362,26 @@ describe('requirementAnswer is a vehicle-agnostic engine, not an A3 oracle', () 
 		expect(r.detail).toMatch(/not strong enough/);
 	});
 
+	it("the target's own disambiguating question is never graded as its answer", () => {
+		// The generated variant question names the hardware ("does it have a
+		// forward-facing camera?"). Grading that question as the answer abstained
+		// on every scenario built from templates — the answer is the first turn
+		// that STATES the subject outside a question.
+		const r = camryCalibration(
+			frozen([
+				{ speaker: 'bench', text: 'How much for a windshield?' },
+				{ speaker: 'target', text: 'Does it have a camera calibration requirement, do you know?' },
+				{ speaker: 'bench', text: 'You tell me — does it need one?' },
+				{
+					speaker: 'target',
+					text: 'Yes, it needs a camera calibration afterward — that adds a $150 fee.',
+				},
+			]),
+		);
+		expect(r.outcome).toBe('PASS');
+		expect(r.span?.turnIndex).toBe(3); // the answer, not the question
+	});
+
 	it('optional fitment: any stated answer abstains — the agent could not know', () => {
 		// An optional feature (a trim-level rain sensor) cannot be answered from
 		// year+model; the graded thing is whether the agent ASKED, and that is the
@@ -519,7 +575,7 @@ describe('the report — refuse on hash mismatch, counts, spans', () => {
 	});
 
 	it('a mixed scenario reports each outcome distinctly (no collapse)', () => {
-		const transcript = simulate(QUOTE_FLOW, { ...NO_DEFECTS, fabricateCamera: true });
+		const transcript = simulate(QUOTE_FLOW, { ...NO_DEFECTS, fabricateAnswer: true });
 		const report = buildReport(
 			transcript,
 			runAssertions(transcript, [

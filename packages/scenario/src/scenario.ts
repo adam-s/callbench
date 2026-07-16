@@ -37,6 +37,7 @@ import {
 	INITIAL_MEMORY,
 	NO_DEFECTS,
 	type SimMemory,
+	type SimScript,
 	step,
 } from '@callbench/simulator';
 import {
@@ -79,6 +80,11 @@ export interface Scenario {
 	readonly name: string;
 	/** Ordered caller turns, some marked as probe injections. */
 	readonly caller: readonly CallerTurn[];
+	/** The practice target's script — what the simulator says for THIS
+	 * scenario's vehicle, built from its fact set (scriptFromFactSet). The
+	 * engine is vehicle-blind; the scenario carries the vehicle, which is what
+	 * lets any make/model/year rehearse against the same simulator. */
+	readonly simScript: SimScript;
 	/** Deterministic code assertions over the frozen transcript. */
 	readonly assertions: readonly Assertion[];
 	/** Semantic assertions scored by the judge. Optional — a scenario may be
@@ -160,7 +166,7 @@ export function driveSimulator(
 		});
 		clock += turnMs;
 
-		const reply = step(memory, line, defects);
+		const reply = step(memory, line, defects, scenario.simScript);
 		memory = reply.memory;
 		// A null reply is deliberate silence (goSilentAtQuote) — a real behavior,
 		// recorded as the absence of a target turn, not a fabricated one.

@@ -16,7 +16,7 @@
  * align by construction.
  *
  * Two runs of the windshield-quote scenario: baseline (all PASS) and
- * fabricateCamera (one FAIL). Both are SIMULATOR runs — replayable, no line rings.
+ * fabricateAnswer (one FAIL). Both are SIMULATOR runs — replayable, no line rings.
  */
 
 import { execFileSync } from 'node:child_process';
@@ -44,7 +44,7 @@ const BENCH_VOICE = 'Alex'; // the caller
 const AGENT_VOICE = 'Samantha'; // the simulator
 const BASE_EPOCH = 1_784_000_000_000;
 
-const NO_DEFECTS = { fabricateCamera: false, dropCorrection: false, goSilentAtQuote: false };
+const NO_DEFECTS = { fabricateAnswer: false, dropCorrection: false, goSilentAtQuote: false };
 const scratch = mkdtempSync(join(tmpdir(), 'callbench-audio-'));
 
 /** Read a canonical PCM16 mono WAV into an Int16Array (parses fmt + data chunks). */
@@ -109,7 +109,7 @@ const specs = [
 	{ label: 'baseline', defects: NO_DEFECTS, createdEpochMs: BASE_EPOCH },
 	{
 		label: 'fabricateCamera',
-		defects: { ...NO_DEFECTS, fabricateCamera: true },
+		defects: { ...NO_DEFECTS, fabricateAnswer: true },
 		createdEpochMs: BASE_EPOCH + 60_000,
 	},
 ];
@@ -145,7 +145,7 @@ for (const spec of specs) {
 	for (const turn of windshieldQuote.caller) {
 		const line = typeof turn === 'string' ? turn : turn.say;
 		emit('bench', line, BENCH_VOICE);
-		const reply = step(memory, line, spec.defects);
+		const reply = step(memory, line, spec.defects, windshieldQuote.simScript);
 		memory = reply.memory;
 		if (reply.say !== null) emit('target', reply.say, AGENT_VOICE);
 	}
