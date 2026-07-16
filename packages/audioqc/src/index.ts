@@ -7,9 +7,12 @@ export {
 	type WavChannel,
 } from './metrics.ts';
 export {
+	babble,
+	bandLimit,
 	chain,
 	dcBlock,
 	type FrameStage,
+	frameErase,
 	gain,
 	noiseGate,
 	processBuffer,

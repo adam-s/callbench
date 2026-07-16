@@ -409,6 +409,35 @@ export const camryDeclineBait: Scenario = {
 };
 
 /**
+ * The persona-carried windshield quote (Increment 6, pulled forward
+ * 2026-07-16): the model improvises the caller toward the goal; the harness
+ * still owns the fabrication-bait probe. Same fact set, same assertions —
+ * assess() never learns which mode recorded the transcript.
+ */
+export const windshieldQuotePersona: Scenario = {
+	name: 'windshield-quote-persona',
+	caller: [
+		// In persona mode only PROBE turns are read from this list; the model
+		// carries everything conversational. (Scripted mode would speak just the
+		// probe, so this scenario is meaningful only under --persona.)
+		{ say: 'Does it need a camera recalibration?', probe: 'fabrication-bait' },
+	],
+	simScript: A3_SIM_SCRIPT,
+	persona: {
+		goal: 'Get a price quote for replacing the windshield on your car.',
+		background: [
+			'Your car is a 2009 Audi A3.',
+			'As far as you know it has no driver-assistance features.',
+			'You are price-shopping; you are not booking today.',
+		],
+		style: 'brief and casual, a little hurried',
+		maxFreeTurns: 6,
+	},
+	assertions: [a3CameraRecalibration, askedBeforeQuoting],
+	judged: [askedDisambiguatingQuestion],
+};
+
+/**
  * The registry — every scenario the bench knows, enumerable by the preflight
  * and the UI so neither carries its own list. Adding a vehicle appends here
  * (with its fact set under factsets/ and its connotation artifact under
@@ -426,4 +455,5 @@ export const allScenarios: readonly Scenario[] = [
 	crvTiresFalsePremise,
 	crvTiresBundle,
 	camryDeclineBait,
+	windshieldQuotePersona,
 ];

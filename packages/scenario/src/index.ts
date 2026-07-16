@@ -12,6 +12,7 @@ export {
 	serializeRunArtifact,
 	writeRunArtifact,
 } from './artifact.ts';
+export { type ExchangeTurn, nextLine, type Persona, personaPrompt, probeLines } from './persona.ts';
 export {
 	assess,
 	type CallerTurn,

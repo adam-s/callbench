@@ -95,6 +95,11 @@ export interface Scenario {
 			Record<'provisionalSilenceMs' | 'confirmSilenceMs' | 'minSpeechMs' | 'speechEnergy', number>
 		>
 	>;
+	/** Optional hybrid-mode persona (Increment 6): when the live driver runs
+	 * with --persona, a model improvises the caller's conversational turns
+	 * toward this goal while the harness speaks the caller list's PROBE turns
+	 * verbatim at their moments. Scripted mode ignores it. */
+	readonly persona?: import('./persona.ts').Persona;
 	/** Deterministic code assertions over the frozen transcript. */
 	readonly assertions: readonly Assertion[];
 	/** Semantic assertions scored by the judge. Optional — a scenario may be
