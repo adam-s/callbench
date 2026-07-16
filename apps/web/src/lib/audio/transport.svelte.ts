@@ -217,7 +217,16 @@ export class Transport {
 			this.#tBase = a.currentTime;
 			this.#clockBase = now;
 		} else {
-			this.t = Math.min(this.duration, this.#tBase + (now - this.#clockBase) / 1000);
+			const wall = this.#tBase + (now - this.#clockBase) / 1000;
+			// The element is the authority on what is AUDIBLE. The free-running
+			// clock exists to smooth between coarse currentTime updates, so it may
+			// lead the element only by that granularity — never sail on through a
+			// stall (+3s measured) or a silently rejected play() (unbounded runaway;
+			// scratchpad tick-harness.mjs, maintainer-heard as a fast playhead).
+			this.t =
+				a && a.readyState >= 1
+					? Math.min(this.duration, wall, a.currentTime + 0.35)
+					: Math.min(this.duration, wall);
 		}
 		this.frame++;
 		if (this.#stopAt != null && this.t >= this.#stopAt) {
