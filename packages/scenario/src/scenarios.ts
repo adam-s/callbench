@@ -12,7 +12,12 @@
 
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { askedBeforeQuoting, CLARITY_FLOOR, requirementAnswer } from '@callbench/assert';
+import {
+	askedBeforeQuoting,
+	CLARITY_FLOOR,
+	correctionPropagated,
+	requirementAnswer,
+} from '@callbench/assert';
 import { type FactSet, loadFactSet, requirementSpecFor } from '@callbench/factset';
 import type { JudgeInput, Rubric } from '@callbench/judge';
 import { scriptFromFactSet } from '@callbench/simulator';
@@ -179,10 +184,28 @@ export const windshieldQuote: Scenario = {
 };
 
 /**
+ * The correction scenario — Family 2 (probes.md): state the vehicle, receive
+ * the quote, then correct the year late. A working system re-derives; a broken
+ * one acknowledges and drops it, which is exactly what the simulator's
+ * dropCorrection defect fakes. Fully code-checkable, so no judged assertions.
+ */
+export const yearCorrection: Scenario = {
+	name: 'year-correction',
+	caller: [
+		'Hi, I need a quote for a windshield replacement.',
+		"It's a 2009 Audi A3.",
+		'No driver assistance that I know of.',
+		{ say: 'Actually, sorry — it is a 2011, not a 2009.', probe: 'late-correction' },
+	],
+	simScript: A3_SIM_SCRIPT,
+	assertions: [correctionPropagated('2011'), askedBeforeQuoting],
+};
+
+/**
  * The registry — every scenario the bench knows, enumerable by the preflight
  * and the UI so neither carries its own list. Adding a vehicle appends here
  * (with its fact set under factsets/ and its connotation artifact under
  * docs/connotation/ — the preflight's coded gates refuse a scenario missing
  * the latter, so this list is a catalog, not a safety surface).
  */
-export const allScenarios: readonly Scenario[] = [windshieldQuote];
+export const allScenarios: readonly Scenario[] = [windshieldQuote, yearCorrection];

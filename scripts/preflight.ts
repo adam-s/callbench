@@ -13,6 +13,9 @@
  *   CALLBENCH_MAX_MINUTES     hard wall-clock cap (default 15)
  */
 
+import { readdirSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { preflight, type RunPlan, renderPreflight } from '@callbench/runplan';
 import { allScenarios } from '@callbench/scenario';
 
@@ -49,7 +52,15 @@ function main(): void {
 		// Consent for THIS target is settled by the maintainer and recorded in the
 		// docs (Increment 7 / warm-up-call). Re-settled if the target changes.
 		consentSettled: true,
-		connotationReviewed: scenarios,
+		// From the COMMITTED artifacts, never from the plan itself: this line
+		// used to read `connotationReviewed: scenarios`, which fed the gate its
+		// own input — a check that could not fail. A scenario is reviewed when
+		// docs/connotation/<name>.md exists, and only then.
+		connotationReviewed: readdirSync(
+			join(dirname(fileURLToPath(import.meta.url)), '..', 'docs', 'connotation'),
+		)
+			.filter((f) => f.endsWith('.md'))
+			.map((f) => f.replace(/\.md$/, '')),
 	};
 
 	let report: ReturnType<typeof preflight>;
