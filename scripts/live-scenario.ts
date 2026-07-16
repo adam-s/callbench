@@ -66,7 +66,7 @@ import {
 
 const PORT = 8791;
 /** Speech is slower than tones: 4 caller turns + STT round trips. Hard stop. */
-const WALL_CAP_MS = 240_000;
+const WALL_CAP_MS = Number(process.env.CALLBENCH_WALL_CAP_MS ?? 240_000);
 /** No reply within this after our line finishes = dead air; move on. This is
  * how goSilentAtQuote lands as a real absence rather than a hang. */
 const DEAD_AIR_MS = 15_000;
@@ -163,7 +163,7 @@ async function main(): Promise<void> {
 	// The persona's model — the judge package's runner plumbing, reused as an
 	// isolated named stage. Its id lands on every improvised turn's provider.
 	const personaRunner = claudeRunner('sonnet');
-	const personaLog: Array<{ atMs: number; prompt: string; raw: string }> = [];
+	const personaLog: Array<{ atMs: number; llmMs?: number; prompt: string; raw: string }> = [];
 
 	// Pre-synthesize EVERYTHING both sides could say (docs/models.md: scripted
 	// lines are rendered before the call, so the synth link cost is paid
@@ -239,7 +239,13 @@ async function main(): Promise<void> {
 	const turnCfg = { ...DEFAULT_TURN_CONFIG, ...scenario.turnConfig };
 
 	const simExchange: ExchangeTurn[] = [];
-	const simLog: Array<{ atMs: number; prompt: string; raw: string }> = [];
+	const simLog: Array<{
+		atMs: number;
+		sttMs?: number;
+		llmMs?: number;
+		prompt: string;
+		raw: string;
+	}> = [];
 	let simTurns = 0;
 
 	async function runSim(session: TransportSession): Promise<void> {
@@ -301,16 +307,25 @@ async function main(): Promise<void> {
 					off += c.length;
 				}
 				try {
+					// Per-stage timing — the whole point of the measurement: STT
+					// (audio→text), LLM (reasoning), TTS (text→audio) as three
+					// separate numbers, so "audio speed vs LLM reasoning speed" is
+					// visible per turn, not just a lumped total.
+					const tStt = performance.now();
 					const heard = await stt.transcribe(pcm16ToWav(pcm), 'audio/wav');
+					const sttMs = performance.now() - tStt;
 					let say: string | null;
+					let llmMs = 0;
 					if (args.simModel) {
 						simExchange.push({ speaker: 'caller', text: heard.text });
 						if (simTurns >= NEXUS_IMITATION.maxTurns) {
 							say = 'Thanks for calling — goodbye.';
 						} else {
+							const tLlm = performance.now();
 							const r = await agentReply(NEXUS_IMITATION, simExchange, personaRunner);
+							llmMs = performance.now() - tLlm;
 							say = r.text;
-							simLog.push({ atMs: clock(), prompt: r.prompt, raw: r.raw });
+							simLog.push({ atMs: clock(), sttMs, llmMs, prompt: r.prompt, raw: r.raw });
 							simExchange.push({ speaker: 'agent', text: say });
 							simTurns++;
 						}
@@ -320,8 +335,14 @@ async function main(): Promise<void> {
 						say = reply.say;
 					}
 					simHeard.push({ atMs: clock(), heard: heard.text, replied: say });
-					note('sim', 'turn', `heard="${heard.text}" reply=${say === null ? 'SILENCE' : 'spoken'}`);
+					const tTts = performance.now();
 					if (say !== null && say.length > 0) await speak(say);
+					const ttsMs = performance.now() - tTts;
+					note(
+						'sim',
+						'turn',
+						`stt=${sttMs.toFixed(0)}ms llm=${llmMs.toFixed(0)}ms tts=${ttsMs.toFixed(0)}ms heard="${heard.text.slice(0, 40)}"`,
+					);
 				} catch (e) {
 					note('sim', 'stt-error', e instanceof Error ? e.message : String(e));
 				}
@@ -411,8 +432,11 @@ async function main(): Promise<void> {
 				const exchange: ExchangeTurn[] = turnDrafts
 					.sort((a, b) => a.startMs - b.startMs)
 					.map((t) => ({ speaker: t.speaker === 'bench' ? 'caller' : 'agent', text: t.text }));
+				const tLlm = performance.now();
 				const step = await nextLine(persona, exchange, probes.length - probeIndex, personaRunner);
-				personaLog.push({ atMs: clock(), prompt: step.prompt, raw: step.raw });
+				const llmMs = performance.now() - tLlm;
+				personaLog.push({ atMs: clock(), llmMs, prompt: step.prompt, raw: step.raw });
+				note('bench', 'persona-llm', `${llmMs.toFixed(0)}ms`);
 				if (step.decision.kind === 'say') {
 					freeTurns++;
 					return step.decision.text;
