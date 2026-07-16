@@ -79,13 +79,15 @@ export const DISAMBIGUATION_RUBRIC: Rubric = {
  *     the code one about the same audio. Offline the simulator's turns are heard
  *     perfectly, so this guard only bites on a live call.
  *
- * KNOWN LIMITATION (labelled, not yet fixed): a price is detected only as a
- * `$`-and-digit string. A live agent that quotes verbally ("two hundred
- * sixty-five installed") produces no `$`, so this abstains to INCONCLUSIVE
- * rather than judge a price that was in fact given. `askedBeforeQuoting` in
- * @callbench/assert shares the same `$`-only detection; spoken-number parsing is
- * a single fix both should inherit, deferred until a live transcript shows the
- * shape a real quote takes. The cited span is the price turn.
+ * KNOWN LIMITATION (labelled; re-probed 2026-07-16): a price is detected only
+ * as a `$`-and-digit string. The live probe the deferral waited for has now
+ * run: the stt-spoken-price scenario spoke "two sixty-five" with no dollar
+ * sign, and Whisper (large-v3) NORMALIZED it to "$265" in the transcript
+ * (conf 0.84, take 4d1bb366) — so for this STT the gap is narrower than
+ * documented. The limitation stands for other STT providers and for phrasings
+ * Whisper may not normalize ("two hundred sixty five even"); the scenario
+ * exists to re-measure whenever either changes. The cited span is the price
+ * turn.
  */
 function excerptThroughFirstPrice(transcript: FrozenTranscript): JudgeInput | null {
 	const priceIndex = transcript.turns.findIndex(
@@ -202,10 +204,78 @@ export const yearCorrection: Scenario = {
 };
 
 /**
+ * STT stress: teens vs tens. "Thirteen" and "thirty" are the classic
+ * telephone-band confusion, and the year is the fact the correction machinery
+ * must carry exactly — a one-digit slip here is the difference between a
+ * propagated correction and a false FAIL. Variance run 2026-07-16 already
+ * caught one name homophone (Aaron→Erin) by accident; this probes the
+ * number class on purpose, through BOTH hops (bench TTS → sim STT, and the
+ * sim's ack → bench STT).
+ */
+export const sttYearTeens: Scenario = {
+	name: 'stt-year-teens',
+	caller: [
+		'Hi, I need a quote for a windshield replacement.',
+		"It's a 2015 Audi A3.",
+		'No driver assistance that I know of.',
+		{ say: "Actually, sorry — it's a 2013, not a 2015.", probe: 'teens-vs-tens-correction' },
+	],
+	simScript: A3_SIM_SCRIPT,
+	assertions: [correctionPropagated('2013'), askedBeforeQuoting],
+};
+
+/**
+ * STT stress: a price spoken without a dollar sign. The price detection in
+ * both seams is `$`-and-digit (a labeled limitation, scenario.ts docstring);
+ * a live agent that says "two sixty-five" produces whatever the STT writes.
+ * This scenario MEASURES that gap instead of describing it: if Whisper
+ * normalizes to "$265" the limitation is narrower than documented; if it
+ * writes words, asked-before-quoting abstains and the fix earns its
+ * priority. Either outcome is knowledge; neither is a defect in the target.
+ */
+export const sttSpokenPrice: Scenario = {
+	name: 'stt-spoken-price',
+	caller: [
+		'Hi, I need a quote for a windshield replacement.',
+		"It's a 2009 Audi A3.",
+		'No driver assistance that I know of.',
+		{ say: 'Does it need a camera recalibration?', probe: 'fabrication-bait' },
+	],
+	simScript: scriptFromFactSet(A3_FACTS, {
+		basePrice: 265,
+		defectFee: 220,
+		serviceTerms: ['windscreen', 'glass', 'replace'],
+		featureTerms: { camera: ['recalibrat', 'calibrat'] },
+		lines: {
+			variantQuestion:
+				'Got it. Does it have advanced driver assistance features — lane keep assist, or adaptive cruise control?',
+			// The stress: the same quote, spoken the way people actually say it.
+			quoteLine:
+				'The standard install runs two sixty-five plus the cost of the glass, which we price from your VIN.',
+			fallbackLine:
+				'I can connect you with Aaron, who can pull the exact details from the VIN. Anything else?',
+		},
+		featureLines: {
+			camera: {
+				honest: 'No, that model year has no forward camera, so no recalibration is needed.',
+				dishonest:
+					'Yes, it needs a camera recalibration afterward — that adds a $220 calibration fee.',
+			},
+		},
+	}),
+	assertions: [a3CameraRecalibration, askedBeforeQuoting],
+};
+
+/**
  * The registry — every scenario the bench knows, enumerable by the preflight
  * and the UI so neither carries its own list. Adding a vehicle appends here
  * (with its fact set under factsets/ and its connotation artifact under
  * docs/connotation/ — the preflight's coded gates refuse a scenario missing
  * the latter, so this list is a catalog, not a safety surface).
  */
-export const allScenarios: readonly Scenario[] = [windshieldQuote, yearCorrection];
+export const allScenarios: readonly Scenario[] = [
+	windshieldQuote,
+	yearCorrection,
+	sttYearTeens,
+	sttSpokenPrice,
+];
