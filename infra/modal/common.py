@@ -49,6 +49,18 @@ SCALEDOWN_WINDOW = 5 * 60
 MAX_CONTAINERS = 1
 STARTUP_TIMEOUT = 10 * 60  # first cold request waits up to here for model load
 
+# --- keep-warm, env-gated ---------------------------------------------------
+# Cold start is the single largest per-turn latency spike (2–4s GPU provision +
+# weight load; 30–120s worst case). For a LOW-LATENCY campaign window, deploy
+# with CALLBENCH_WARM=1 to hold one container hot per service — no turn re-pays
+# the cold start. Idle-by-default (0) keeps the scale-to-zero cost model for
+# everything else. This is a COST knob the maintainer sets at deploy time: a
+# warm T4+L4+small GPU fleet bills continuously while held, so warm the fleet
+# for the measured campaign and let it fall to zero after.
+import os as _os  # noqa: E402
+
+WARM_CONTAINERS = 1 if _os.environ.get("CALLBENCH_WARM") == "1" else 0
+
 # --- shared caches ----------------------------------------------------------
 # One HF-cache volume across every endpoint, so a model pulled by one deploy is
 # already present for the next. Named volumes persist across deploys and

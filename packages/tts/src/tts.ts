@@ -96,4 +96,53 @@ export class ModalKokoroTts implements TtsProvider {
 		const pcm = new Int16Array(buf.buffer, buf.byteOffset, Math.floor(buf.byteLength / 2));
 		return { pcm, sampleRate: rate, provider };
 	}
+
+	/**
+	 * Streaming synthesis: yield each clause's PCM16 the instant the endpoint
+	 * flushes it (`/v1/audio/speech/stream`, HTTP chunked). The caller pushes
+	 * each chunk to the frame pacer, so the wire plays clause one while the
+	 * endpoint is still synthesizing clause two — first-audio tracks one clause
+	 * (tens of ms warm) instead of the whole utterance (1–3s).
+	 *
+	 * The response body is a raw PCM16 LE byte stream with NO framing of its
+	 * own, so a chunk can split mid-sample; a one-byte remainder is carried to
+	 * the next chunk. Each yielded `PcmChunk` is whole samples.
+	 */
+	async *synthesizeStream(text: string, voice?: string): AsyncGenerator<PcmChunk> {
+		const res = await fetch(`${this.#baseUrl}/v1/audio/speech/stream`, {
+			method: 'POST',
+			headers: {
+				'content-type': 'application/json',
+				...(this.#apiKey ? { authorization: `Bearer ${this.#apiKey}` } : {}),
+			},
+			body: JSON.stringify({ input: text, ...(voice ? { voice } : {}) }),
+			signal: AbortSignal.timeout(this.#timeoutMs),
+		});
+		if (!res.ok || !res.body) {
+			throw new Error(
+				`TTS stream endpoint ${this.#baseUrl} returned HTTP ${res.status}: ${(await res.text().catch(() => '')).slice(0, 200)}`,
+			);
+		}
+		const rate = Number(res.headers.get('x-sample-rate') ?? 8000);
+		const provider = res.headers.get('x-provider') ?? 'kokoro-stream';
+		let carry = new Uint8Array(0);
+		for await (const part of res.body as unknown as AsyncIterable<Uint8Array>) {
+			const merged = new Uint8Array(carry.length + part.length);
+			merged.set(carry);
+			merged.set(part, carry.length);
+			const whole = merged.length - (merged.length % 2);
+			if (whole > 0) {
+				const pcm = new Int16Array(merged.buffer, merged.byteOffset, whole / 2);
+				yield { pcm: pcm.slice(), sampleRate: rate, provider };
+			}
+			carry = merged.subarray(whole);
+		}
+	}
+}
+
+/** One streamed slice of an utterance — whole PCM16 samples at `sampleRate`. */
+export interface PcmChunk {
+	readonly pcm: Int16Array;
+	readonly sampleRate: number;
+	readonly provider: string;
 }

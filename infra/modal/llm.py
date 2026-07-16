@@ -22,7 +22,10 @@ import subprocess
 
 import modal
 
-from common import GPU, HF_CACHE, HF_CACHE_PATH, MAX_CONTAINERS, SCALEDOWN_WINDOW, STARTUP_TIMEOUT, app, cuda_image
+from common import (
+    GPU, HF_CACHE, HF_CACHE_PATH, MAX_CONTAINERS, SCALEDOWN_WINDOW, STARTUP_TIMEOUT,
+    WARM_CONTAINERS, app, cuda_image,
+)
 
 # Small by default: proves the full GPU + vLLM + OpenAI + streaming path at
 # minimal cost/time. The persona wants a bigger model — bump both together.
@@ -38,7 +41,7 @@ image = cuda_image("vllm==0.11.0", "transformers==4.57.0")
     image=image,
     gpu=GPU_TIER,
     volumes={HF_CACHE_PATH: HF_CACHE},
-    min_containers=0,  # scale to zero when idle — the cost model
+    min_containers=WARM_CONTAINERS,  # 1 under CALLBENCH_WARM=1 — the persona TTFT killer
     scaledown_window=SCALEDOWN_WINDOW,
     max_containers=MAX_CONTAINERS,
     timeout=20 * 60,
