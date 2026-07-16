@@ -153,6 +153,51 @@ export async function placeCall(
 	);
 }
 
+/**
+ * The ONE way a call reaches the system under test — the inverse of
+ * `assertDialAllowed`, in the same fence-pinned file (the structural test
+ * pins this file as the only dial site). Three refusals, each load-bearing:
+ *
+ *   - the destination must EQUAL the configured target, digits-normalized —
+ *     this primitive can dial nothing else, so a bug elsewhere cannot point
+ *     it at an arbitrary stranger;
+ *   - the confirmation must be the exact string "DIAL <last4>" for THIS
+ *     target — the driver reads it from an interactive TTY at the moment of
+ *     the dial, so a human's keystrokes are the ignition; nothing a loop,
+ *     flag, or env var can supply (the driver additionally refuses to run
+ *     without a TTY);
+ *   - one POST, no retry: the caller gets one Calls resource or one error.
+ *
+ * The human checkpoint invariant (AGENTS.md) is implemented here, not
+ * described: unattended paths use `placeCall`, which refuses this number by
+ * name. See .agents/skills/bench-live-call.
+ */
+export async function dialSystemUnderTest(
+	sid: string,
+	token: string,
+	params: { to: string; from: string; twiml: string; confirmation: string },
+): Promise<Record<string, unknown>> {
+	const target = process.env.CALLBENCH_TARGET_NUMBER;
+	if (!target) throw new Error('CALLBENCH_TARGET_NUMBER is not set; there is no system under test.');
+	if (digits(params.to) !== digits(target)) {
+		throw new Error(
+			`Refusing: dialSystemUnderTest dials ONLY the configured system under test, not ${params.to}.`,
+		);
+	}
+	const expected = `DIAL ${digits(target).slice(-4)}`;
+	if (params.confirmation !== expected) {
+		throw new Error(
+			`Refusing: the typed confirmation did not match. A human types "${expected}" at the prompt; nothing else starts this dial.`,
+		);
+	}
+	return twilioApi(
+		sid,
+		token,
+		`/Accounts/${sid}/${CALLS_ENDPOINT}`,
+		new URLSearchParams({ To: params.to, From: params.from, Twiml: params.twiml }),
+	);
+}
+
 /** Best-effort hang-up; never throws. For finally-blocks and signal handlers. */
 export async function hangUp(sid: string, token: string, callSid: string): Promise<void> {
 	await twilioApi(

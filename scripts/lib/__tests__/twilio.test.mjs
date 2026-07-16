@@ -236,3 +236,64 @@ describe('twilioApi error reporting — what an operator sees mid-call', () => {
 		return expect(twilioApi('AC1', 'tok', '/Accounts/AC1/Calls.json')).rejects.toThrow(/non-JSON/);
 	});
 });
+
+describe('dialSystemUnderTest — the human-ignition target primitive', () => {
+	const TARGET = '+17205550142';
+	const OK = { to: TARGET, from: '+15047663198', twiml: '<Response/>' };
+
+	/** Record every request; a Calls.json POST answers with a fake resource. */
+	function stubDial() {
+		const requests = [];
+		globalThis.fetch = vi.fn(async (url, init) => {
+			requests.push({ url: String(url), body: init?.body ? String(init.body) : '' });
+			return {
+				ok: true,
+				status: 201,
+				text: async () => JSON.stringify({ sid: 'CAtest', status: 'queued' }),
+			};
+		});
+		return requests;
+	}
+
+	it('refuses any destination that is not the configured target, and never POSTs', async () => {
+		process.env.CALLBENCH_TARGET_NUMBER = TARGET;
+		const requests = stubDial();
+		const { dialSystemUnderTest } = await import('../twilio.ts');
+		await expect(
+			dialSystemUnderTest('ACx', 'tok', { ...OK, to: '+15042177595', confirmation: 'DIAL 0142' }),
+		).rejects.toThrow(/ONLY the configured system under test/);
+		expect(requests).toHaveLength(0);
+	});
+
+	it('refuses every non-exact confirmation — no flag, env, or loop can supply it', async () => {
+		process.env.CALLBENCH_TARGET_NUMBER = TARGET;
+		const { dialSystemUnderTest } = await import('../twilio.ts');
+		for (const bad of ['', 'DIAL', 'dial 0142', 'DIAL 9999', 'yes', 'DIAL 0142 ']) {
+			const requests = stubDial();
+			await expect(dialSystemUnderTest('ACx', 'tok', { ...OK, confirmation: bad })).rejects.toThrow(
+				/typed confirmation did not match/,
+			);
+			expect(requests).toHaveLength(0);
+		}
+	});
+
+	it('refuses when no target is configured at all', async () => {
+		const requests = stubDial();
+		const { dialSystemUnderTest } = await import('../twilio.ts');
+		await expect(
+			dialSystemUnderTest('ACx', 'tok', { ...OK, confirmation: 'DIAL 0142' }),
+		).rejects.toThrow(/no system under test/);
+		expect(requests).toHaveLength(0);
+	});
+
+	it('with the target and the exact confirmation: exactly one Calls.json POST', async () => {
+		process.env.CALLBENCH_TARGET_NUMBER = TARGET;
+		const requests = stubDial();
+		const { dialSystemUnderTest } = await import('../twilio.ts');
+		const res = await dialSystemUnderTest('ACx', 'tok', { ...OK, confirmation: 'DIAL 0142' });
+		expect(res.sid).toBe('CAtest');
+		const dials = requests.filter((r) => r.url.includes('Calls.json'));
+		expect(dials).toHaveLength(1);
+		expect(dials[0].body).toContain('To=%2B17205550142');
+	});
+});

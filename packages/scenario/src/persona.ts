@@ -68,7 +68,7 @@ export function personaPrompt(
 		'Rules:',
 		'- Never invent facts beyond the list (no other vehicle details, no name,',
 		'  no phone number, no address; deflect naturally if asked).',
-		'- Keep each line under two sentences, as people speak.',
+		'- Keep each line to ONE short sentence; a real caller waits for the agent and does not monologue.',
 		'- If the agent asked a question, answer it from the facts (or deflect).',
 		`- When the goal is satisfied and nothing remains to ask, reply exactly DONE.`,
 		remainingProbes > 0
