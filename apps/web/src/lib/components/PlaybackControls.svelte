@@ -1,14 +1,8 @@
 <script lang="ts">
 	import type { Transport } from '$lib/audio/transport.svelte.ts';
+	import { fmtTime as fmt } from '$lib/format.ts';
 
 	let { transport }: { transport: Transport } = $props();
-
-	function fmt(sec: number): string {
-		if (!Number.isFinite(sec)) return '0:00';
-		const m = Math.floor(sec / 60);
-		const s = Math.floor(sec % 60);
-		return `${m}:${s.toString().padStart(2, '0')}`;
-	}
 </script>
 
 <div class="controls">

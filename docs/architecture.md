@@ -83,7 +83,8 @@ judge earns its place, under three constraints:
    [AGENTS.md](../AGENTS.md), and the report format is what enforces it.
 3. **Frozen at first evaluation.** A verdict is cached against a content hash of
    what it judged. Re-running the suite replays the cache — deterministic and
-   offline. A cache miss is the only thing that reaches the network, and it never
+   offline. A cache miss is the only thing that consults the model (today a
+   local `claude -p` invocation — see [models.md](models.md)), and it never
    happens under test.
 
 That third point is not a convenience. **Sampling controls cannot deliver
@@ -145,17 +146,29 @@ Everything else is replaceable around it. It is:
 
 ## Where the human sits
 
-Between "prepared" and "dialed", and nowhere else in the loop.
+Between "prepared" and "dialed" for any number this account does not own, and
+nowhere else in the loop.
 
-The runner assembles a call — scenario, target, caps — and stops. A human
-starts it. This is not a confirmation prompt that a `--yes` flag can retire; it
-is the invariant that keeps a test suite from being one bug away from flooding a
-business line. Everything after the dial is automatic, and everything after the
-call is deterministic.
+The runner assembles a call — scenario, target, caps — and stops. For the
+system under test, a human starts it. This is not a confirmation prompt that a
+`--yes` flag can retire; it is the invariant that keeps a test suite from being
+one bug away from flooding a business line. Everything after the dial is
+automatic, and everything after the call is deterministic.
+
+**The owned-loop exception (maintainer decision, 2026-07-16).** A dial whose
+destination passes the live ownership check — the bench's own number calling
+the simulator's own number — may start unattended, within caps declared and
+enforced in code. The protection this leans on is structural, not procedural:
+`assertDialAllowed` fetches the account's owned numbers from the provider on
+every call and refuses anything else, so no env var, flag, or bug in the loop
+can point the unattended path at a stranger's line. Every attempt and outcome
+is still recorded.
 
 The consequence for design: **there is no code path from a failed call to a new
-call.** Retry, redial, and scheduled runs don't exist as features. A dropped
-call is a reported outcome.
+call against the system under test.** Retry, redial, and scheduled runs don't
+exist as features there; a dropped call is a reported outcome. In an owned
+loop, a further attempt is a NEW call spending the same capped budget openly —
+reported, never a silent retry.
 
 **No surface is exempt, and a UI is where this gets tested.** A test bench with a
 list of tests wants a Run button next to each one; against the simulator that

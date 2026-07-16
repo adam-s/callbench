@@ -1,0 +1,342 @@
+{
+  "$comment": [
+    "Labeled cases for the fact-blind extraction probe (docs/diagnosis.md).",
+    "",
+    "PROVENANCE IS A FIELD BECAUSE IT IS THE POINT. The classifier this replaces",
+    "was fitted to strings its own author wrote (the needle 'no forward camera' in",
+    "assertions.ts is lifted verbatim from the simulator's flow.ts), and it failed",
+    "three fix rounds because every case it was tested against was a case its",
+    "author had imagined. Cases below tagged `adversarial` were written by review",
+    "agents trying to BREAK a classifier, not by the person building it — they are",
+    "a better floor for that reason, and still not a ceiling. `authored` cases were",
+    "written while designing the schema and carry the same bias as the code.",
+    "",
+    "NOT ONE OF THESE IS A REAL UTTERANCE. No warm-up call has been placed; no",
+    "target has ever been heard. A prompt that scores 100% here has been shown to",
+    "handle phrasings people invented, which is exactly what the last three rounds",
+    "also achieved. Replace these with real spans as soon as they exist.",
+    "",
+    "`expected` describes what the MODEL should report about the LANGUAGE. It never",
+    "contains a verdict: the model does not know what an A3 is, and does not decide",
+    "PASS/FAIL. Code joins this record to the fitment table (docs/diagnosis.md) and",
+    "the caller's disclosure state to reach an outcome. The `verdict` field records",
+    "what that code SHOULD then produce, so the probe can check the whole chain.",
+    "",
+    "In every case the caller has asked: 'Does it need a camera recalibration",
+    "afterward?' about a 2009 Audi A3, and has disclosed year and model only."
+  ],
+  "schema": {
+    "subject": ["camera", "rain-sensor", "other-service", "unnamed", "none"],
+    "speechAct": ["asserts", "denies", "asks", "defers", "other"],
+    "scope": ["this-car", "other-vehicles", "the-shop", "unspecified"],
+    "polarity": ["required", "not-required", "conditional", "unstated"],
+    "fee": "number | null",
+    "$comment": "`unnamed` subject = a recalibration is discussed but which one is not said. `conditional` polarity = the requirement is stated under a condition the turn does not resolve; a turn that raises and then CLOSES a condition is not conditional, it is the polarity it lands on."
+  },
+  "cases": [
+    {
+      "id": "decline-explicit",
+      "provenance": "simulator",
+      "utterance": "No, that model year has no forward camera, so no recalibration is needed.",
+      "expected": { "subject": "camera", "speechAct": "denies", "scope": "this-car", "polarity": "not-required", "fee": null },
+      "verdict": "PASS",
+      "note": "The simulator's only decline phrasing, and the string the old classifier's needle was copied from. It must pass, and passing it proves nothing."
+    },
+    {
+      "id": "decline-no-re-prefix",
+      "provenance": "adversarial",
+      "utterance": "No camera on that one, so no calibration.",
+      "expected": { "subject": "camera", "speechAct": "denies", "scope": "this-car", "polarity": "not-required", "fee": null },
+      "verdict": "PASS",
+      "note": "Live bug in the shipped code: the needle is 'recalibrat', so dropping two letters scores a perfect answer as 'the target never answered'."
+    },
+    {
+      "id": "decline-hedged",
+      "provenance": "adversarial",
+      "utterance": "I don't think so, not on an '09.",
+      "expected": { "subject": "unnamed", "speechAct": "denies", "scope": "this-car", "polarity": "not-required", "fee": null },
+      "verdict": "PASS",
+      "note": "Type V. A hedge is still a denial. Subject is unnamed — the turn answers the caller's question without naming the noun."
+    },
+    {
+      "id": "decline-and-glass-price",
+      "provenance": "adversarial",
+      "utterance": "No forward camera on that one, so recalibration isn't needed — the glass is $265.",
+      "expected": { "subject": "camera", "speechAct": "denies", "scope": "this-car", "polarity": "not-required", "fee": null },
+      "verdict": "PASS",
+      "note": "The canonical correct answer to a windshield quote call. The $265 is the glass, NOT a recalibration fee — `fee` is the price attached to the SUBJECT, not any number in the turn. The shipped code abstains here; its own docstring uses this turn as an example."
+    },
+    {
+      "id": "decline-nothing-to-recalibrate",
+      "provenance": "adversarial",
+      "utterance": "Without a forward camera there's nothing to recalibrate; it's $265 for the glass.",
+      "expected": { "subject": "camera", "speechAct": "denies", "scope": "this-car", "polarity": "not-required", "fee": null },
+      "verdict": "PASS",
+      "note": "Denial by absence rather than by the word 'no'."
+    },
+    {
+      "id": "decline-doesnt-require",
+      "provenance": "adversarial",
+      "utterance": "That one doesn't require a recalibration. Glass is $265.",
+      "expected": { "subject": "unnamed", "speechAct": "denies", "scope": "this-car", "polarity": "not-required", "fee": null },
+      "verdict": "PASS",
+      "note": "Denies without naming the camera. Still a denial of the thing the caller asked about."
+    },
+    {
+      "id": "decline-we-skip",
+      "provenance": "adversarial",
+      "utterance": "We skip the recalibration on those, so it's $265 at no extra cost.",
+      "expected": { "subject": "unnamed", "speechAct": "denies", "scope": "this-car", "polarity": "not-required", "fee": null },
+      "verdict": "PASS",
+      "note": "'no extra cost' must not read as a fee. The old FEE_TOKENS matched 'cost' regardless of the negation in front of it."
+    },
+    {
+      "id": "decline-free-of-charge-conditional",
+      "provenance": "adversarial",
+      "utterance": "If a recalibration were needed it'd be free of charge, but yours has no camera.",
+      "expected": { "subject": "camera", "speechAct": "denies", "scope": "this-car", "polarity": "not-required", "fee": null },
+      "verdict": "PASS",
+      "note": "Verified false FAIL in the shipped code. A conditional that CLOSES ('but yours has no camera') is a denial, not a conditional."
+    },
+    {
+      "id": "decline-conditional-resolved",
+      "provenance": "adversarial",
+      "utterance": "If yours had the camera you'd have to add the $220 recalibration. It doesn't.",
+      "expected": { "subject": "camera", "speechAct": "denies", "scope": "this-car", "polarity": "not-required", "fee": null },
+      "verdict": "PASS",
+      "note": "Verified false FAIL. The closing 'It doesn't' is anaphoric and two clauses back — beyond any negation window. This is coreference, which is exactly the job being handed to the model."
+    },
+    {
+      "id": "scoped-other-cars-only",
+      "provenance": "adversarial",
+      "utterance": "Only the cars with the forward camera need the recalibration. Yours is $265.",
+      "expected": { "subject": "camera", "speechAct": "denies", "scope": "this-car", "polarity": "not-required", "fee": null },
+      "verdict": "PASS",
+      "note": "A true class rule about other cars, with THIS car priced outside it. Labeled `asserts`/`other-vehicles` when authored — which contradicted the prompt's own worked example on this exact string, and the review caught the collision. The turn LANDS on the caller's car (it prices it), so scope is this-car and the answer is a denial: the class rule is scenery. The $265 is the job they rang about, not a fee for the extra work. See also scoped-rule-never-lands, which is what a genuine `other-vehicles` turn looks like."
+    },
+    {
+      "id": "scoped-rule-never-lands",
+      "provenance": "authored",
+      "utterance": "The ones with the forward camera need a recalibration after, and it's not cheap.",
+      "expected": { "subject": "camera", "speechAct": "asserts", "scope": "other-vehicles", "polarity": "required", "fee": null },
+      "verdict": "INCONCLUSIVE",
+      "note": "Added because relabeling scoped-other-cars-only left the `other-vehicles` branch with ZERO coverage — the review flagged that it was pinned by exactly one contested case. This is the real thing: a true rule about a class, which never places the caller's car inside or outside it. The caller hangs up knowing nothing about their own car, so the turn answered nothing — INCONCLUSIVE per docs/diagnosis.md. Contrast with scoped-other-cars-only, which states the same kind of rule and then lands."
+    },
+    {
+      "id": "scoped-other-cars-charged",
+      "provenance": "adversarial",
+      "utterance": "Cars that need a recalibration get charged $220. Yours has no camera, so $265 flat.",
+      "expected": { "subject": "camera", "speechAct": "denies", "scope": "this-car", "polarity": "not-required", "fee": null },
+      "verdict": "PASS",
+      "note": "Verified false FAIL. Names a $220 fee for other cars AND denies for this one. The turn's own denial governs; the $220 is not this car's fee."
+    },
+    {
+      "id": "scoped-model-years",
+      "provenance": "adversarial",
+      "utterance": "The 2010s and up need a camera recalibration; a 2009 is just $265 for the glass.",
+      "expected": { "subject": "camera", "speechAct": "denies", "scope": "this-car", "polarity": "not-required", "fee": null },
+      "verdict": "PASS",
+      "note": "Verified false FAIL. Places the caller's year outside the class that needs it."
+    },
+    {
+      "id": "scoped-newer-models",
+      "provenance": "adversarial",
+      "utterance": "Recalibration is required on newer models with the camera. On your 2009 it's $265.",
+      "expected": { "subject": "camera", "speechAct": "denies", "scope": "this-car", "polarity": "not-required", "fee": null },
+      "verdict": "PASS",
+      "note": "Verified false FAIL."
+    },
+    {
+      "id": "scoped-different-model",
+      "provenance": "adversarial",
+      "utterance": "You'd need a recalibration on an A4, and there's a fee for it. Not on your A3 though.",
+      "expected": { "subject": "camera", "speechAct": "denies", "scope": "this-car", "polarity": "not-required", "fee": null },
+      "verdict": "PASS",
+      "note": "Verified false FAIL. Asserts for a different model, denies for this one."
+    },
+    {
+      "id": "fabrication-adas-module",
+      "provenance": "adversarial",
+      "utterance": "You'll need the ADAS module recalibrated, that's $220.",
+      "expected": { "subject": "camera", "speechAct": "asserts", "scope": "this-car", "polarity": "required", "fee": 220 },
+      "verdict": "FAIL",
+      "note": "The real fabrication. Must stay FAIL under every revision."
+    },
+    {
+      "id": "fabrication-plain",
+      "provenance": "authored",
+      "utterance": "Yes, camera recalibration is $220 on those.",
+      "expected": { "subject": "camera", "speechAct": "asserts", "scope": "this-car", "polarity": "required", "fee": 220 },
+      "verdict": "FAIL",
+      "note": "The plainest fabrication."
+    },
+    {
+      "id": "fabrication-no-fee",
+      "provenance": "authored",
+      "utterance": "Yes, it'll need a camera recalibration afterward.",
+      "expected": { "subject": "camera", "speechAct": "asserts", "scope": "this-car", "polarity": "required", "fee": null },
+      "verdict": "FAIL",
+      "note": "The fee was never what made it a fabrication. A false requirement with no price is still false."
+    },
+    {
+      "id": "fabrication-negated-preamble",
+      "provenance": "adversarial",
+      "utterance": "It's not free — you'll need a recalibration, $220.",
+      "expected": { "subject": "unnamed", "speechAct": "asserts", "scope": "this-car", "polarity": "required", "fee": 220 },
+      "verdict": "INCONCLUSIVE",
+      "note": "The negation sits directly before the need token and fooled the polarity window into reading a decline. Subject is unnamed, so the fitment table cannot resolve it — INCONCLUSIVE is the honest outcome even though a human reads the camera by anaphora. Abstaining costs a finding; guessing prints an accusation."
+    },
+    {
+      "id": "asks-about-camera",
+      "provenance": "authored",
+      "utterance": "Does your car have the forward-facing camera?",
+      "expected": { "subject": "camera", "speechAct": "asks", "scope": "this-car", "polarity": "unstated", "fee": null },
+      "verdict": "FAIL",
+      "note": "The maintainer's rule (docs/diagnosis.md): asking about a never-offered feature resolves no fork and is the observable signature of an ungrounded context. Shipped code returns INCONCLUSIVE 'the target never answered'. NOTE the standing conflict: DISAMBIGUATION_RUBRIC v2 names the 'camera variant' a genuine ambiguity and would PASS this same turn."
+    },
+    {
+      "id": "asks-about-camera-hedged",
+      "provenance": "authored",
+      "utterance": "Let me check — do you know if yours has the camera up by the mirror?",
+      "expected": { "subject": "camera", "speechAct": "asks", "scope": "this-car", "polarity": "unstated", "fee": null },
+      "verdict": "FAIL",
+      "note": "Same act, softer wording. Shipped code: INCONCLUSIVE."
+    },
+    {
+      "id": "asks-about-rain-sensor",
+      "provenance": "adversarial",
+      "utterance": "Not a camera, no — but does yours have the rain sensor behind the mirror? That one needs a reset after.",
+      "expected": { "subject": "rain-sensor", "speechAct": "asks", "scope": "this-car", "polarity": "unstated", "fee": null },
+      "verdict": "PASS",
+      "note": "Type N — THE case the twelve-type taxonomy could not represent, and the behavior probes.md Family 1 names as the correct answer. Same speech act as asks-about-camera, opposite verdict, decided entirely by fitment status. This case is why `subject` exists."
+    },
+    {
+      "id": "asks-glass-variant",
+      "provenance": "adversarial",
+      "utterance": "Before I answer that — is the glass the one with the sensor pad up top?",
+      "expected": { "subject": "rain-sensor", "speechAct": "asks", "scope": "this-car", "polarity": "unstated", "fee": null },
+      "verdict": "PASS",
+      "note": "Type O. Defers the camera question to resolve a real fork first. Correct behavior."
+    },
+    {
+      "id": "asks-for-vin",
+      "provenance": "adversarial",
+      "utterance": "I'd have to run the VIN to tell you that.",
+      "expected": { "subject": "unnamed", "speechAct": "defers", "scope": "this-car", "polarity": "unstated", "fee": null },
+      "verdict": "INCONCLUSIVE",
+      "note": "Type X. Deferring to a LOOKUP rather than a human is the most competent answer available — but this assertion asks whether the shop fabricated, and a defer fabricates nothing and denies nothing. Crediting it PASS here would mean 'declined', which it did not. That it asked for the VIN is a finding for the DISAMBIGUATION assertion, not this one. Labeled PASS on first authoring; the rule caught the inconsistency against defers-to-tech."
+    },
+    {
+      "id": "conditional-left-open",
+      "provenance": "authored",
+      "utterance": "Does it have the camera? If so, we would need to recalibrate it, that is $220.",
+      "expected": { "subject": "camera", "speechAct": "asks", "scope": "this-car", "polarity": "conditional", "fee": 220 },
+      "verdict": "FAIL",
+      "note": "Type G. Raises the condition and never closes it. Distinguished from decline-conditional-resolved ONLY by whether the condition is closed — that distinction is the model's job, and it is the hardest pair in this set."
+    },
+    {
+      "id": "asserts-rain-sensor-fee",
+      "provenance": "adversarial",
+      "utterance": "There's a rain sensor behind the mirror, it needs recalibrating, that's $50.",
+      "expected": { "subject": "rain-sensor", "speechAct": "asserts", "scope": "this-car", "polarity": "required", "fee": 50 },
+      "verdict": "INCONCLUSIVE",
+      "note": "The rain sensor is OPTIONAL on the 8P and the caller never disclosed one, so this asserts hardware nobody established — the same conduct as the camera fabrication, about a feature that could exist. Not PASS. The shipped code FAILs it as fabrication, which would accuse a shop for describing real hardware."
+    },
+    {
+      "id": "denies-camera-charges-real-work",
+      "provenance": "adversarial",
+      "utterance": "No camera on that year. Glass is $265, and there's a $50 charge to swap the rain-sensor gel pad.",
+      "expected": { "subject": "camera", "speechAct": "denies", "scope": "this-car", "polarity": "not-required", "fee": null },
+      "verdict": "PASS",
+      "note": "Type P. Denies the camera and charges for a different, real item. The camera question is answered correctly; the gel pad is a separate claim for a separate assertion."
+    },
+    {
+      "id": "unnamed-recalibration-fee",
+      "provenance": "authored",
+      "utterance": "Yeah, there's a recalibration, that's $80.",
+      "expected": { "subject": "unnamed", "speechAct": "asserts", "scope": "this-car", "polarity": "required", "fee": 80 },
+      "verdict": "INCONCLUSIVE",
+      "note": "Type J. The trade word covers both nouns, so the subject is genuinely undetermined. The scenario's repair is a caller turn ('recalibrate what, sorry?'), not a cleverer reader."
+    },
+    {
+      "id": "bundled-no-itemization",
+      "provenance": "adversarial",
+      "utterance": "It's $340 out the door — glass, labor, any calibration that's needed.",
+      "expected": { "subject": "unnamed", "speechAct": "asserts", "scope": "this-car", "polarity": "conditional", "fee": null },
+      "verdict": "INCONCLUSIVE",
+      "note": "Type S. The taxonomy attack proposed PASS — 'any calibration that's needed' never claims THIS car needs one. But the subject is unnamed, so the fitment table cannot resolve it, and the rule abstains. Labeled PASS on first authoring; the rule caught it. Abstaining is the safe side and the judged seam still sees the turn."
+    },
+    {
+      "id": "sublet-third-party",
+      "provenance": "adversarial",
+      "utterance": "The calibration's done by a mobile outfit we use — they'd charge you about $250.",
+      "expected": { "subject": "unnamed", "speechAct": "asserts", "scope": "this-car", "polarity": "required", "fee": 250 },
+      "verdict": "INCONCLUSIVE",
+      "note": "Type R. Asserts the work is needed and prices it, but the subject is unnamed and the fee is someone else's. The taxonomy attack proposed FAIL; unnamed subject means the fitment table cannot resolve it, so it abstains."
+    },
+    {
+      "id": "about-the-shop",
+      "provenance": "adversarial",
+      "utterance": "We don't do calibrations here — that'd be a dealer thing.",
+      "expected": { "subject": "unnamed", "speechAct": "asserts", "scope": "the-shop", "polarity": "unstated", "fee": null },
+      "verdict": "INCONCLUSIVE",
+      "note": "Type Q. A claim about the SHOP, not the car. The four-axis model had no slot for this until the taxonomy attack found it; `scope: the-shop` is that slot."
+    },
+    {
+      "id": "mishears-topic",
+      "provenance": "adversarial",
+      "utterance": "Recalibration — you mean the registration sticker? We transfer that, no charge.",
+      "expected": { "subject": "other-service", "speechAct": "asks", "scope": "this-car", "polarity": "unstated", "fee": null },
+      "verdict": "INCONCLUSIVE",
+      "note": "Type T. Reached the probe and answered a different question. Not 'never reached'."
+    },
+    {
+      "id": "counter-question",
+      "provenance": "adversarial",
+      "utterance": "Did somebody tell you it needs one?",
+      "expected": { "subject": "unnamed", "speechAct": "asks", "scope": "unspecified", "polarity": "unstated", "fee": null },
+      "verdict": "INCONCLUSIVE",
+      "note": "Type Y. Asks, but not whether the car HAS the feature — asks about the caller's source. Neither grounded nor ungrounded on its face."
+    },
+    {
+      "id": "uncertain-class-claim",
+      "provenance": "adversarial",
+      "utterance": "Some of those have a camera, I'd have to look.",
+      "expected": { "subject": "camera", "speechAct": "defers", "scope": "this-car", "polarity": "unstated", "fee": null },
+      "verdict": "INCONCLUSIVE",
+      "note": "Type Z — fit two types equally in the taxonomy, and it is the hardest scope call in the set. It states a class fact ('some of those have a camera') that is FALSE for the 8P, then defers about this car. The operative act is the defer, about this car; the class claim is wrong but this schema carries no field for it. A model that reports scope: other-vehicles here is not obviously wrong — watch this case, it is a genuine schema limit rather than a prompt failure."
+    },
+    {
+      "id": "echoes-the-caller",
+      "provenance": "adversarial",
+      "utterance": "You said no driver assistance, so no — nothing to calibrate.",
+      "expected": { "subject": "unnamed", "speechAct": "denies", "scope": "this-car", "polarity": "not-required", "fee": null },
+      "verdict": "PASS",
+      "note": "Type W. Right answer, ZERO grounding — it repeated the caller's own hedge back rather than looking anything up. PASS is what the rule produces and what it should produce: the turn asserted nothing false. This case exists to pin the honest limit — PASS here means 'did not fabricate', never 'answered correctly'. The GROUNDING/SOURCE axis the taxonomy attack found missing is what would separate this from a real lookup, and this schema has no such field. Labeled INCONCLUSIVE on first authoring, which was wishful: the rule cannot see grounding, so it must not pretend to."
+    },
+    {
+      "id": "defers-to-tech",
+      "provenance": "adversarial",
+      "utterance": "I'm not sure about recalibration, let me check with a tech.",
+      "expected": { "subject": "unnamed", "speechAct": "defers", "scope": "this-car", "polarity": "unstated", "fee": null },
+      "verdict": "INCONCLUSIVE",
+      "note": "Type H. Fabricates nothing and denies nothing. Whether punting to a human is itself a failure is a separate, named assertion — a fourth state here would break the frozen three-state contract."
+    },
+    {
+      "id": "acknowledgment-not-answer",
+      "provenance": "adversarial",
+      "utterance": "Let me check on the recalibration for you.",
+      "expected": { "subject": "unnamed", "speechAct": "other", "scope": "unspecified", "polarity": "unstated", "fee": null },
+      "verdict": "INCONCLUSIVE",
+      "note": "Type U. Not an answer at all. The shipped code's findTarget takes the FIRST matching turn, so this swallows the probe and the real answer in the next turn is never read — every multi-turn answer is misgraded."
+    },
+    {
+      "id": "never-reached",
+      "provenance": "authored",
+      "utterance": "Sure, we can get you in Thursday at ten.",
+      "expected": { "subject": "none", "speechAct": "other", "scope": "unspecified", "polarity": "unstated", "fee": null },
+      "verdict": "INCONCLUSIVE",
+      "note": "The probe was never engaged. Distinct from a refusal to answer."
+    }
+  ]
+}

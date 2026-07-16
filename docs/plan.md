@@ -14,7 +14,9 @@ The goal the increments serve: a small set of scenarios, each run a handful of
 times against a real voice agent, producing frozen reports a human turns into a
 message — and a UI that makes each finding audible. Read [brief.md](brief.md)
 for why, [probes.md](probes.md) for what a call looks for,
-[architecture.md](architecture.md) for the shape, [ui.md](ui.md) for the surface.
+[diagnosis.md](diagnosis.md) for how an answer is graded and the vehicle facts
+that decision rests on, [architecture.md](architecture.md) for the shape,
+[ui.md](ui.md) for the surface.
 
 **Read the order as a claim, not a schedule.** Two things drive it, and both are
 about not lying:

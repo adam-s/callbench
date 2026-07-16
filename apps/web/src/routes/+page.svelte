@@ -2,6 +2,7 @@
 	import OutcomePill from '$lib/components/OutcomePill.svelte';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import * as Table from '$lib/components/ui/table/index.js';
+	import { ago } from '$lib/format.ts';
 	import { worstOutcome, type Outcome } from '$lib/types.ts';
 	import type { PageData } from './$types';
 	let { data }: { data: PageData } = $props();
@@ -26,14 +27,6 @@
 
 	function pct(x: number): string {
 		return `${Math.round(x * 100)}%`;
-	}
-
-	function ago(epochMs: number): string {
-		const s = Math.max(0, (Date.now() - epochMs) / 1000);
-		if (s < 90) return 'just now';
-		if (s < 5400) return `${Math.round(s / 60)}m ago`;
-		if (s < 129600) return `${Math.round(s / 3600)}h ago`;
-		return `${Math.round(s / 86400)}d ago`;
 	}
 
 	const TILES = $derived([

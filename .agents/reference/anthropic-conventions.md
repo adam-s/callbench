@@ -59,7 +59,7 @@ material, bundle alongside and reference:
 **Two patterns:**
 1. **Skill-as-prompt-template** (e.g. our red-team skills): the SKILL.md body is
    a template Claude fills in and sends to an `Agent`. No external scripts.
-2. **Skill-as-procedure** (e.g. our `live-call`): the SKILL.md body documents a
+2. **Skill-as-procedure** (e.g. our `bench-live-call`): the SKILL.md body documents a
    sequence the agent walks, with the gates and stops made explicit.
 
 ---
@@ -171,14 +171,13 @@ Rows are claims. Re-verify against the tree before relying on any of them.
 | `CLAUDE.md` (root) | ✓ aligned | Thin `@AGENTS.md` import + entry-point note |
 | `.claude/CLAUDE.md` | ✓ aligned | Symlink → `../AGENTS.md` |
 | `.claude/skills` → `.agents/skills` | ✓ aligned | Symlink; skill folders keep the standard `SKILL.md` shape |
-| `.agents/skills/live-call/` | ✓ aligned | The dial procedure — pre-flight gate, one call at a time, never dials itself |
+| `.agents/skills/bench-live-call/` | ✓ aligned | The dial procedure — pre-flight gate, one call at a time, never dials itself |
 | `.agents/skills/red-team-review/` | ✓ aligned | Red-team bug review of production code |
 | `.agents/skills/test-red-team/` | ✓ aligned | Red-team audit of the test suite (fixture lies are the local hazard) |
 | `.agents/skills/mutation-red-team/` | ✓ aligned | Injects regressions in a `/tmp` copy; catalog carries Increments 0–7. The `/tmp` copy excludes `.env` — it now holds live credentials and the target's number |
-| `.agents/skills/self-improve/` | ✓ aligned | End-of-cycle retro pass; trace to `data/retros/` (created by the first retro; `data/` is gitignored) |
 | `.agents/reference/` | ✓ aligned | `anti-slop.md`, `anthropic-conventions.md` (this file) |
 | `.agents/assets/` | ✓ aligned | `chime.wav` (your move), `chime-done.wav` (done) |
-| `.claude/settings.json` | not used | No committed permissions/env yet. **Candidate, and the case is stronger now that a real target number is in `.env`**: a `deny` on the dial script, so the gate is enforced by the harness and not only by prose. |
+| `.claude/settings.json` | not used | No committed permissions/env yet. Candidate: a `deny` on the dial script as a second, harness-level layer. Less urgent since 2026-07-16: `dialSystemUnderTest` (scripts/lib/twilio.ts) enforces the target gate structurally — TTY-typed confirmation at the moment of the dial. |
 | `.claude/agents/` | not used | Skills spawn Opus sub-agents inline via the `Agent` tool |
 | `.claude/hooks/` | not used | Increment checkout is enforced by prose. Candidate: a typecheck-after-edit hook once churn justifies it |
 

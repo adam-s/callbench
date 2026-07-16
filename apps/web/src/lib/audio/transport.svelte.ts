@@ -16,17 +16,24 @@
 
 // --- global exclusive-audio bus: starting one source stops the previous ---
 let currentStop: (() => void) | null = null;
-export function claimAudio(stop: () => void) {
+function claimAudio(stop: () => void) {
 	if (currentStop && currentStop !== stop) currentStop();
 	currentStop = stop;
 }
-export function releaseAudio(stop: () => void) {
+function releaseAudio(stop: () => void) {
 	if (currentStop === stop) currentStop = null;
 }
 
 export class Transport {
 	playing = $state(false);
 	/** Current playback position in seconds. Read this for declarative bindings. */
+	constructor() {
+		// DEBUG hook for the live-page probe (scratchpad); last instance wins.
+		if (typeof window !== 'undefined') {
+			(window as unknown as { __cbTransport?: Transport }).__cbTransport = this;
+		}
+	}
+
 	t = $state(0);
 	duration = $state(0);
 	/** Bumped once per rAF tick while playing. Depend on this for canvas redraws. */
@@ -113,6 +120,30 @@ export class Transport {
 	}
 
 	/** Lazily build the WebAudio graph (must follow a user gesture). Connected once. */
+	/** DEBUG surface: every clock in one object, for the harness that samples
+	 * the live page (scratchpad probe). Reads only; remove-safe. */
+	debugSnapshot() {
+		const a = this.#audio;
+		return {
+			t: this.t,
+			duration: this.duration,
+			ct: a?.currentTime ?? null,
+			decoderDuration: a && Number.isFinite(a.duration) ? a.duration : null,
+			paused: a?.paused ?? null,
+			readyState: a?.readyState ?? null,
+			playbackRate: a?.playbackRate ?? null,
+			ctxRate: this.#ctx?.sampleRate ?? null,
+			ctxState: this.#ctx?.state ?? null,
+		};
+	}
+
+	/** Top frequency the analyser's bins span (context sample rate / 2) — a
+	 * meter needs it to map bars onto the band an 8kHz telephony recording can
+	 * actually occupy instead of the context's full range. */
+	get nyquist(): number {
+		return this.#ctx ? this.#ctx.sampleRate / 2 : 24000;
+	}
+
 	#ensureAnalyser() {
 		if (this.#connected || !this.#audio || typeof AudioContext === 'undefined') return;
 		this.#ctx = new AudioContext();
@@ -132,9 +163,6 @@ export class Transport {
 		if (!this.#analyser || !this.#freq) return null;
 		this.#analyser.getByteFrequencyData(this.#freq);
 		return this.#freq;
-	}
-	get sampleRate(): number {
-		return this.#ctx?.sampleRate ?? 48000;
 	}
 
 	toggle() {
@@ -210,7 +238,16 @@ export class Transport {
 			this.#tBase = a.currentTime;
 			this.#clockBase = now;
 		} else {
-			this.t = Math.min(this.duration, this.#tBase + (now - this.#clockBase) / 1000);
+			const wall = this.#tBase + (now - this.#clockBase) / 1000;
+			// The element is the authority on what is AUDIBLE. The free-running
+			// clock exists to smooth between coarse currentTime updates, so it may
+			// lead the element only by that granularity — never sail on through a
+			// stall (+3s measured) or a silently rejected play() (unbounded runaway;
+			// scratchpad tick-harness.mjs, maintainer-heard as a fast playhead).
+			this.t =
+				a && a.readyState >= 1
+					? Math.min(this.duration, wall, a.currentTime + 0.35)
+					: Math.min(this.duration, wall);
 		}
 		this.frame++;
 		if (this.#stopAt != null && this.t >= this.#stopAt) {

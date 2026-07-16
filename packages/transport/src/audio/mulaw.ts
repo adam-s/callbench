@@ -10,6 +10,8 @@
  * near-zero — which is why an all-0xFF frame is digital silence.
  */
 
+import { goertzelFraction } from '@callbench/shared';
+
 const BIAS = 0x84;
 const CLIP = 32635;
 
@@ -75,24 +77,8 @@ export function tone(frequencyHz: number, durationMs: number, amplitude = 0.5): 
  * frequency-specific test only counts the burst it was actually waiting for.
  */
 export function toneStrength(bytes: Uint8Array, frequencyHz: number): number {
-	const sampleRate = 8000;
 	const pcm = decodeMulaw(bytes);
-	if (pcm.length === 0) return 0;
-	const k = (2 * Math.PI * frequencyHz) / sampleRate;
-	const coeff = 2 * Math.cos(k);
-	let s0 = 0;
-	let s1 = 0;
-	let s2 = 0;
-	let total = 0;
-	for (const sample of pcm) {
-		const x = sample / 32768;
-		s0 = x + coeff * s1 - s2;
-		s2 = s1;
-		s1 = s0;
-		total += x * x;
-	}
-	const power = s1 * s1 + s2 * s2 - coeff * s1 * s2;
-	// Normalize against the frame's total energy so the result is a fraction,
-	// not an amplitude — comparable across frames regardless of loudness.
-	return total > 0 ? power / (total * pcm.length) : 0;
+	// The shared Goertzel returns a fraction of window energy, so the Int16
+	// range needs no normalizing — a uniform scale cancels in the ratio.
+	return goertzelFraction(pcm, 0, pcm.length, frequencyHz, 8000);
 }

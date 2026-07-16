@@ -22,7 +22,7 @@
 
 {#if total > 0}
 	<span
-		class="countsbar inline-flex h-2 w-24 gap-[2px] overflow-hidden rounded-[2px] align-middle"
+		class="inline-flex h-2 w-24 gap-[2px] overflow-hidden rounded-[2px] align-middle"
 		role="img"
 		aria-label={label}
 		title={label}

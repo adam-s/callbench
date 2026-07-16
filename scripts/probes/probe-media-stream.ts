@@ -32,7 +32,7 @@ import { createServer } from 'node:http';
 import { join } from 'node:path';
 import { WebSocketServer } from 'ws';
 import { startTunnel, waitForTunnel } from '../lib/tunnel.ts';
-import { assertDialAllowed } from '../lib/twilio.ts';
+import { assertDialAllowed, placeCall } from '../lib/twilio.ts';
 
 const PORT = 8788;
 const API = 'https://api.twilio.com/2010-04-01';
@@ -91,9 +91,10 @@ async function main(): Promise<void> {
 	}
 	// Not a formality: this probe streams audio and writes it to disk. Pointing
 	// it at the system under test would be an unapproved dial AND an unapproved
-	// capture, in one command, with no human between. The guard is ownership-
-	// based (dials only account-owned numbers), so it cannot no-op on an unset
-	// env var the way the old target-equality check could.
+	// capture, in one command, with no human between. Fail fast here before the
+	// tunnel is even raised; the dial itself goes through placeCall, which guards
+	// again. The guard is ownership-based (dials only account-owned numbers), so
+	// it cannot no-op on an unset env var the way the old target check could.
 	await assertDialAllowed(sid, token, to);
 
 	const auth = authHeader(sid, token);
@@ -151,11 +152,7 @@ async function main(): Promise<void> {
 	const twiml = `<Response><Connect><Stream url="${wsUrl}"/></Connect></Response>`;
 	console.log(`\nDialing ${to} from ${from} — one call, no retry. Answer it and talk.`);
 	const started = Date.now();
-	const placed = await api(
-		`/Accounts/${sid}/Calls.json`,
-		auth,
-		new URLSearchParams({ To: to, From: from, Twiml: twiml }),
-	);
+	const placed = await placeCall(sid, token, { to, from, twiml });
 	const callSid = String(placed.sid);
 	console.log(`call   : ${callSid} [${placed.status}]`);
 

@@ -1,0 +1,161 @@
+{
+	"artifactVersion": 1,
+	"scenario": "stt-year-teens",
+	"runId": "b7a53d456227b495b32dbb656d5909d0c1848444b018c4e276d36fa1c03a962f",
+	"target": "simulator",
+	"createdEpochMs": 1784187329484,
+	"report": {
+		"scenario": "stt-year-teens",
+		"hash": "b7a53d456227b495b32dbb656d5909d0c1848444b018c4e276d36fa1c03a962f",
+		"counts": {
+			"PASS": 2,
+			"FAIL": 0,
+			"INCONCLUSIVE": 0
+		},
+		"results": [
+			{
+				"outcome": "PASS",
+				"assertion": "correction-propagated",
+				"detail": "acknowledged the corrected value 2013: \"Okay, updating that to a 2013. That doesn't change the standard install and will recheck the exact glass from the VIN.\"",
+				"span": {
+					"turnIndex": 8,
+					"startMs": 56667,
+					"endMs": 65406
+				}
+			},
+			{
+				"outcome": "PASS",
+				"assertion": "asked-before-quoting",
+				"detail": "asked for the vehicle before quoting a price",
+				"span": {
+					"turnIndex": 2,
+					"startMs": 12026,
+					"endMs": 16626
+				}
+			}
+		],
+		"verdicts": []
+	},
+	"audio": {
+		"file": "call.wav",
+		"sampleRate": 8000,
+		"channels": 1,
+		"durationMs": 69746,
+		"sha256": "34f78a551362246ae847f316f8d02719404f765923ed5adfb2310de21ac5707b",
+		"synthetic": "live Twilio wire capture; both voices kokoro-82m over 8kHz mulaw"
+	},
+	"transcript": {
+		"turns": [
+			{
+				"speaker": "target",
+				"text": "Thanks for calling. What can I do for you today?",
+				"startMs": 447,
+				"endMs": 3851,
+				"confidence": {
+					"score": 0.87841796875,
+					"raw": {
+						"avgLogprob": -0.22877604166666668,
+						"noSpeechProb": 0.0085906982421875,
+						"minWordProb": 0.87841796875
+					}
+				},
+				"provider": "faster-whisper:large-v3"
+			},
+			{
+				"speaker": "bench",
+				"text": "Hi, I need a quote for a windshield replacement.",
+				"startMs": 5736,
+				"endMs": 9036,
+				"confidence": null,
+				"provider": "scripted/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "Sure happy to help. What's the year, make, and model of the vehicle?",
+				"startMs": 12026,
+				"endMs": 16626,
+				"confidence": {
+					"score": 0.52294921875,
+					"raw": {
+						"avgLogprob": -0.13253348214285715,
+						"noSpeechProb": 0.00390625,
+						"minWordProb": 0.52294921875
+					}
+				},
+				"provider": "faster-whisper:large-v3"
+			},
+			{
+				"speaker": "bench",
+				"text": "It's a 2015 Audi A3.",
+				"startMs": 18433,
+				"endMs": 21208,
+				"confidence": null,
+				"provider": "scripted/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "Got it? Does it have advanced driver assistance features, lane keep assist, or adaptive cruise control?",
+				"startMs": 23586,
+				"endMs": 30646,
+				"confidence": {
+					"score": 0.60986328125,
+					"raw": {
+						"avgLogprob": -0.191236419522244,
+						"noSpeechProb": 0.002628326416015625,
+						"minWordProb": 0.60986328125
+					}
+				},
+				"provider": "faster-whisper:large-v3"
+			},
+			{
+				"speaker": "bench",
+				"text": "No driver assistance that I know of.",
+				"startMs": 32631,
+				"endMs": 35556,
+				"confidence": null,
+				"provider": "scripted/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "The standard install is $265 plus the cost of the glass, which we price from your VIN.",
+				"startMs": 37846,
+				"endMs": 44967,
+				"confidence": {
+					"score": 0.79931640625,
+					"raw": {
+						"avgLogprob": -0.15320312976837158,
+						"noSpeechProb": 0.00504302978515625,
+						"minWordProb": 0.79931640625
+					}
+				},
+				"provider": "faster-whisper:large-v3"
+			},
+			{
+				"speaker": "bench",
+				"text": "Actually, sorry — it's a 2013, not a 2015.",
+				"startMs": 47030,
+				"endMs": 51155,
+				"confidence": null,
+				"provider": "scripted/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "Okay, updating that to a 2013. That doesn't change the standard install and will recheck the exact glass from the VIN.",
+				"startMs": 56667,
+				"endMs": 65406,
+				"confidence": {
+					"score": 0.46630859375,
+					"raw": {
+						"avgLogprob": -0.2502441545948386,
+						"noSpeechProb": 0.00439453125,
+						"minWordProb": 0.46630859375
+					}
+				},
+				"provider": "faster-whisper:large-v3"
+			}
+		],
+		"hash": "b7a53d456227b495b32dbb656d5909d0c1848444b018c4e276d36fa1c03a962f",
+		"anchorEpochMs": 1784187373585
+	},
+	"bodyHash": "d5e58b5e89a57a044cbc52e5c0fd9e98a565760d3c5080533a4172bb800f5e40"
+}

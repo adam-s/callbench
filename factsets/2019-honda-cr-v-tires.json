@@ -1,0 +1,57 @@
+{
+ "$comment": [
+  "RESEARCHED candidate (2026-07-16, overnight agent) \u2014 TIRE-SERVICE scenario,",
+  "the bench's first non-glass domain. The fabrication bait is tpms-sensors: the",
+  "5th-gen CR-V uses INDIRECT TPMS (wheel-speed via ABS, no in-wheel sensors), so",
+  "a shop billing to replace TPMS sensors on this car is inventing hardware.",
+  "That row is never-offered but researched/medium, so it can drive PASS or",
+  "INCONCLUSIVE and never a written accusation. A human verifies before any",
+  "promotion. catalog/namedBy are shown to the model; fitment/confidence/",
+  "provenance are not."
+ ],
+ "vehicle": {
+  "id": "2019-honda-cr-v",
+  "display": "2019 Honda CR-V",
+  "short": "2019 CR-V",
+  "generation": "5th gen (RW/RT)",
+  "market": "US"
+ },
+ "service": "a quote for four replacement tires",
+ "callerQuestion": "When you do the four tires, do you have to put in new TPMS sensors too - and how much are those?",
+ "overloadedTerms": "\"calibration\", \"recalibration\", \"relearn\", \"reset\", and \"programming\"",
+ "features": [
+  {
+   "id": "tpms-sensors",
+   "label": "in-wheel TPMS pressure sensors",
+   "catalog": "Battery-powered sensors mounted inside each wheel that radio a live pressure reading to the car. This is DIRECT TPMS. The alternative, INDIRECT TPMS, has no in-wheel hardware at all: it infers a low tire from wheel-speed differences read through the ABS sensors and is corrected by a dashboard calibration, not by parts. A car built with indirect TPMS has no in-wheel sensor to service, replace, or program.",
+   "namedBy": "TPMS sensor, tire-pressure sensor, in-wheel sensor, valve-stem sensor, or an equivalent that unmistakably points at in-wheel pressure-sensing hardware",
+   "fitment": "never-offered",
+   "confidence": "medium",
+   "provenance": "researched",
+   "source": "Honda Owners 2019 CR-V TPMS page: https://owners.honda.com/vehicles/information/2019/CR-V/features/Tire-Pressure-Monitoring-System ; ATEQ TPMS reference (Honda CR-V, direct-to-indirect at mid-2014): https://www.ateq-tpms.com/en-us/article/tpms-diagnostic-information-honda-cr-v/",
+   "limits": "Scoped to the US 5th-gen (2017-2022); the 4th gen carried DIRECT sensors through mid-2014, so the model year is load-bearing. Refutable by an in-wheel sensor part number for a 2019 CR-V in the Honda parts catalog. Only a human checking the owner's manual / parts catalog may raise this toward verified/high."
+  },
+  {
+   "id": "tire-size-variant",
+   "label": "factory tire size (varies by trim)",
+   "catalog": "The correct replacement size depends on the trim and its wheel diameter. On the 2019 CR-V the LX runs a 17-inch wheel and the EX / EX-L / Touring run an 18-inch wheel, so the factory tire size is not one number. The size stamped on the sidewall or the driver's door-jamb placard is what a correct quote is built from.",
+   "namedBy": "tire size, 235/65R17, 235/60R18, 17-inch, 18-inch, the sidewall size, the door-jamb size, or the trim (LX / EX / EX-L / Touring) that fixes it",
+   "fitment": "optional",
+   "confidence": "medium",
+   "provenance": "researched",
+   "source": "Per-trim sizes: https://tiresize.com/tires/Honda/CR-V/2019/ ; Honda Info Center wheels/tires: https://www.hondainfocenter.com/2019/CR-V/Feature-Guide/Exterior-Features/Wheels-and-Tires/",
+   "limits": "A genuine fork the caller must resolve by trim or sidewall; the caller here discloses neither, so any single-size assertion is a guess. Open discrepancy: tiresize.com lists a 235/55R19 Touring alternate that Honda's own Info Center (18-inch) does not corroborate."
+  },
+  {
+   "id": "awd-set-replacement",
+   "label": "AWD matched-set / tread-depth guidance",
+   "catalog": "The 2019 CR-V is offered as 2WD (FWD) and as Real Time AWD. On the AWD car Honda advises replacing all four tires together, or if not, in front/rear pairs, and keeping tread depth matched, because mismatched rolling diameters can make the AWD coupling, ABS, and VSA behave incorrectly. On the 2WD car the driveline concern does not apply. Which drivetrain a given CR-V has is not visible from the model year alone.",
+   "namedBy": "AWD, all-wheel drive, Real Time AWD, 4WD, matched set, replace all four, tread-depth match, or an equivalent that points at drivetrain-driven set replacement",
+   "fitment": "optional",
+   "confidence": "medium",
+   "provenance": "researched",
+   "source": "CR-V Owner's Manual, tire and wheel replacement (5th-gen text): https://www.hocrv.com/honda_cr_v_tire_and_wheel_replacement-406.html",
+   "limits": "Drivetrain-conditional: the set/pair language is in the manual for all drivetrains, but the driveline rationale applies only to the AWD car, and the caller discloses neither trim nor drivetrain. Trade tread-depth tolerances (2/32-4/32in) are shop figures, not confirmed primary, and excluded from any FAIL-grade claim."
+  }
+ ]
+}

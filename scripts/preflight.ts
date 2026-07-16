@@ -13,7 +13,11 @@
  *   CALLBENCH_MAX_MINUTES     hard wall-clock cap (default 15)
  */
 
+import { readdirSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { preflight, type RunPlan, renderPreflight } from '@callbench/runplan';
+import { allScenarios } from '@callbench/scenario';
 
 function intFromEnv(name: string, fallback: number): number {
 	const raw = process.env[name];
@@ -30,9 +34,26 @@ function main(): void {
 		process.exit(1);
 	}
 
-	// The scenarios whose outward text has passed the connotation pass — each has
-	// a committed artifact under docs/connotation/. Only these may be planned.
-	const scenarios = ['windshield-quote'];
+	// Plan the reviewed INTERSECTION of the registry, and say aloud what was
+	// left out. The first wiring planned the whole registry and let runplan's
+	// gate sort it out — but that gate refuses the ENTIRE plan when any
+	// scenario lacks its connotation artifact (red-team, 07-16), so the one
+	// gate-checked path to a real dial failed closed the moment a deliberately
+	// unreviewed adversarial scenario entered the registry. The gate still
+	// stands behind this filter: anything unreviewed that reaches the plan
+	// anyway is refused there.
+	const reviewed = new Set(
+		readdirSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'docs', 'connotation'))
+			.filter((f) => f.endsWith('.md'))
+			.map((f) => f.replace(/\.md$/, '')),
+	);
+	const scenarios = allScenarios.map((s) => s.name).filter((n) => reviewed.has(n));
+	const excluded = allScenarios.map((s) => s.name).filter((n) => !reviewed.has(n));
+	if (excluded.length > 0) {
+		console.log(
+			`excluded (no connotation artifact yet — simulator-only until reviewed): ${excluded.join(', ')}`,
+		);
+	}
 
 	const plan: RunPlan = {
 		target: { kind: 'system-under-test', number, label: 'system under test' },
@@ -46,7 +67,10 @@ function main(): void {
 		// Consent for THIS target is settled by the maintainer and recorded in the
 		// docs (Increment 7 / warm-up-call). Re-settled if the target changes.
 		consentSettled: true,
-		connotationReviewed: scenarios,
+		// From the COMMITTED artifacts (the `reviewed` set above), never from the
+		// plan itself: an earlier wiring fed the gate the plan's own scenario
+		// list, a check that could not fail.
+		connotationReviewed: [...reviewed],
 	};
 
 	let report: ReturnType<typeof preflight>;

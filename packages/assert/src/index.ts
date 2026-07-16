@@ -3,7 +3,8 @@ export {
 	askedBeforeQuoting,
 	CLARITY_FLOOR,
 	correctionPropagated,
-	noFabricatedRecalibration,
+	type RequirementProbeSpec,
+	requirementAnswer,
 	runAssertions,
 } from './assertions.ts';
 export {
@@ -14,4 +15,3 @@ export {
 	type Result,
 	type Span,
 } from './outcome.ts';
-export { buildReport, type Report, renderReport } from './report.ts';

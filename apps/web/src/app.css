@@ -119,3 +119,55 @@
 		@apply bg-background text-foreground font-sans text-[0.8125rem] leading-normal;
 	}
 }
+
+/*
+ * The transcript turn grid — shared by every page that renders a transcript
+ * (the run page and the finding page had drifting copies of this block). What
+ * differs per page stays scoped there: the run page's `playing` highlight and
+ * the finding page's dim-all-but-cited treatment.
+ */
+@layer components {
+	.transcript .turn {
+		display: grid;
+		grid-template-columns: 3.6rem 1fr auto;
+		gap: 8px;
+		align-items: baseline;
+		padding: 4px 8px;
+		border-radius: 6px;
+	}
+	.transcript .turn.bench {
+		background: var(--bench-bg);
+	}
+	.transcript .turn.target {
+		background: var(--target-bg);
+	}
+	.transcript .turn + .turn {
+		margin-top: 2px;
+	}
+	.transcript .who {
+		font-family: var(--mono);
+		font-size: 0.6875rem;
+		font-weight: 700;
+	}
+	.transcript .turn.bench .who {
+		color: var(--bench);
+	}
+	.transcript .turn.target .who {
+		color: var(--target);
+	}
+	.transcript .time {
+		font-size: 0.75rem;
+		white-space: nowrap;
+	}
+	/* On a phone the nowrap timing cell would crush the text column to a word
+	 * per line — drop it to its own row under the turn instead. */
+	@media (max-width: 560px) {
+		.transcript .turn {
+			grid-template-columns: 3.6rem 1fr;
+		}
+		.transcript .time {
+			grid-column: 1 / -1;
+			justify-self: end;
+		}
+	}
+}

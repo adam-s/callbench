@@ -200,53 +200,12 @@
 </div>
 
 <style>
-	/* The transcript's turn grid — genuinely custom layout, kept as scoped CSS
-	 * on the legacy tokens (aliased in app.css). */
-	.turn {
-		display: grid;
-		grid-template-columns: 3.6rem 1fr auto;
-		gap: 8px;
-		align-items: baseline;
-		padding: 4px 8px;
-		border-radius: 6px;
-	}
-	.turn.bench {
-		background: var(--bench-bg);
-	}
-	.turn.target {
-		background: var(--target-bg);
-	}
-	.turn + .turn {
-		margin-top: 2px;
-	}
+	/* The turn grid itself is the shared .transcript block in app.css; only
+	 * this page's divergences live here. */
 	.turn.playing {
 		outline: 2px solid var(--accent);
 	}
 	.who {
-		font-family: var(--mono);
-		font-size: 0.6875rem;
-		font-weight: 700;
 		letter-spacing: 0.03em;
-	}
-	.turn.bench .who {
-		color: var(--bench);
-	}
-	.turn.target .who {
-		color: var(--target);
-	}
-	.time {
-		font-size: 0.75rem;
-		white-space: nowrap;
-	}
-	/* On a phone the nowrap timing cell would crush the text column to a word
-	 * per line — drop it to its own row under the turn instead. */
-	@media (max-width: 560px) {
-		.turn {
-			grid-template-columns: 3.6rem 1fr;
-		}
-		.time {
-			grid-column: 1 / -1;
-			justify-self: end;
-		}
 	}
 </style>

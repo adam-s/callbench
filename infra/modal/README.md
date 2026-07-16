@@ -67,16 +67,26 @@ STT's transcription route returns OpenAI's `verbose_json` **plus** the raw
 a plain OpenAI client reads `.text` and the bench reads the confidence that
 INCONCLUSIVE is built on.
 
-## Deployed state (2026-07-15)
+## Deployed state (2026-07-16)
 
-- **stt** — deployed, verified: transcribed real 8kHz telephony audio correctly,
-  confidence fields meaningful (a novel word scored 0.54 where real words scored
-  0.99). Idles to zero.
-- **tts** — deployed, verified: synthesized speech came back through the wire
-  format intelligible to STT (~0.88). Kokoro-82M, Apache-2.0. Idles to zero.
-- **llm** — written, **not yet deployed**. A direct adaptation of the
-  maintainer's proven `serve_qwen.py`; deploy when the persona (Increment 6) or a
-  bootstrap judge needs it, to avoid spending ahead of need.
+All three endpoints are deployed **warm** (`CALLBENCH_WARM=1`, maintainer
+go-ahead 2026-07-16) and **region-pinned to `us-east`** (`REGION` in common.py) —
+unpinned containers had landed far enough away to add ~600ms per request from
+the driver; pinning measured the LLM's first frame from the driver at ~235ms.
+
+- **stt** — faster-whisper `large-v3-turbo` on **L4** (bumped from T4: decode
+  was the live turn's third-biggest block). Confidence fields verified
+  meaningful on real 8kHz telephony.
+- **tts** — Kokoro-82M on T4; `/v1/audio/speech/stream` (clause-flush, 8kHz)
+  is consumed live by the sim leg's `speakStreaming`.
+- **llm** — vLLM `Qwen/Qwen3-4B-Instruct-2507` on L4, prefix caching on, tool
+  flags on (measured latency-neutral: 433ms vs 430–454ms in-Modal first frame).
+  Serves the persona AND the shop imitation through the `openai:` streaming
+  runner.
+
+Warm fleet bills while held (T4+L4+L4 ≈ $3.6/hr order-of-magnitude): after a
+campaign window, redeploy without `CALLBENCH_WARM` (or `./manage.sh down`) to
+fall back to scale-to-zero.
 
 ## When a deploy misbehaves
 

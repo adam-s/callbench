@@ -64,6 +64,15 @@ asks a disambiguating question or quotes blindly. It also has no forward-facing
 camera, so an offer of ADAS recalibration for that year is a fabrication with a
 dollar figure attached — a check with an unambiguous right answer.
 
+> **Superseded in part — see [diagnosis.md](diagnosis.md) for the sourced fact
+> set.** The camera claim above is stated here without a source; it is now
+> recorded with its evidence (Audi service training eSSP 970343), its scope
+> (model year and market), and its confidence (high, not conclusively
+> enumerated). "Unambiguous right answer" is superseded outright: the *fact* is
+> unambiguous, but the trade uses "recalibration" for a rain-sensor reset as
+> well, and the 8P's rain sensor is real optional hardware. Grade against the
+> fact set, not this paragraph.
+
 This reasoning is the seed of the probe catalog in [probes.md](probes.md), and
 it generalizes: a good test input is one where the correct behavior is to ask,
 and where a confident wrong answer is distinguishable from a right one.

@@ -37,6 +37,7 @@ import {
 	INITIAL_MEMORY,
 	NO_DEFECTS,
 	type SimMemory,
+	type SimScript,
 	step,
 } from '@callbench/simulator';
 import {
@@ -79,6 +80,26 @@ export interface Scenario {
 	readonly name: string;
 	/** Ordered caller turns, some marked as probe injections. */
 	readonly caller: readonly CallerTurn[];
+	/** The practice target's script — what the simulator says for THIS
+	 * scenario's vehicle, built from its fact set (scriptFromFactSet). The
+	 * engine is vehicle-blind; the scenario carries the vehicle, which is what
+	 * lets any make/model/year rehearse against the same simulator. */
+	readonly simScript: SimScript;
+	/** Optional turn-detector overrides for the live driver — scenario DATA,
+	 * because pause behavior belongs to the LINES: a number- or list-heavy
+	 * caller pauses longer mid-utterance ("It's a 2015 … Audi … A3"), so such
+	 * a scenario widens the confirm window instead of every scenario paying
+	 * the latency. Keys mirror @callbench/turn's TurnDetectorConfig. */
+	readonly turnConfig?: Readonly<
+		Partial<
+			Record<'provisionalSilenceMs' | 'confirmSilenceMs' | 'minSpeechMs' | 'speechEnergy', number>
+		>
+	>;
+	/** Optional hybrid-mode persona (Increment 6): when the live driver runs
+	 * with --persona, a model improvises the caller's conversational turns
+	 * toward this goal while the harness speaks the caller list's PROBE turns
+	 * verbatim at their moments. Scripted mode ignores it. */
+	readonly persona?: import('./persona.ts').Persona;
 	/** Deterministic code assertions over the frozen transcript. */
 	readonly assertions: readonly Assertion[];
 	/** Semantic assertions scored by the judge. Optional — a scenario may be
@@ -160,7 +181,7 @@ export function driveSimulator(
 		});
 		clock += turnMs;
 
-		const reply = step(memory, line, defects);
+		const reply = step(memory, line, defects, scenario.simScript);
 		memory = reply.memory;
 		// A null reply is deliberate silence (goSilentAtQuote) — a real behavior,
 		// recorded as the absence of a target turn, not a fabricated one.
@@ -204,36 +225,36 @@ export async function assess(
 	const results = runAssertions(transcript, scenario.assertions);
 
 	const judged = scenario.judged ?? [];
-	if (judged.length > 0 && !judgeCtx) {
-		throw new Error(
-			`scenario "${scenario.name}" has ${judged.length} judged assertion(s) but no judge ` +
-				'context was supplied; refusing to skip them silently.',
-		);
-	}
-
 	const verdicts: Verdict[] = [];
-	for (const j of judged) {
-		const input = j.extract(transcript);
-		if (input === null) {
-			// Structural abstention: the excerpt the rubric needs was not available
-			// — absent, or present but heard too poorly to trust (the extractor
-			// applies the same clarity floor the code assertions do). The harness
-			// decided this, not the model — say so, and never consult the model for
-			// a question the transcript cannot answer.
-			verdicts.push({
-				outcome: 'INCONCLUSIVE',
-				assertion: j.rubric.name,
-				reasoning:
-					'the excerpt this rubric needs was not available (absent or heard below the clarity floor)',
-				span: null,
-				judgedBy: HARNESS,
-				rubricVersion: j.rubric.version,
-				cached: false,
-			});
-			continue;
+	if (judged.length > 0) {
+		if (!judgeCtx) {
+			throw new Error(
+				`scenario "${scenario.name}" has ${judged.length} judged assertion(s) but no judge ` +
+					'context was supplied; refusing to skip them silently.',
+			);
 		}
-		// judgeCtx is guaranteed here: judged.length > 0 already threw if absent.
-		verdicts.push(await judge(j.rubric, input, judgeCtx!.runner, judgeCtx!.cache));
+		for (const j of judged) {
+			const input = j.extract(transcript);
+			if (input === null) {
+				// Structural abstention: the excerpt the rubric needs was not available
+				// — absent, or present but heard too poorly to trust (the extractor
+				// applies the same clarity floor the code assertions do). The harness
+				// decided this, not the model — say so, and never consult the model for
+				// a question the transcript cannot answer.
+				verdicts.push({
+					outcome: 'INCONCLUSIVE',
+					assertion: j.rubric.name,
+					reasoning:
+						'the excerpt this rubric needs was not available (absent or heard below the clarity floor)',
+					span: null,
+					judgedBy: HARNESS,
+					rubricVersion: j.rubric.version,
+					cached: false,
+				});
+				continue;
+			}
+			verdicts.push(await judge(j.rubric, input, judgeCtx.runner, judgeCtx.cache));
+		}
 	}
 
 	const counts: Record<Outcome, number> = { PASS: 0, FAIL: 0, INCONCLUSIVE: 0 };

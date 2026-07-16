@@ -1,5 +1,4 @@
 export {
-	artifactDigest,
 	buildRunArtifact,
 	computeBodyHash,
 	parseRunArtifact,
@@ -12,6 +11,8 @@ export {
 	serializeRunArtifact,
 	writeRunArtifact,
 } from './artifact.ts';
+export type { ExchangeTurn } from './lines.ts';
+export { nextLine, nextLineStreaming, type Persona, probeLines } from './persona.ts';
 export {
 	assess,
 	type CallerTurn,
@@ -23,7 +24,15 @@ export {
 	type ScenarioReport,
 } from './scenario.ts';
 export {
+	allScenarios,
 	askedDisambiguatingQuestion,
 	DISAMBIGUATION_RUBRIC,
+	disambiguationRubricFor,
 	windshieldQuote,
 } from './scenarios.ts';
+export {
+	agentReply,
+	agentReplyStreaming,
+	NEXUS_IMITATION,
+	type ShopAgentSpec,
+} from './shop-agent.ts';

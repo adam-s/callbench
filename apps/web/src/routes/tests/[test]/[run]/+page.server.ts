@@ -1,11 +1,7 @@
 import { error } from '@sveltejs/kit';
 import { canReplay, loadRun, readRunAudio } from '$lib/server/runs.ts';
-import { peaksFromWav } from '$lib/server/waveform.ts';
+import { peaksFromWav, WAVE_COLUMNS } from '$lib/server/waveform.ts';
 import type { PageServerLoad } from './$types';
-
-/** How many columns of waveform envelope to precompute. A fixed count keeps the
- * page payload bounded regardless of call length; the canvas stretches them. */
-const WAVE_COLUMNS = 900;
 
 /**
  * One run: the full frozen transcript and the report over it. Loading
@@ -58,7 +54,6 @@ export const load: PageServerLoad = ({ params }) => {
 		scenario: artifact.scenario,
 		runId: artifact.runId,
 		target: artifact.target,
-		createdEpochMs: artifact.createdEpochMs,
 		turns: artifact.transcript.turns,
 		results: artifact.report.results,
 		verdicts: artifact.report.verdicts,

@@ -5,13 +5,21 @@
 	"type": "module",
 	"main": "./src/index.ts",
 	"types": "./src/index.ts",
-	"exports": { ".": "./src/index.ts" },
-	"scripts": { "typecheck": "tsc --noEmit" },
-	"devDependencies": { "@types/node": "^24.13.3", "typescript": "5.9.3" },
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"scripts": {
+		"typecheck": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@types/node": "^24.13.3",
+		"typescript": "5.9.3"
+	},
 	"dependencies": {
-		"@callbench/transcript": "workspace:*",
 		"@callbench/assert": "workspace:*",
+		"@callbench/factset": "workspace:*",
 		"@callbench/judge": "workspace:*",
-		"@callbench/simulator": "workspace:*"
+		"@callbench/simulator": "workspace:*",
+		"@callbench/transcript": "workspace:*"
 	}
 }

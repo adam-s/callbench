@@ -19,6 +19,7 @@
 import { DEBUG } from '@callbench/shared';
 import type { MediaFormat, TransportEvent, TransportSession } from '../contract.ts';
 import {
+	BYTES_PER_FRAME,
 	clearMessage,
 	decodePayload,
 	markMessage,
@@ -26,6 +27,7 @@ import {
 	parseMessage,
 	TWILIO_MEDIA_FORMAT,
 } from './frames.ts';
+import { createPacer, type Pacer, toFrames } from './pacer.ts';
 
 export interface MediaSocket {
 	send(text: string): void;
@@ -61,6 +63,17 @@ export interface TwilioSessionOptions {
 	 * error and ends rather than growing without bound or dropping silently.
 	 */
 	readonly maxBufferedEvents?: number;
+	/**
+	 * Outbound pacer lead (ms). The default (pacer.ts LEAD_MS) suits a light
+	 * process; a host doing real work between frames — STT fetches, buffer
+	 * assembly for two legs — stalls the loop past 60ms routinely, and every
+	 * stall longer than the lead drains the far buffer mid-utterance: an
+	 * audible dropout, then the catch-up burst. Measured 2026-07-16 (Twilio's
+	 * own dual-channel recording of a live sim conversation): 393 clicks/sec
+	 * on the sent audio at the default lead. A deeper lead is cheap — the
+	 * provider buffers minutes — and only staleness on barge-in flush pays.
+	 */
+	readonly pacerLeadMs?: number;
 }
 
 /**
@@ -153,6 +166,13 @@ export function createTwilioSession(
 		let terminal = false;
 		let settled = false;
 
+		// One pacer per session, closed over per-session state — no module-level
+		// anything, so N sessions in one process do not share a schedule.
+		const pacer: Pacer = createPacer({
+			send: (f) => socket.send(mediaMessage(streamSid, f)),
+			...(options.pacerLeadMs !== undefined ? { leadMs: options.pacerLeadMs } : {}),
+		});
+
 		const timer = setTimeout(() => {
 			if (settled) return;
 			settled = true;
@@ -167,6 +187,10 @@ export function createTwilioSession(
 		const endWith = (ev: TransportEvent) => {
 			if (terminal) return;
 			terminal = true;
+			// Stop the pacer with the session. Its timer outlives the socket
+			// otherwise and keeps firing sends at something that is already closed —
+			// and, in a test or a short-lived script, keeps the process alive.
+			pacer.stop();
 			queue.pushTerminal(ev);
 		};
 
@@ -231,6 +255,12 @@ export function createTwilioSession(
 					return;
 				}
 				case 'media':
+					// Accepted (red-team 07-16): this decode sits outside the
+					// malformed-message try above, so a throwing decode would escape
+					// the socket handler mid-call. Node's base64 decode is lenient —
+					// it skips invalid characters rather than throwing — so the branch
+					// has no realistic trigger; widening the guard would trade that
+					// for swallowing programming errors in every case below.
 					pushOrOverflow({
 						type: 'audio',
 						atMs,
@@ -288,7 +318,25 @@ export function createTwilioSession(
 			events: queue,
 			sendAudio(bytes) {
 				if (terminal) return;
-				socket.send(mediaMessage(streamSid, bytes));
+				// Through the pacer, never straight at the socket. This method's
+				// contract is "QUEUE raw audio bytes ... fire-and-forget", and it used
+				// to base64 the whole payload into one `media` message — fine for a
+				// 400ms tone, and the first thing real speech breaks: Twilio discards
+				// audio that arrives faster than it plays (31931) and nothing errors,
+				// so the far end simply hears less than was said. The pacer is behind
+				// the seam on purpose: the core still queues and forgets, and never
+				// learns that pacing exists.
+				//
+				// The first frames leave within the lead, so a tone still STARTS at
+				// the same instant — the timing baseline in loopback-call.ts measures
+				// the first voiced frame and is unmoved by this.
+				//
+				// OWNERSHIP (accepted, red-team 07-16): the queued frames are subarray
+				// VIEWS of `bytes`, encoded only at send time — a caller that reuses
+				// its buffer after this call would corrupt in-flight audio. Every
+				// current caller (tts, tone) allocates fresh; if a pooled-buffer
+				// caller ever appears, copy at this seam rather than there.
+				pacer.push(toFrames(bytes, BYTES_PER_FRAME));
 			},
 			sendMark(name) {
 				if (terminal) return;
@@ -296,6 +344,12 @@ export function createTwilioSession(
 			},
 			clearAudio() {
 				if (terminal) return;
+				// Both halves. `clear` flushes what Twilio already holds; the pacer
+				// flush drops what we have not sent yet. Without the second, a
+				// cleared utterance keeps trickling out frame by frame and plays over
+				// whatever the caller barged in to say — the flush would look like it
+				// worked and the audio would keep coming.
+				pacer.flush();
 				socket.send(clearMessage(streamSid));
 			},
 			end() {

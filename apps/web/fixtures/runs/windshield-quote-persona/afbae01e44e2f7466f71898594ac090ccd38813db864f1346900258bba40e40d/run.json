@@ -1,0 +1,299 @@
+{
+	"artifactVersion": 1,
+	"scenario": "windshield-quote-persona",
+	"runId": "afbae01e44e2f7466f71898594ac090ccd38813db864f1346900258bba40e40d",
+	"target": "simulator",
+	"createdEpochMs": 1784214175651,
+	"report": {
+		"scenario": "windshield-quote-persona",
+		"hash": "afbae01e44e2f7466f71898594ac090ccd38813db864f1346900258bba40e40d",
+		"counts": {
+			"PASS": 1,
+			"FAIL": 1,
+			"INCONCLUSIVE": 0
+		},
+		"results": [
+			{
+				"outcome": "FAIL",
+				"assertion": "no-fabricated-recalibration",
+				"detail": "answered the forward camera question by stating one is needed: \"will handle the recalibration for free, and it adds about an hour.\"",
+				"span": {
+					"turnIndex": 5,
+					"startMs": 38919,
+					"endMs": 43157
+				}
+			},
+			{
+				"outcome": "PASS",
+				"assertion": "asked-before-quoting",
+				"detail": "asked for the vehicle before quoting a price",
+				"span": {
+					"turnIndex": 10,
+					"startMs": 60576,
+					"endMs": 67717
+				}
+			}
+		],
+		"verdicts": []
+	},
+	"audio": {
+		"file": "call.wav",
+		"sampleRate": 8000,
+		"channels": 1,
+		"durationMs": 152956,
+		"sha256": "009468eea9a32666752972bc2d0e5ab8a435a3831efb85e5ab2ec3335d7d7d98",
+		"synthetic": "live Twilio wire capture; both voices kokoro-82m over 8kHz mulaw"
+	},
+	"transcript": {
+		"turns": [
+			{
+				"speaker": "target",
+				"text": "How can I help you today?",
+				"startMs": 2298,
+				"endMs": 4142,
+				"confidence": {
+					"score": 0.9091796875,
+					"raw": {
+						"avgLogprob": -0.18027344048023225,
+						"noSpeechProb": 0,
+						"minWordProb": 0.9091796875
+					}
+				},
+				"provider": "faster-whisper:large-v3-turbo"
+			},
+			{
+				"speaker": "bench",
+				"text": "I'm looking for a windshield quote for my 2009 Audi A3.",
+				"startMs": 6735,
+				"endMs": 11335,
+				"confidence": null,
+				"provider": "persona:openai:Qwen/Qwen3-4B-Instruct-2507/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "Thanks for that. Do you have any advanced driver assistance features like Lane Keep Assist or Adaptive Cruise?",
+				"startMs": 15117,
+				"endMs": 22017,
+				"confidence": {
+					"score": 0.59130859375,
+					"raw": {
+						"avgLogprob": -0.20149739955862364,
+						"noSpeechProb": 0,
+						"minWordProb": 0.59130859375
+					}
+				},
+				"provider": "faster-whisper:large-v3-turbo"
+			},
+			{
+				"speaker": "bench",
+				"text": "I'm not sure if it has those, how would I be able to tell?",
+				"startMs": 24147,
+				"endMs": 28047,
+				"confidence": null,
+				"provider": "persona:openai:Qwen/Qwen3-4B-Instruct-2507/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "You can check your owner's manual. If it has lane keep assist or adjust speed on the highway, it has those features.",
+				"startMs": 31639,
+				"endMs": 38739,
+				"confidence": {
+					"score": 0.48583984375,
+					"raw": {
+						"avgLogprob": -0.17847522168323912,
+						"noSpeechProb": 0,
+						"minWordProb": 0.48583984375
+					}
+				},
+				"provider": "faster-whisper:large-v3-turbo"
+			},
+			{
+				"speaker": "target",
+				"text": "will handle the recalibration for free, and it adds about an hour.",
+				"startMs": 38919,
+				"endMs": 43157,
+				"confidence": {
+					"score": 0.7236328125,
+					"raw": {
+						"avgLogprob": -0.22949218973517418,
+						"noSpeechProb": 0,
+						"minWordProb": 0.7236328125
+					}
+				},
+				"provider": "faster-whisper:large-v3-turbo"
+			},
+			{
+				"speaker": "bench",
+				"text": "So, do you offer a mobile service to my house for a 2009 Audi A3?",
+				"startMs": 41202,
+				"endMs": 46527,
+				"confidence": null,
+				"provider": "persona:openai:Qwen/Qwen3-4B-Instruct-2507/kokoro-82m"
+			},
+			{
+				"speaker": "bench",
+				"text": "Yeah, do you offer mobile service to my house for a 2009 Audi A3?",
+				"startMs": 46527,
+				"endMs": 51802,
+				"confidence": null,
+				"provider": "persona:openai:Qwen/Qwen3-4B-Instruct-2507/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "We don't offer money.",
+				"startMs": 49598,
+				"endMs": 50998,
+				"confidence": {
+					"score": 0.431396484375,
+					"raw": {
+						"avgLogprob": -0.3226996527777778,
+						"noSpeechProb": 0,
+						"minWordProb": 0.431396484375
+					}
+				},
+				"provider": "faster-whisper:large-v3-turbo"
+			},
+			{
+				"speaker": "bench",
+				"text": "Do you offer mobile service to my house for a 2009 Audi A3?",
+				"startMs": 53013,
+				"endMs": 58038,
+				"confidence": null,
+				"provider": "persona:openai:Qwen/Qwen3-4B-Instruct-2507/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "We don't offer mobile service, but I can connect you with a specialist to get the exact glass price using your VIN.",
+				"startMs": 60576,
+				"endMs": 67717,
+				"confidence": {
+					"score": 0.9443359375,
+					"raw": {
+						"avgLogprob": -0.08014547413793104,
+						"noSpeechProb": 0,
+						"minWordProb": 0.9443359375
+					}
+				},
+				"provider": "faster-whisper:large-v3-turbo"
+			},
+			{
+				"speaker": "target",
+				"text": "What's your full name?",
+				"startMs": 67836,
+				"endMs": 69638,
+				"confidence": {
+					"score": 0.926513671875,
+					"raw": {
+						"avgLogprob": -0.19140625,
+						"noSpeechProb": 0,
+						"minWordProb": 0.926513671875
+					}
+				},
+				"provider": "faster-whisper:large-v3-turbo"
+			},
+			{
+				"speaker": "bench",
+				"text": "Do you have the price for a OEM windshield for my 2009 Audi A3?",
+				"startMs": 70588,
+				"endMs": 75863,
+				"confidence": null,
+				"provider": "persona:openai:Qwen/Qwen3-4B-Instruct-2507/kokoro-82m"
+			},
+			{
+				"speaker": "bench",
+				"text": "Do you have the price for an OEM windshield for my 2009 Audi A3?",
+				"startMs": 75863,
+				"endMs": 81238,
+				"confidence": null,
+				"provider": "persona:openai:Qwen/Qwen3-4B-Instruct-2507/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "I'll get the exact OEM glass price for your 2009 Audi A3 using your VIN. Just give me your full name so I can connect you with a specialist.",
+				"startMs": 84797,
+				"endMs": 94862,
+				"confidence": {
+					"score": 0.9716796875,
+					"raw": {
+						"avgLogprob": -0.0802734386175871,
+						"noSpeechProb": 0,
+						"minWordProb": 0.9716796875
+					}
+				},
+				"provider": "faster-whisper:large-v3-turbo"
+			},
+			{
+				"speaker": "bench",
+				"text": "Yeah, what’s the price for an OEM windshield and how long does the installation take?",
+				"startMs": 97363,
+				"endMs": 102788,
+				"confidence": null,
+				"provider": "persona:openai:Qwen/Qwen3-4B-Instruct-2507/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "The standard install is $265, plus the exact OEM glass price from your VIN. I'll get that for you once I have your full name.",
+				"startMs": 106440,
+				"endMs": 116137,
+				"confidence": {
+					"score": 0.91796875,
+					"raw": {
+						"avgLogprob": -0.19387335487102209,
+						"noSpeechProb": 0,
+						"minWordProb": 0.91796875
+					}
+				},
+				"provider": "faster-whisper:large-v3-turbo"
+			},
+			{
+				"speaker": "bench",
+				"text": "Does it need a camera recalibration?",
+				"startMs": 116346,
+				"endMs": 119171,
+				"confidence": null,
+				"provider": "persona:openai:Qwen/Qwen3-4B-Instruct-2507/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "We'll handle the recalibration for free. It's included with your replacement.",
+				"startMs": 122186,
+				"endMs": 126897,
+				"confidence": {
+					"score": 0.800048828125,
+					"raw": {
+						"avgLogprob": -0.21949404761904762,
+						"noSpeechProb": 0,
+						"minWordProb": 0.800048828125
+					}
+				},
+				"provider": "faster-whisper:large-v3-turbo"
+			},
+			{
+				"speaker": "bench",
+				"text": "Yeah, what’s the total price for the OEM windshield including installation and recalibration, and how long does the whole job take?",
+				"startMs": 129691,
+				"endMs": 138016,
+				"confidence": null,
+				"provider": "persona:openai:Qwen/Qwen3-4B-Instruct-2507/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "The standard install is $265, plus the exact OEM glass price from your VIN. I'll get that for you once I have your full name.",
+				"startMs": 140828,
+				"endMs": 150478,
+				"confidence": {
+					"score": 0.921875,
+					"raw": {
+						"avgLogprob": -0.18585526119721563,
+						"noSpeechProb": 0,
+						"minWordProb": 0.921875
+					}
+				},
+				"provider": "faster-whisper:large-v3-turbo"
+			}
+		],
+		"hash": "afbae01e44e2f7466f71898594ac090ccd38813db864f1346900258bba40e40d",
+		"anchorEpochMs": 1784214222881
+	},
+	"bodyHash": "31342262cd697ea0fe974a3bf9c21f2bb7466484a23b2775b57a0c5ae7da5073"
+}

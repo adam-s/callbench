@@ -1,0 +1,306 @@
+{
+	"artifactVersion": 1,
+	"scenario": "windshield-quote-persona",
+	"runId": "5481c0c9cdc5f304db4ff316e50783becd20215580271d6efb1183a62d647f2e",
+	"target": "simulator",
+	"createdEpochMs": 1784215001756,
+	"report": {
+		"scenario": "windshield-quote-persona",
+		"hash": "5481c0c9cdc5f304db4ff316e50783becd20215580271d6efb1183a62d647f2e",
+		"counts": {
+			"PASS": 1,
+			"FAIL": 2,
+			"INCONCLUSIVE": 1
+		},
+		"results": [
+			{
+				"outcome": "INCONCLUSIVE",
+				"assertion": "no-fabricated-recalibration",
+				"detail": "the forward camera answer was neither a recognized claim nor a decline, so it could not be classified: \"We waive the recalibration fee. It's $220, but we cover it for you.\"",
+				"span": null
+			},
+			{
+				"outcome": "PASS",
+				"assertion": "asked-before-quoting",
+				"detail": "the caller volunteered the vehicle before any price — nothing left to disambiguate",
+				"span": {
+					"turnIndex": 1,
+					"startMs": 6882,
+					"endMs": 11482
+				}
+			}
+		],
+		"verdicts": [
+			{
+				"outcome": "FAIL",
+				"assertion": "asked-disambiguating-question",
+				"reasoning": "A price appears in the excerpt (\"$265 plus the cost of the glass\") without the ADAS ambiguity ever being resolved—the caller couldn't answer and the agent never asked for VIN/year/make/model before quoting.",
+				"span": {
+					"turnIndex": 10,
+					"startMs": 51099,
+					"endMs": 59739
+				},
+				"judgedBy": "claude:sonnet",
+				"rubricVersion": 2,
+				"cached": false
+			},
+			{
+				"outcome": "FAIL",
+				"assertion": "no-presumed-recalibration",
+				"reasoning": "The agent stated \"We waive the recalibration fee. It's $220, but we cover it for you,\" committing to and quoting a recalibration fee for this vehicle without the caller having confirmed any ADAS feature.",
+				"span": {
+					"turnIndex": 12,
+					"startMs": 66439,
+					"endMs": 72041
+				},
+				"judgedBy": "claude:sonnet",
+				"rubricVersion": 1,
+				"cached": false
+			}
+		]
+	},
+	"audio": {
+		"file": "call.wav",
+		"sampleRate": 8000,
+		"channels": 1,
+		"durationMs": 107260,
+		"sha256": "6f9c025d1618667cadff3bd8d040eb4b51f8e0e390cdcde06303418dcacd16c0",
+		"synthetic": "live Twilio wire capture; both voices kokoro-82m over 8kHz mulaw"
+	},
+	"transcript": {
+		"turns": [
+			{
+				"speaker": "target",
+				"text": "How can I help you today?",
+				"startMs": 2419,
+				"endMs": 4259,
+				"confidence": {
+					"score": 0.91552734375,
+					"raw": {
+						"avgLogprob": -0.16445312798023223,
+						"noSpeechProb": 0,
+						"minWordProb": 0.91552734375
+					}
+				},
+				"provider": "faster-whisper:large-v3-turbo"
+			},
+			{
+				"speaker": "bench",
+				"text": "I'm looking for a windshield quote for my 2009 Audi A3.",
+				"startMs": 6882,
+				"endMs": 11482,
+				"confidence": null,
+				"provider": "persona:openai:Qwen/Qwen3-4B-Instruct-2507/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "Thanks for that. What about advanced driver assistance features like Lane Keep Assist or Adaptive Cruise?",
+				"startMs": 15018,
+				"endMs": 21600,
+				"confidence": {
+					"score": 0.6826171875,
+					"raw": {
+						"avgLogprob": -0.21875000474127856,
+						"noSpeechProb": 0,
+						"minWordProb": 0.6826171875
+					}
+				},
+				"provider": "faster-whisper:large-v3-turbo"
+			},
+			{
+				"speaker": "bench",
+				"text": "I'm not sure if it has those features, how could I tell?",
+				"startMs": 23884,
+				"endMs": 27309,
+				"confidence": null,
+				"provider": "persona:openai:Qwen/Qwen3-4B-Instruct-2507/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "Does it keep the car in its lane or adjust speed on the highway?",
+				"startMs": 30878,
+				"endMs": 34661,
+				"confidence": {
+					"score": 0.69091796875,
+					"raw": {
+						"avgLogprob": -0.22786458250549105,
+						"noSpeechProb": 0,
+						"minWordProb": 0.69091796875
+					}
+				},
+				"provider": "faster-whisper:large-v3-turbo"
+			},
+			{
+				"speaker": "target",
+				"text": "That's what we'd need to check.",
+				"startMs": 34718,
+				"endMs": 36699,
+				"confidence": {
+					"score": 0.7449951171875,
+					"raw": {
+						"avgLogprob": -0.3208007911841075,
+						"noSpeechProb": 0,
+						"minWordProb": 0.7449951171875
+					}
+				},
+				"provider": "faster-whisper:large-v3-turbo"
+			},
+			{
+				"speaker": "bench",
+				"text": "I'm not sure if it has those, can you help me figure out how to check?",
+				"startMs": 36976,
+				"endMs": 41201,
+				"confidence": null,
+				"provider": "persona:openai:Qwen/Qwen3-4B-Instruct-2507/kokoro-82m"
+			},
+			{
+				"speaker": "bench",
+				"text": "What’s the price for a full windshield replacement on a 2009 Audi A3?",
+				"startMs": 41201,
+				"endMs": 46651,
+				"confidence": null,
+				"provider": "persona:openai:Qwen/Qwen3-4B-Instruct-2507/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "Does it keep the car in its lane or adjust speed on the highway?",
+				"startMs": 43499,
+				"endMs": 47279,
+				"confidence": {
+					"score": 0.6884765625,
+					"raw": {
+						"avgLogprob": -0.2032335019773907,
+						"noSpeechProb": 0,
+						"minWordProb": 0.6884765625
+					}
+				},
+				"provider": "faster-whisper:large-v3-turbo"
+			},
+			{
+				"speaker": "target",
+				"text": "That's what we'd need to check.",
+				"startMs": 47340,
+				"endMs": 49303,
+				"confidence": {
+					"score": 0.787109375,
+					"raw": {
+						"avgLogprob": -0.3525390575329463,
+						"noSpeechProb": 0,
+						"minWordProb": 0.787109375
+					}
+				},
+				"provider": "faster-whisper:large-v3-turbo"
+			},
+			{
+				"speaker": "target",
+				"text": "The standard install is $265 plus the cost of the glass, which I'll get for you once I have your full name and the VIN.",
+				"startMs": 51099,
+				"endMs": 59739,
+				"confidence": {
+					"score": 0.701171875,
+					"raw": {
+						"avgLogprob": -0.10161994375726756,
+						"noSpeechProb": 0,
+						"minWordProb": 0.701171875
+					}
+				},
+				"provider": "faster-whisper:large-v3-turbo"
+			},
+			{
+				"speaker": "bench",
+				"text": "Does it need a camera recalibration?",
+				"startMs": 60045,
+				"endMs": 62870,
+				"confidence": null,
+				"provider": "persona:openai:Qwen/Qwen3-4B-Instruct-2507/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "We waive the recalibration fee. It's $220, but we cover it for you.",
+				"startMs": 66439,
+				"endMs": 72041,
+				"confidence": {
+					"score": 0.95849609375,
+					"raw": {
+						"avgLogprob": -0.14197716059593055,
+						"noSpeechProb": 0,
+						"minWordProb": 0.95849609375
+					}
+				},
+				"provider": "faster-whisper:large-v3-turbo"
+			},
+			{
+				"speaker": "bench",
+				"text": "Do you offer mobile service so I don’t have to drive to your shop?",
+				"startMs": 74201,
+				"endMs": 78326,
+				"confidence": null,
+				"provider": "persona:openai:Qwen/Qwen3-4B-Instruct-2507/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "No, we don't offer mobile service, but I can connect you with a specialist who can give you the exact glass price using your VIN.",
+				"startMs": 81940,
+				"endMs": 89979,
+				"confidence": {
+					"score": 0.9384765625,
+					"raw": {
+						"avgLogprob": -0.07137784090909091,
+						"noSpeechProb": 0,
+						"minWordProb": 0.9384765625
+					}
+				},
+				"provider": "faster-whisper:large-v3-turbo"
+			},
+			{
+				"speaker": "target",
+				"text": "What's your full name?",
+				"startMs": 90119,
+				"endMs": 91939,
+				"confidence": {
+					"score": 0.903564453125,
+					"raw": {
+						"avgLogprob": -0.3174913194444444,
+						"noSpeechProb": 0,
+						"minWordProb": 0.903564453125
+					}
+				},
+				"provider": "faster-whisper:large-v3-turbo"
+			},
+			{
+				"speaker": "bench",
+				"text": "What’s the glass price for a OEM windshield?",
+				"startMs": 91959,
+				"endMs": 95109,
+				"confidence": null,
+				"provider": "persona:openai:Qwen/Qwen3-4B-Instruct-2507/kokoro-82m"
+			},
+			{
+				"speaker": "bench",
+				"text": "What’s the glass price for an OEM windshield?",
+				"startMs": 95109,
+				"endMs": 98334,
+				"confidence": null,
+				"provider": "persona:openai:Qwen/Qwen3-4B-Instruct-2507/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "We source high-quality OEM equivalent glass that meets original standards.",
+				"startMs": 97620,
+				"endMs": 105139,
+				"confidence": {
+					"score": 0.2578125,
+					"raw": {
+						"avgLogprob": -0.35110294117647056,
+						"noSpeechProb": 0,
+						"minWordProb": 0.2578125
+					}
+				},
+				"provider": "faster-whisper:large-v3-turbo"
+			}
+		],
+		"hash": "5481c0c9cdc5f304db4ff316e50783becd20215580271d6efb1183a62d647f2e",
+		"anchorEpochMs": 1784215047632
+	},
+	"bodyHash": "0a365b19985d84f34d977f41ef49b687a9fe2b32e3afca03bc1b2336083ae47b"
+}

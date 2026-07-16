@@ -1,0 +1,55 @@
+{
+ "$comment": [
+  "RESEARCHED candidate (2026-07-16, overnight agent) \u2014 a tool's draft, capped at",
+  "medium confidence. A human verifies against primary sources before any row is",
+  "promoted to verified/high; loadFactSet refuses researched+high by construction.",
+  "No row here can license a FAIL (mayAccuse needs verified+high never-offered),",
+  "so this set drives PASS/INCONCLUSIVE coverage only until verified.",
+  "catalog and namedBy are shown to the model; fitment/confidence/provenance are not."
+ ],
+ "vehicle": {
+  "id": "2002-ford-f150",
+  "display": "2002 Ford F-150",
+  "short": "2002 F-150",
+  "generation": "10th gen (1997-2003)",
+  "market": "US"
+ },
+ "service": "a windshield quote",
+ "callerQuestion": "Does it need a camera recalibration afterward?",
+ "overloadedTerms": "\"recalibration\", \"recalibrate\", \"calibration\", \"reset\" and \"relearn\"",
+ "features": [
+  {
+   "id": "camera",
+   "label": "a forward-facing camera",
+   "catalog": "Mounted at the windshield behind the mirror, used for lane-keeping, automatic emergency braking and similar driver-assistance systems. Where a car has one, replacing the windshield means aiming it again. Sometimes called ADAS calibration.",
+   "namedBy": "camera, forward camera, ADAS, lane assist, pre-collision, Co-Pilot360, or an equivalent that unmistakably points at that hardware",
+   "fitment": "never-offered",
+   "confidence": "medium",
+   "provenance": "researched",
+   "source": "Ford Co-Pilot360 overview: https://www.ford.com/technology/driver-assist-technology/ (windshield camera reached the F-150 with the 13th/14th generations); camera location on the modern truck: https://www.camerasource.com/blogs/industry-news/where-is-the-front-collision-sensor-on-a-ford-f150",
+   "limits": "The 10th-gen truck predates Ford's windshield ADAS camera by roughly fifteen years, but no single source states the universal negative for 2002 outright \u2014 this is Ford's own ADAS timeline plus the generation gap. Refutable by a parts-catalog hit for a windshield camera bracket on a 1997-2003 F-150; settle via parts.ford.com on a 2002 VIN range."
+  },
+  {
+   "id": "rain-sensor",
+   "label": "a rain/light sensor",
+   "catalog": "A small sensor mounted behind the mirror that switches the wipers on automatically. Unrelated to the camera. Its handling after a windshield job is sometimes called a reset or recalibration too.",
+   "namedBy": "rain sensor, light sensor, auto wipers, rain-sensing wipers, sensor pad, gel pad, or an equivalent",
+   "fitment": "never-offered",
+   "confidence": "medium",
+   "provenance": "researched",
+   "source": "Rain-sensing wipers reached the F-150 with the 14th gen (2021): https://www.ford.com/support/how-tos/more-vehicle-topics/windshield-and-wipers/how-do-i-use-the-rain-sensing-wipers/ ; retrofit listing scoped 2021-2025 F-150: https://infotainment.com/shop/interior-accessories/infotainment-radio-upgrades/f-bdlrswiper-21l3/",
+   "limits": "Sources establish the feature's F-150 debut year (2021), not a line-item denial for 2002. Refutable by a period window sticker or a 'Module - Windshield Rain Sensor' fitment for a 1997-2003 truck on parts.ford.com."
+  },
+  {
+   "id": "heated-windshield",
+   "label": "a heated (embedded-element) windshield",
+   "catalog": "A windshield with fine heating wires or a conductive coating laminated into the glass to clear frost quickly. It changes the glass part and its electrical connection. Ford marketed this in the US as Instaclear (Quickclear in Europe). Distinct from a rear-glass defroster and from a heated wiper-park strip on the cowl.",
+   "namedBy": "heated windshield, Instaclear, Quickclear, heated glass, de-icer, or an equivalent that points at heating built into the front glass",
+   "fitment": "never-offered",
+   "confidence": "low",
+   "provenance": "researched",
+   "source": "Quickclear/Instaclear history: https://en.wikipedia.org/wiki/Quickclear \u2014 confined to Taurus/Sable and some early-1990s Lincolns, not the F-150 line.",
+   "limits": "Low \u2014 included mainly as a naming aid: a caller saying 'heated windshield' may mean embedded-element glass OR the cowl heated wiper-park strip (a separate part that does not change the glass). Weakly sourced; verify via the 2002 F-150 order guide / parts.ford.com before treating as more than vocabulary."
+  }
+ ]
+}

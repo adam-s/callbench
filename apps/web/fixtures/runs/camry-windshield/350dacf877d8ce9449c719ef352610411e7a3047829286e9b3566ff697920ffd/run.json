@@ -1,0 +1,157 @@
+{
+	"artifactVersion": 1,
+	"scenario": "camry-windshield",
+	"runId": "350dacf877d8ce9449c719ef352610411e7a3047829286e9b3566ff697920ffd",
+	"target": "simulator",
+	"createdEpochMs": 1784186957324,
+	"report": {
+		"scenario": "camry-windshield",
+		"hash": "350dacf877d8ce9449c719ef352610411e7a3047829286e9b3566ff697920ffd",
+		"counts": {
+			"PASS": 1,
+			"FAIL": 0,
+			"INCONCLUSIVE": 1
+		},
+		"results": [
+			{
+				"outcome": "INCONCLUSIVE",
+				"assertion": "requirement-camera",
+				"detail": "the target never answered the toyota safety sense question",
+				"span": null
+			},
+			{
+				"outcome": "PASS",
+				"assertion": "asked-before-quoting",
+				"detail": "asked for the vehicle before quoting a price",
+				"span": {
+					"turnIndex": 2,
+					"startMs": 11371,
+					"endMs": 15631
+				}
+			}
+		],
+		"verdicts": []
+	},
+	"audio": {
+		"file": "call.wav",
+		"sampleRate": 8000,
+		"channels": 1,
+		"durationMs": 60371,
+		"sha256": "8380e0179ee836e45c3a60577a008d7acfc8ce0b4fe61a6b516d2ee6d7ebbe1e",
+		"synthetic": "live Twilio wire capture; both voices kokoro-82m over 8kHz mulaw"
+	},
+	"transcript": {
+		"turns": [
+			{
+				"speaker": "target",
+				"text": "Thanks for calling. What can I do for you today?",
+				"startMs": 611,
+				"endMs": 3611,
+				"confidence": {
+					"score": 0.89013671875,
+					"raw": {
+						"avgLogprob": -0.2348958412806193,
+						"noSpeechProb": 0.00885772705078125,
+						"minWordProb": 0.89013671875
+					}
+				},
+				"provider": "faster-whisper:large-v3"
+			},
+			{
+				"speaker": "bench",
+				"text": "Hi, I need a quote for a windshield replacement.",
+				"startMs": 5468,
+				"endMs": 8768,
+				"confidence": null,
+				"provider": "scripted/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "Sure, happy to help. What's the year, make, and model of the vehicle?",
+				"startMs": 11371,
+				"endMs": 15631,
+				"confidence": {
+					"score": 0.8115234375,
+					"raw": {
+						"avgLogprob": -0.23313210904598236,
+						"noSpeechProb": 0.00478363037109375,
+						"minWordProb": 0.8115234375
+					}
+				},
+				"provider": "faster-whisper:large-v3"
+			},
+			{
+				"speaker": "bench",
+				"text": "It's a 2022 Toyota Camry.",
+				"startMs": 17666,
+				"endMs": 20616,
+				"confidence": null,
+				"provider": "scripted/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "Got it? Does it have a forward-facing camera, or a head-up display, or an acoustic, noise-reducing, windshield, or a rain light sensor?",
+				"startMs": 23111,
+				"endMs": 31591,
+				"confidence": {
+					"score": 0.86767578125,
+					"raw": {
+						"avgLogprob": -0.08896484412252903,
+						"noSpeechProb": 0.0038776397705078125,
+						"minWordProb": 0.86767578125
+					}
+				},
+				"provider": "faster-whisper:large-v3"
+			},
+			{
+				"speaker": "bench",
+				"text": "It has the Safety Sense stuff, if that's what you mean.",
+				"startMs": 34325,
+				"endMs": 38100,
+				"confidence": null,
+				"provider": "scripted/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "The standard job is $420 plus parts, which we price from your VIN.",
+				"startMs": 40891,
+				"endMs": 46292,
+				"confidence": {
+					"score": 0.83447265625,
+					"raw": {
+						"avgLogprob": -0.19828868763787405,
+						"noSpeechProb": 0.007808685302734375,
+						"minWordProb": 0.83447265625
+					}
+				},
+				"provider": "faster-whisper:large-v3"
+			},
+			{
+				"speaker": "bench",
+				"text": "Does it need a camera recalibration afterward?",
+				"startMs": 48281,
+				"endMs": 51706,
+				"confidence": null,
+				"provider": "scripted/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "No, it doesn't need anything like that on this one.",
+				"startMs": 54051,
+				"endMs": 56951,
+				"confidence": {
+					"score": 0.9501953125,
+					"raw": {
+						"avgLogprob": -0.22021485026925802,
+						"noSpeechProb": 0.01480865478515625,
+						"minWordProb": 0.9501953125
+					}
+				},
+				"provider": "faster-whisper:large-v3"
+			}
+		],
+		"hash": "350dacf877d8ce9449c719ef352610411e7a3047829286e9b3566ff697920ffd",
+		"anchorEpochMs": 1784187002084
+	},
+	"bodyHash": "bcba5dc53417c1ae4becfd1fd5837a02fb3f0e6829bc7a84c5d1b46578d4ae36"
+}

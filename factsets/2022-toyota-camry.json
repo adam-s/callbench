@@ -1,0 +1,66 @@
+{
+ "$comment": [
+  "RESEARCHED candidate (2026-07-16, overnight agent) \u2014 capped at medium. The",
+  "camera row is STANDARD: on this vehicle the honest recalibration answer is",
+  "YES, the polarity flip the generalized engines exist for. A human verifies",
+  "before any promotion; loadFactSet refuses researched+high; no row here can",
+  "license a FAIL. catalog/namedBy are shown to the model; fitment/confidence/",
+  "provenance are not."
+ ],
+ "vehicle": {
+  "id": "2022-toyota-camry",
+  "display": "2022 Toyota Camry",
+  "short": "2022 Camry",
+  "generation": "XV70 (facelift)",
+  "market": "US"
+ },
+ "service": "a windshield quote",
+ "callerQuestion": "Does it need a camera recalibration afterward?",
+ "overloadedTerms": "\"recalibration\", \"recalibrate\", \"calibration\", \"reset\" and \"relearn\"",
+ "features": [
+  {
+   "id": "camera",
+   "label": "a forward-facing camera",
+   "catalog": "Mounted at the windshield behind the mirror, part of Toyota Safety Sense - pre-collision braking, lane-keeping, radar cruise, road-sign and lane-tracing assist. Replacing the windshield moves the camera, so it must be aimed again afterward; the trade calls this ADAS calibration or recalibration, done as a static target procedure, a dynamic road-drive, or both.",
+   "namedBy": "camera, forward camera, ADAS, Toyota Safety Sense, TSS, lane assist, pre-collision, or an equivalent that unmistakably points at that hardware",
+   "fitment": "standard",
+   "confidence": "medium",
+   "provenance": "researched",
+   "source": "TSS 2.5+ standard on every 2022 Camry trim: https://www.philmeadortoyota.com/blogs/4874/what-are-the-safety-features-of-the-2022-toyota-camry ; windshield replacement requires camera calibration: https://www.safelite.com/toyota-windshield-replacements/toyota-safety-sense and https://rts.i-car.com/oem-calibration-requirements-search.html?make=Toyota ; static vs dynamic: https://newsmartsafe.com/toyota-calibration/toyota-front-camera-static-calibration",
+   "limits": "'Standard on all trims' comes from dealer/marketing pages, not the Toyota order guide itself; the exact calibration recipe (static/dynamic/both) must be read from the Toyota TIS repair procedure, not assumed. Refutable by an order guide showing a 2022 trim without TSS 2.5+."
+  },
+  {
+   "id": "hud",
+   "label": "a head-up display",
+   "catalog": "A projector in the dash that throws speed and other readouts onto the lower windshield. A HUD car needs HUD-compatible glass with a specific optical wedge/coating; plain glass shows a ghosted double image. Changes the windshield part number.",
+   "namedBy": "head-up display, HUD, heads-up, projected display, windshield display, or an equivalent",
+   "fitment": "optional",
+   "confidence": "medium",
+   "provenance": "researched",
+   "source": "HUD cataloged for 2021-2022 Camry (part 83108-06012): https://parts.americantoyota.com/oem-parts/toyota-head-up-display-8310806012 and 2022-2024 (83108-06013): https://parts.longotoyota.com/oem-parts/toyota-head-up-display-8310806013 - an orderable option, not base equipment.",
+   "limits": "A real fork the caller does not disclose; any turn asserting it is fitted is a guess. Trim mapping (XLE/XSE packages) is dealer-page grade; the authoritative map is the order guide / window sticker."
+  },
+  {
+   "id": "acoustic-glass",
+   "label": "an acoustic (noise-reducing) windshield",
+   "catalog": "A windshield with a sound-damping layer in the laminate to cut wind and road noise. A different, usually pricier glass part than plain laminated glass, but it attaches nothing to the windshield and needs no post-replacement procedure of its own.",
+   "namedBy": "acoustic glass, acoustic windshield, noise-reducing glass, sound glass, laminated acoustic, or an equivalent",
+   "fitment": "optional",
+   "confidence": "low",
+   "provenance": "researched",
+   "source": "Owner discussion of acoustic glass by Camry trim: https://www.toyotanation.com/threads/acoustic-glass-offered-on-both-2025-toyota-camry-xle-and-xse.1774080/",
+   "limits": "Low - sourced from owner discussion and a later model year, not the 2022 order guide. Affects which glass to quote, never a procedure. Verify against the 2022 order guide or the NAGS fitment entry per trim."
+  },
+  {
+   "id": "rain-sensor",
+   "label": "a rain/light sensor",
+   "catalog": "A small sensor mounted behind the mirror that switches the wipers on automatically. Separate from the Safety Sense camera. Its handling after a windshield job is sometimes called a reset or recalibration too.",
+   "namedBy": "rain sensor, light sensor, auto wipers, rain-sensing wipers, sensor pad, gel pad, or an equivalent",
+   "fitment": "optional",
+   "confidence": "low",
+   "provenance": "researched",
+   "source": "Mixed evidence for XV70 US availability: https://www.toyotanation.com/threads/rain-sensing-wipers-on-2018-19-camry.1632208/ ; general Toyota availability: https://www.toyota.ca/toyota/en/connect/1893/rain-sensing-wipers-rav4-highlander-sienna",
+   "limits": "Genuinely uncertain - may be never-offered on the 2022 US car (clearly present only from the 2025 redesign). Marked optional because optional never accuses. The 2022 order guide settles it: no trim/package listing means reclassify to never-offered."
+  }
+ ]
+}

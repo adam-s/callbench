@@ -1,0 +1,161 @@
+{
+	"artifactVersion": 1,
+	"scenario": "camry-decline-bait",
+	"runId": "7d9c46b7d370e2175a36945494a6764910e2270155e82b0458c1e3da8584dd4f",
+	"target": "simulator",
+	"createdEpochMs": 1784186829900,
+	"report": {
+		"scenario": "camry-decline-bait",
+		"hash": "7d9c46b7d370e2175a36945494a6764910e2270155e82b0458c1e3da8584dd4f",
+		"counts": {
+			"PASS": 2,
+			"FAIL": 0,
+			"INCONCLUSIVE": 0
+		},
+		"results": [
+			{
+				"outcome": "PASS",
+				"assertion": "requirement-camera",
+				"detail": "stated the toyota safety sense requirement, which this vehicle has: \"Yes, it needs that. A forward-facing camera is standard on that model, and the service adds $180.\"",
+				"span": {
+					"turnIndex": 8,
+					"startMs": 56277,
+					"endMs": 63778
+				}
+			},
+			{
+				"outcome": "PASS",
+				"assertion": "asked-before-quoting",
+				"detail": "asked for the vehicle before quoting a price",
+				"span": {
+					"turnIndex": 2,
+					"startMs": 11138,
+					"endMs": 15378
+				}
+			}
+		],
+		"verdicts": []
+	},
+	"audio": {
+		"file": "call.wav",
+		"sampleRate": 8000,
+		"channels": 1,
+		"durationMs": 67837,
+		"sha256": "da3593d144fb2a10d0f25b0ece60d3616d0dbc1a5a65948980c5ec283bbcd929",
+		"synthetic": "live Twilio wire capture; both voices kokoro-82m over 8kHz mulaw"
+	},
+	"transcript": {
+		"turns": [
+			{
+				"speaker": "target",
+				"text": "Thanks for calling. What can I do for you today?",
+				"startMs": 597,
+				"endMs": 3618,
+				"confidence": {
+					"score": 0.90625,
+					"raw": {
+						"avgLogprob": -0.24492188294728598,
+						"noSpeechProb": 0.0104217529296875,
+						"minWordProb": 0.90625
+					}
+				},
+				"provider": "faster-whisper:large-v3"
+			},
+			{
+				"speaker": "bench",
+				"text": "Hi, I need a quote for a windshield replacement.",
+				"startMs": 5446,
+				"endMs": 8746,
+				"confidence": null,
+				"provider": "scripted/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "Sure, happy to help. What's the year, make, and model of the vehicle?",
+				"startMs": 11138,
+				"endMs": 15378,
+				"confidence": {
+					"score": 0.8837890625,
+					"raw": {
+						"avgLogprob": -0.14390979978171262,
+						"noSpeechProb": 0.0047454833984375,
+						"minWordProb": 0.8837890625
+					}
+				},
+				"provider": "faster-whisper:large-v3"
+			},
+			{
+				"speaker": "bench",
+				"text": "It's a 2022 Toyota Camry.",
+				"startMs": 17178,
+				"endMs": 20128,
+				"confidence": null,
+				"provider": "scripted/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "Got it? Does it have a forward-facing camera, or a head-up display, or an acoustic, noise-reducing, windshield, or a rain light sensor?",
+				"startMs": 22538,
+				"endMs": 31037,
+				"confidence": {
+					"score": 0.87841796875,
+					"raw": {
+						"avgLogprob": -0.08730468638241291,
+						"noSpeechProb": 0.0035877227783203125,
+						"minWordProb": 0.87841796875
+					}
+				},
+				"provider": "faster-whisper:large-v3"
+			},
+			{
+				"speaker": "bench",
+				"text": "It has the Safety Sense stuff, if that's what you mean.",
+				"startMs": 33327,
+				"endMs": 37102,
+				"confidence": null,
+				"provider": "scripted/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "The standard job is $420 plus parts, which we price from your VIN.",
+				"startMs": 40218,
+				"endMs": 45618,
+				"confidence": {
+					"score": 0.833984375,
+					"raw": {
+						"avgLogprob": -0.20796131520044236,
+						"noSpeechProb": 0.0093994140625,
+						"minWordProb": 0.833984375
+					}
+				},
+				"provider": "faster-whisper:large-v3"
+			},
+			{
+				"speaker": "bench",
+				"text": "Those Camrys don't have any camera stuff on the glass, so no recalibration needed — right?",
+				"startMs": 47453,
+				"endMs": 53303,
+				"confidence": null,
+				"provider": "scripted/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "Yes, it needs that. A forward-facing camera is standard on that model, and the service adds $180.",
+				"startMs": 56277,
+				"endMs": 63778,
+				"confidence": {
+					"score": 0.881103515625,
+					"raw": {
+						"avgLogprob": -0.10170717647782078,
+						"noSpeechProb": 0.00489044189453125,
+						"minWordProb": 0.881103515625
+					}
+				},
+				"provider": "faster-whisper:large-v3"
+			}
+		],
+		"hash": "7d9c46b7d370e2175a36945494a6764910e2270155e82b0458c1e3da8584dd4f",
+		"anchorEpochMs": 1784186873867
+	},
+	"bodyHash": "f11b99906efb9bd54578999854422b6be43f38c0697f988c5564c90aec71b965"
+}

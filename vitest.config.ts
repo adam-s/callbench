@@ -17,7 +17,19 @@ export default defineConfig({
 				test: {
 					name: 'node',
 					environment: 'node',
-					include: ['packages/**/*.test.ts', 'scripts/**/*.test.mjs', 'apps/web/src/**/*.test.ts'],
+					// `scripts/**` matches BOTH extensions on purpose. It was
+					// `scripts/**/*.test.mjs` only, so a `.test.ts` under scripts/ was
+					// invisible to the runner — a whole test file for the fact set's
+					// safety gate sat there executing zero times, and the mutations it
+					// was written to catch all "survived". A glob that silently skips
+					// a test file is worse than a missing test: the file looks like
+					// coverage.
+					include: [
+						'packages/**/*.test.ts',
+						'scripts/**/*.test.mjs',
+						'scripts/**/*.test.ts',
+						'apps/web/src/**/*.test.ts',
+					],
 					exclude: ['**/node_modules/**', '**/dist/**', '**/.svelte-kit/**', '**/*.dom.test.ts'],
 				},
 			},

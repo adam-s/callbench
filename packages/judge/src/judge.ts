@@ -89,7 +89,7 @@ export function cacheKey(rubric: Rubric, input: JudgeInput, runnerId: string): s
 /** Build the judge prompt. The structure is the researched shape: criterion,
  * the material, an explicit reasoning instruction, and a scoring rule that
  * forces one of the three states — INCONCLUSIVE included by name. */
-export function buildPrompt(rubric: Rubric, input: JudgeInput): string {
+function buildPrompt(rubric: Rubric, input: JudgeInput): string {
 	return [
 		'You are grading one criterion against a transcript excerpt from a phone call.',
 		'Judge only what the excerpt shows. Do not reward length or assume intent.',
