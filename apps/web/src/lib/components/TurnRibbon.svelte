@@ -41,10 +41,19 @@
 	}
 </script>
 
+<!-- Labels live in a LEGEND, not the time axis: a label column inside the row
+     shifted and compressed the tapes' scale relative to the waveform above,
+     and the playhead — a percentage of the full row — ran on a wider scale
+     than the tapes it crossed (maintainer-seen as a fast cursor, worst near
+     the end). The tapes now span the same full width as the waveform, and
+     every percentage shares that one axis. -->
 <div class="ribbon">
-	{#each ['bench', 'target'] as const as lane (lane)}
-		<div class="lane">
-			<span class="lane-label {lane}">{lane === 'bench' ? 'BENCH' : 'AGENT'}</span>
+	<div class="legend" aria-hidden="true">
+		<span class="key"><i class="swatch bench"></i>BENCH</span>
+		<span class="key"><i class="swatch target"></i>AGENT</span>
+	</div>
+	<div class="tapes">
+		{#each ['bench', 'target'] as const as lane (lane)}
 			<div class="track">
 				{#each turns as turn, i (i)}
 					{#if turn.speaker === lane}
@@ -54,46 +63,62 @@
 							style:left={pct(turn.startMs)}
 							style:width={pct(Math.max(1, turn.endMs - turn.startMs))}
 							title={turn.text}
-							aria-label="{lane} turn: {turn.text}"
+							aria-label="{lane === 'bench' ? 'BENCH' : 'AGENT'} turn: {turn.text}"
 							onclick={() => seekTo(turn.startMs)}
 						></button>
 					{/if}
 				{/each}
 			</div>
-		</div>
-	{/each}
-	{#if transport}
-		<div class="playhead" style:left={playheadPct}></div>
-	{/if}
+		{/each}
+		{#if transport}
+			<div class="playhead" style:left={playheadPct}></div>
+		{/if}
+	</div>
 </div>
 
 <style>
 	.ribbon {
-		position: relative;
 		display: flex;
 		flex-direction: column;
 		gap: 0.35rem;
 		padding: 0.5rem 0;
 	}
-	.lane {
+	.legend {
 		display: flex;
-		align-items: center;
-		gap: 0.6rem;
-	}
-	.lane-label {
-		flex: none;
-		width: 3.4rem;
+		gap: 1rem;
 		font-family: var(--mono);
 		font-size: 0.62rem;
 		font-weight: 700;
 		letter-spacing: 0.04em;
-		text-align: right;
 	}
-	.lane-label.bench {
+	.key {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+	}
+	.swatch {
+		width: 0.7rem;
+		height: 0.7rem;
+		border-radius: 2px;
+		display: inline-block;
+	}
+	.swatch.bench {
+		background: var(--bench);
+	}
+	.swatch.target {
+		background: var(--target);
+	}
+	.key:first-child {
 		color: var(--bench);
 	}
-	.lane-label.target {
+	.key:last-child {
 		color: var(--target);
+	}
+	.tapes {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
 	}
 	.track {
 		position: relative;
@@ -132,8 +157,6 @@
 		position: absolute;
 		top: 0;
 		bottom: 0;
-		/* offset by the lane label column so it lines up with the tracks */
-		margin-left: 4rem;
 		width: 1.5px;
 		background: var(--accent);
 		pointer-events: none;

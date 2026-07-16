@@ -27,6 +27,13 @@ export function releaseAudio(stop: () => void) {
 export class Transport {
 	playing = $state(false);
 	/** Current playback position in seconds. Read this for declarative bindings. */
+	constructor() {
+		// DEBUG hook for the live-page probe (scratchpad); last instance wins.
+		if (typeof window !== 'undefined') {
+			(window as unknown as { __cbTransport?: Transport }).__cbTransport = this;
+		}
+	}
+
 	t = $state(0);
 	duration = $state(0);
 	/** Bumped once per rAF tick while playing. Depend on this for canvas redraws. */
@@ -113,6 +120,23 @@ export class Transport {
 	}
 
 	/** Lazily build the WebAudio graph (must follow a user gesture). Connected once. */
+	/** DEBUG surface: every clock in one object, for the harness that samples
+	 * the live page (scratchpad probe). Reads only; remove-safe. */
+	debugSnapshot() {
+		const a = this.#audio;
+		return {
+			t: this.t,
+			duration: this.duration,
+			ct: a?.currentTime ?? null,
+			decoderDuration: a && Number.isFinite(a.duration) ? a.duration : null,
+			paused: a?.paused ?? null,
+			readyState: a?.readyState ?? null,
+			playbackRate: a?.playbackRate ?? null,
+			ctxRate: this.#ctx?.sampleRate ?? null,
+			ctxState: this.#ctx?.state ?? null,
+		};
+	}
+
 	/** Top frequency the analyser's bins span (context sample rate / 2) — a
 	 * meter needs it to map bars onto the band an 8kHz telephony recording can
 	 * actually occupy instead of the context's full range. */
