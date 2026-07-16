@@ -38,13 +38,16 @@ const runner = claudeRunner('sonnet');
 const cache = new MapCache();
 const out = { rubric, runner: runner.id, cases: [], verdicts: {} };
 
+const mismatches = [];
 for (const c of cases) {
 	const input = { text: c.text, span: { turnIndex: 1, startMs: 0, endMs: 1000 } };
 	const key = cacheKey(rubric, input, runner.id);
 	const verdict = await judge(rubric, input, runner, cache);
+	const ok = verdict.outcome === c.expected;
 	console.log(
-		`${c.id.padEnd(10)} expected ${c.expected.padEnd(12)} got ${verdict.outcome.padEnd(12)} ${verdict.outcome === c.expected ? 'OK' : 'MISMATCH'}`,
+		`${c.id.padEnd(10)} expected ${c.expected.padEnd(12)} got ${verdict.outcome.padEnd(12)} ${ok ? 'OK' : 'MISMATCH'}`,
 	);
+	if (!ok) mismatches.push(`${c.id}: expected ${c.expected}, live judge said ${verdict.outcome}`);
 	out.cases.push({ ...c, key, input });
 	out.verdicts[key] = {
 		outcome: verdict.outcome,
@@ -54,6 +57,20 @@ for (const c of cases) {
 		judgedBy: verdict.judgedBy,
 		rubricVersion: verdict.rubricVersion,
 	};
+}
+
+// The fixture is the proof the judge discriminates — it must record what a
+// careful human labeled. A live verdict that disagrees with `expected` means the
+// judge (or the rubric) drifted; freezing it would bake a self-contradictory
+// fixture that then asserts the judge got a case right when it did not. Abort
+// loudly and change nothing on disk; the disagreement is the finding to inspect.
+if (mismatches.length > 0) {
+	console.error('\nABORTING — live verdict disagrees with the human label:');
+	for (const m of mismatches) console.error(`  ${m}`);
+	console.error(
+		'\ncalibration.json NOT written. Investigate the rubric or the judge before rerunning.',
+	);
+	process.exit(1);
 }
 
 writeFileSync(

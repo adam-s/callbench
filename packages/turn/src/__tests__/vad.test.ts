@@ -45,6 +45,17 @@ describe('EnergyTurnDetector', () => {
 		expect(end.spokeMs).toBeGreaterThan(0);
 	});
 
+	it('reports spokeMs as (last-speech − start + one frame), exactly', () => {
+		// Voiced frames at 0, 20, 40ms → speech starts at 0, last speech at 40.
+		// The span spoken is 40 − 0 + one 20ms frame = 60ms. Pinned exactly so an
+		// off-by-one-frame (dropping the +frameMs, or an inclusive/exclusive slip)
+		// is caught rather than passing a loose `> 0`.
+		const events = run([voiced, voiced, voiced, silence, silence, silence, silence, silence]);
+		const end = events.find((e) => e?.type === 'turn-end');
+		if (end?.type !== 'turn-end') throw new Error('no turn-end');
+		expect(end.spokeMs).toBe(60);
+	});
+
 	it('does NOT end the turn on a gap shorter than the hangover', () => {
 		// speech, one silence frame (20ms < 100ms hangover), speech again.
 		const events = run([voiced, silence, voiced, voiced]);
