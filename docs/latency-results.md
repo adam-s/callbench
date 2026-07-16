@@ -54,6 +54,23 @@ the fast regime than 8.7s suggests.
 | What | Median voice-to-voice | Take | Notes |
 |---|---|---|---|
 | Sequential loop (STT→LLM→TTS, no overlap, cold-start-prone) | **8.7s** (7.5–11.8s) | `c41db469` | the baseline; batch faster-whisper + `claude -p` subprocess + whole-utterance Kokoro |
+| Same loop, per-stage split | **8.9s** (7.9–10.6s) | `1784193757706` | 11-turn unscripted call; the split below |
+
+#### Per-stage breakdown (measured, take `1784193757706`)
+
+| Stage | Median | Range | Share |
+|---|---|---|---|
+| STT (audio→text) | 2.0s | 1.3–2.5s | ~23% |
+| **LLM (reasoning)** | **4.7s** | 3.9–5.5s | **~53%** |
+| TTS + transit (remainder) | ~2.2s | — | ~24% |
+
+**The LLM leg dominates — more than 2× the STT.** The specific cause is measured,
+not guessed: the persona and shop both run `claude -p` as a SUBPROCESS per turn,
+which boots the whole Claude Code harness before a NON-streaming completion (one
+turn spiked to 66s — a subprocess hang). Audio is not the bottleneck; the LLM
+leg is. This is why the #1 change is a streaming in-process LLM runner, and why
+the Modal co-location of stages is the SECOND lever, not the first — collapse the
+4.7s LLM block before chasing the network hops.
 
 ### Projected (research, not yet dialed — each needs its prerequisite to become a measured number)
 
