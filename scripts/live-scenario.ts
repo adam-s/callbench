@@ -681,7 +681,10 @@ async function main(): Promise<void> {
 		 * outbound span is stamped at its true play time instead. */
 		let wireCursor = 0;
 		const stampWire = (durMs: number): number => {
-			const at = Math.max(clock(), wireCursor);
+			// +400: the pacer's lead — audio queues that long before the wire
+			// plays it (sessionOptions.pacerLeadMs); stamping at queue time put
+			// every bench span ~400ms early on the dashboard.
+			const at = Math.max(clock() + 400, wireCursor);
 			wireCursor = at + durMs;
 			return at;
 		};
@@ -1040,7 +1043,10 @@ async function main(): Promise<void> {
 							speaker: 'target',
 							text: heard.text.trim(),
 							startMs: startedAt,
-							endMs: turn.atMs,
+							// turn-end FIRES confirmSilenceMs after the last speech frame — the
+							// record wants when they STOPPED, or every span drags a silent tail
+							// (dashboard skew, real take 1784216848744).
+							endMs: turn.atMs - turnCfg.confirmSilenceMs,
 							confidence: turnConfidence(heard),
 							provider: heard.provider,
 						});
