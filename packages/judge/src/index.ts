@@ -9,4 +9,12 @@ export {
 	type Verdict,
 	type VerdictCache,
 } from './judge.ts';
-export { claudeRunner, type Runner, RunnerError, resolveRunner } from './runner.ts';
+export {
+	canStream,
+	claudeRunner,
+	openaiStreamingRunner,
+	parseSseChunk,
+	type Runner,
+	RunnerError,
+	resolveRunner,
+} from './runner.ts';

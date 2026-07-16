@@ -27,7 +27,7 @@ import { createHash } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { babble, processBuffer } from '@callbench/audioqc';
-import { claudeRunner, MapCache, RunnerError } from '@callbench/judge';
+import { claudeRunner, MapCache, RunnerError, resolveRunner } from '@callbench/judge';
 import {
 	agentReply,
 	allScenarios,
@@ -162,7 +162,13 @@ async function main(): Promise<void> {
 	const tts = new ModalKokoroTts(required('MODAL_TTS_URL'), process.env.TTS_API_KEY);
 	// The persona's model — the judge package's runner plumbing, reused as an
 	// isolated named stage. Its id lands on every improvised turn's provider.
-	const personaRunner = claudeRunner('sonnet');
+	// CALLBENCH_PERSONA_RUNNER picks it: default claude:sonnet (subprocess, the
+	// measured 4.7s block), or openai:<model> for the streaming Modal-vLLM fast
+	// path — a config swap, no code change. claudeRunner default keeps existing
+	// behavior when the var is unset.
+	const personaRunner = process.env.CALLBENCH_PERSONA_RUNNER
+		? resolveRunner(process.env.CALLBENCH_PERSONA_RUNNER)
+		: claudeRunner('sonnet');
 	const personaLog: Array<{ atMs: number; llmMs?: number; prompt: string; raw: string }> = [];
 
 	// Pre-synthesize EVERYTHING both sides could say (docs/models.md: scripted

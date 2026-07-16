@@ -23,7 +23,7 @@
  * an improvising persona is cheap to catch there (plan.md).
  */
 
-import type { Runner } from '@callbench/judge';
+import { canStream, type Runner } from '@callbench/judge';
 import type { CallerTurn, Scenario } from './scenario.ts';
 
 export interface Persona {
@@ -110,6 +110,71 @@ export async function nextLine(
 		);
 	}
 	return { decision: { kind: 'say', text: line }, prompt, raw };
+}
+
+/** The first complete clause in `text`, or null if no clause boundary yet. A
+ * clause ends at `.?!` — the natural handoff point to TTS, so the wire plays
+ * clause one while the model is still producing clause two. */
+export function firstClause(text: string): string | null {
+	const m = /^[^.?!]*[.?!]/.exec(text.trimStart());
+	return m ? m[0].trim() : null;
+}
+
+/**
+ * Streaming persona step — the latency fix. On a stream-capable runner it yields
+ * the FIRST CLAUSE the instant the model has produced one (via `onFirstClause`),
+ * so the caller can start TTS before the reply is finished (the measured 4.7s
+ * LLM block otherwise blocks the whole turn). Falls back to `nextLine` on a
+ * runner that cannot stream. Returns the same shape as `nextLine` once the reply
+ * is complete; the persona wants one short sentence, so the first clause is
+ * usually the whole line and the callback fires ~a clause early.
+ */
+export async function nextLineStreaming(
+	persona: Persona,
+	exchange: readonly ExchangeTurn[],
+	remainingProbes: number,
+	runner: Runner,
+	onFirstClause?: (clause: string) => void,
+): Promise<{
+	decision: PersonaDecision;
+	prompt: string;
+	raw: string;
+	firstClauseMs: number | null;
+}> {
+	if (!canStream(runner)) {
+		const r = await nextLine(persona, exchange, remainingProbes, runner);
+		return { ...r, firstClauseMs: null };
+	}
+	const prompt = personaPrompt(persona, exchange, remainingProbes);
+	const started = performance.now();
+	let acc = '';
+	let firstClauseMs: number | null = null;
+	let firstClauseFired = false;
+	for await (const delta of runner.stream(prompt)) {
+		acc += delta;
+		if (!firstClauseFired) {
+			const clause = firstClause(acc);
+			if (clause && clause !== 'DONE') {
+				firstClauseFired = true;
+				firstClauseMs = performance.now() - started;
+				onFirstClause?.(clause);
+			}
+		}
+	}
+	const text = acc.trim().split('\n')[0]?.trim() ?? '';
+	if (text === 'DONE' || text === '"DONE"') {
+		return { decision: { kind: 'done' }, prompt, raw: acc, firstClauseMs };
+	}
+	let line = text;
+	if (line.length > REPLY_CHAR_CAP) {
+		const cut = line.slice(0, REPLY_CHAR_CAP);
+		line = cut.slice(
+			0,
+			Math.max(cut.lastIndexOf('.'), cut.lastIndexOf('?'), cut.lastIndexOf('!')) + 1 ||
+				REPLY_CHAR_CAP,
+		);
+	}
+	return { decision: { kind: 'say', text: line }, prompt, raw: acc, firstClauseMs };
 }
 
 /** The probes a scenario's caller list carries, in order — the lines the

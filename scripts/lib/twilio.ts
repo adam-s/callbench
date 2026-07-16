@@ -178,7 +178,8 @@ export async function dialSystemUnderTest(
 	params: { to: string; from: string; twiml: string; confirmation: string },
 ): Promise<Record<string, unknown>> {
 	const target = process.env.CALLBENCH_TARGET_NUMBER;
-	if (!target) throw new Error('CALLBENCH_TARGET_NUMBER is not set; there is no system under test.');
+	if (!target)
+		throw new Error('CALLBENCH_TARGET_NUMBER is not set; there is no system under test.');
 	if (digits(params.to) !== digits(target)) {
 		throw new Error(
 			`Refusing: dialSystemUnderTest dials ONLY the configured system under test, not ${params.to}.`,
