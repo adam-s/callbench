@@ -51,7 +51,9 @@ test.describe('overview', () => {
 
 	test('rail carries the map and the fence note', async ({ page }) => {
 		await page.goto('/');
-		await expect(page.locator('.rail-link').filter({ hasText: /^windshield-quote$/ })).toBeVisible();
+		await expect(
+			page.locator('.rail-link').filter({ hasText: /^windshield-quote$/ }),
+		).toBeVisible();
 		await expect(page.locator('.rail-foot')).toContainText('Nothing here places a call');
 	});
 });
