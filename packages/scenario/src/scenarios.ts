@@ -221,6 +221,10 @@ export const sttYearTeens: Scenario = {
 		{ say: "Actually, sorry — it's a 2013, not a 2015.", probe: 'teens-vs-tens-correction' },
 	],
 	simScript: A3_SIM_SCRIPT,
+	// Year lines pause mid-utterance; widen the confirm window (vad.ts) so the
+	// pause re-attaches instead of splitting — the live finding this scenario
+	// exists to probe.
+	turnConfig: { confirmSilenceMs: 1300 },
 	assertions: [correctionPropagated('2013'), askedBeforeQuoting],
 };
 

@@ -85,6 +85,16 @@ export interface Scenario {
 	 * engine is vehicle-blind; the scenario carries the vehicle, which is what
 	 * lets any make/model/year rehearse against the same simulator. */
 	readonly simScript: SimScript;
+	/** Optional turn-detector overrides for the live driver — scenario DATA,
+	 * because pause behavior belongs to the LINES: a number- or list-heavy
+	 * caller pauses longer mid-utterance ("It's a 2015 … Audi … A3"), so such
+	 * a scenario widens the confirm window instead of every scenario paying
+	 * the latency. Keys mirror @callbench/turn's TurnDetectorConfig. */
+	readonly turnConfig?: Readonly<
+		Partial<
+			Record<'provisionalSilenceMs' | 'confirmSilenceMs' | 'minSpeechMs' | 'speechEnergy', number>
+		>
+	>;
 	/** Deterministic code assertions over the frozen transcript. */
 	readonly assertions: readonly Assertion[];
 	/** Semantic assertions scored by the judge. Optional — a scenario may be
