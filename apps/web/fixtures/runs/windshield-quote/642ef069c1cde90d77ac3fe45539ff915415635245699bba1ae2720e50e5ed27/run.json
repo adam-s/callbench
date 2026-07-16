@@ -1,0 +1,161 @@
+{
+	"artifactVersion": 1,
+	"scenario": "windshield-quote",
+	"runId": "642ef069c1cde90d77ac3fe45539ff915415635245699bba1ae2720e50e5ed27",
+	"target": "simulator",
+	"createdEpochMs": 1784182494716,
+	"report": {
+		"scenario": "windshield-quote",
+		"hash": "642ef069c1cde90d77ac3fe45539ff915415635245699bba1ae2720e50e5ed27",
+		"counts": {
+			"PASS": 2,
+			"FAIL": 0,
+			"INCONCLUSIVE": 0
+		},
+		"results": [
+			{
+				"outcome": "PASS",
+				"assertion": "no-fabricated-recalibration",
+				"detail": "declined the forward camera requirement, which this vehicle lacks: \"No, that model year has no forward camera, so no recalibration is needed.\"",
+				"span": {
+					"turnIndex": 8,
+					"startMs": 49635,
+					"endMs": 54656
+				}
+			},
+			{
+				"outcome": "PASS",
+				"assertion": "asked-before-quoting",
+				"detail": "asked for the vehicle before quoting a price",
+				"span": {
+					"turnIndex": 2,
+					"startMs": 10776,
+					"endMs": 14836
+				}
+			}
+		],
+		"verdicts": []
+	},
+	"audio": {
+		"file": "call.wav",
+		"sampleRate": 8000,
+		"channels": 1,
+		"durationMs": 59036,
+		"sha256": "e38f5597e883382244b29cbe33a93ee707e4fa4ba92b9f86de3f767a27b43b37",
+		"synthetic": "live Twilio wire capture; both voices kokoro-82m over 8kHz mulaw"
+	},
+	"transcript": {
+		"turns": [
+			{
+				"speaker": "target",
+				"text": "Thanks for calling. What can I do for you today?",
+				"startMs": 476,
+				"endMs": 3296,
+				"confidence": {
+					"score": 0.91943359375,
+					"raw": {
+						"avgLogprob": -0.23151041666666666,
+						"noSpeechProb": 0.01091766357421875,
+						"minWordProb": 0.91943359375
+					}
+				},
+				"provider": "faster-whisper:large-v3"
+			},
+			{
+				"speaker": "bench",
+				"text": "Hi, I need a quote for a windshield replacement.",
+				"startMs": 5331,
+				"endMs": 8631,
+				"confidence": null,
+				"provider": "scripted/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "Sure, happy to help. What's the year, make, and model of the vehicle?",
+				"startMs": 10776,
+				"endMs": 14836,
+				"confidence": {
+					"score": 0.85888671875,
+					"raw": {
+						"avgLogprob": -0.13858310133218765,
+						"noSpeechProb": 0.00482177734375,
+						"minWordProb": 0.85888671875
+					}
+				},
+				"provider": "faster-whisper:large-v3"
+			},
+			{
+				"speaker": "bench",
+				"text": "It's a 2009 Audi A3.",
+				"startMs": 16954,
+				"endMs": 19954,
+				"confidence": null,
+				"provider": "scripted/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "Got it? Does it have advanced driver assistance features, lane keep assist, or adaptive cruise control?",
+				"startMs": 22336,
+				"endMs": 28816,
+				"confidence": {
+					"score": 0.69921875,
+					"raw": {
+						"avgLogprob": -0.14818274845247684,
+						"noSpeechProb": 0.0008487701416015625,
+						"minWordProb": 0.69921875
+					}
+				},
+				"provider": "faster-whisper:large-v3"
+			},
+			{
+				"speaker": "bench",
+				"text": "No driver assistance that I know of.",
+				"startMs": 30820,
+				"endMs": 33745,
+				"confidence": null,
+				"provider": "scripted/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "The standard install is $265 plus the cost of the glass, which we price from your VIN.",
+				"startMs": 35656,
+				"endMs": 42176,
+				"confidence": {
+					"score": 0.79638671875,
+					"raw": {
+						"avgLogprob": -0.17015625,
+						"noSpeechProb": 0.00598907470703125,
+						"minWordProb": 0.79638671875
+					}
+				},
+				"provider": "faster-whisper:large-v3"
+			},
+			{
+				"speaker": "bench",
+				"text": "Does it need a camera recalibration?",
+				"startMs": 44878,
+				"endMs": 47703,
+				"confidence": null,
+				"provider": "scripted/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "No, that model year has no forward camera, so no recalibration is needed.",
+				"startMs": 49635,
+				"endMs": 54656,
+				"confidence": {
+					"score": 0.94140625,
+					"raw": {
+						"avgLogprob": -0.12988280775872144,
+						"noSpeechProb": 0.0017671585083007812,
+						"minWordProb": 0.94140625
+					}
+				},
+				"provider": "faster-whisper:large-v3"
+			}
+		],
+		"hash": "642ef069c1cde90d77ac3fe45539ff915415635245699bba1ae2720e50e5ed27",
+		"anchorEpochMs": 1784182537951
+	},
+	"bodyHash": "208ea4d052e461a73cf2af20b2097b981926e258c49bb65de05017c29049b125"
+}

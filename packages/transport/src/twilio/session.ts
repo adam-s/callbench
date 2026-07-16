@@ -63,6 +63,17 @@ export interface TwilioSessionOptions {
 	 * error and ends rather than growing without bound or dropping silently.
 	 */
 	readonly maxBufferedEvents?: number;
+	/**
+	 * Outbound pacer lead (ms). The default (pacer.ts LEAD_MS) suits a light
+	 * process; a host doing real work between frames — STT fetches, buffer
+	 * assembly for two legs — stalls the loop past 60ms routinely, and every
+	 * stall longer than the lead drains the far buffer mid-utterance: an
+	 * audible dropout, then the catch-up burst. Measured 2026-07-16 (Twilio's
+	 * own dual-channel recording of a live sim conversation): 393 clicks/sec
+	 * on the sent audio at the default lead. A deeper lead is cheap — the
+	 * provider buffers minutes — and only staleness on barge-in flush pays.
+	 */
+	readonly pacerLeadMs?: number;
 }
 
 /**
@@ -157,7 +168,10 @@ export function createTwilioSession(
 
 		// One pacer per session, closed over per-session state — no module-level
 		// anything, so N sessions in one process do not share a schedule.
-		const pacer: Pacer = createPacer({ send: (f) => socket.send(mediaMessage(streamSid, f)) });
+		const pacer: Pacer = createPacer({
+			send: (f) => socket.send(mediaMessage(streamSid, f)),
+			...(options.pacerLeadMs !== undefined ? { leadMs: options.pacerLeadMs } : {}),
+		});
 
 		const timer = setTimeout(() => {
 			if (settled) return;

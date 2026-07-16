@@ -33,22 +33,24 @@ const FIXTURES = join(here, '../../../../fixtures/runs');
 const APP_SRC = join(here, '../../..'); // apps/web/src
 
 describe('enumerating and loading the committed fixtures', () => {
-	// Three committed runs: the two generated simulator takes (baseline all-PASS
-	// and the fabrication FAIL), plus the first LIVE Twilio wire capture
-	// (2026-07-16, call CA7a1ea…): both assertions abstained there because the
-	// far end was heard below the clarity floor — real evidence that abstention
-	// fires on real audio, kept as a fixture precisely for that.
+	// Four committed runs: the two generated simulator takes (baseline all-PASS
+	// and the fabrication FAIL), plus two LIVE Twilio wire captures from
+	// 2026-07-16. The first live take (CA7a1ea…) abstained on both assertions —
+	// the far end was heard below the clarity floor after Whisper hallucinated
+	// on silence-padded turn slices — and is kept as real evidence that
+	// abstention fires on real audio. The second (CA3829d…), after the
+	// slice-to-speech fix, grades clean and carries BOTH voices in its WAV.
 	it('lists the windshield-quote scenario with its runs', () => {
 		const scenarios = listScenarios(FIXTURES);
 		const wq = scenarios.find((s) => s.scenario === 'windshield-quote');
 		expect(wq).toBeDefined();
-		expect(wq!.runCount).toBe(3);
+		expect(wq!.runCount).toBe(4);
 		expect(wq!.latest).not.toBeNull();
 	});
 
 	it('loads each run and verifies its hash (a drifted fixture would throw here)', () => {
 		const { ok, broken } = listRuns('windshield-quote', FIXTURES);
-		expect(ok).toHaveLength(3);
+		expect(ok).toHaveLength(4);
 		expect(broken).toHaveLength(0);
 		for (const r of ok) {
 			const artifact = loadRun('windshield-quote', r.runId, FIXTURES);
@@ -57,11 +59,11 @@ describe('enumerating and loading the committed fixtures', () => {
 		}
 	});
 
-	it('the runs discriminate: all-PASS, a FAIL (fabrication defect), and the live capture abstaining', () => {
+	it('the runs discriminate: all-PASS takes, a FAIL (fabrication defect), and the abstaining live capture', () => {
 		const { ok } = listRuns('windshield-quote', FIXTURES);
 		const fails = ok.map((r) => r.counts.FAIL).sort();
-		expect(fails).toEqual([0, 0, 1]);
-		// The live capture is the run where INCONCLUSIVE did the work.
+		expect(fails).toEqual([0, 0, 0, 1]);
+		// The first live capture is the run where INCONCLUSIVE did the work.
 		const abstained = ok.filter((r) => r.counts.INCONCLUSIVE === 2);
 		expect(abstained).toHaveLength(1);
 	});
