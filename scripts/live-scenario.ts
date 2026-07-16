@@ -18,11 +18,21 @@
  *   node --env-file=.env scripts/live-scenario.ts --defect fabricateAnswer
  *   node --env-file=.env scripts/live-scenario.ts --scenario windshield-quote --no-judge
  *
+ * Conversation mode:
+ *   --persona                     model-improvised caller (probes still verbatim)
+ *   --sim-model provider:model    the shop imitation's runner (persona rehearsal)
+ *   --target                      dial the system under test instead of the sim
+ *                                 (interactive typed confirmation required)
+ *
  * Turn-taking policy (recorded in meta.json per take):
  *   --sim-barge-in yield|hold     shop concedes the floor on overtalk (default yield)
  *   --bench-barge-in yield|hold   caller concedes; probes always play out (default hold)
  *   --provisional-ms N            advisory endpoint window override
  *   --confirm-ms N                confirmed endpoint window override
+ *   --quiet-ms N                  required silence before any send (quiet gate)
+ *
+ * Audio:
+ *   --degrade-snr N               inject babble at N dB SNR on the bench leg
  *
  * Output: data/live-sim/<epoch>/ — transcript.json (hashed+frozen), the bench-
  * heard audio as WAV, events.jsonl, meta.json (what the sim THOUGHT it heard,
@@ -915,7 +925,6 @@ async function main(): Promise<void> {
 			const text = next;
 			const u = degrade(await synth(text, BENCH_VOICE));
 			await waitForQuiet(); // LAST before the send — see the streamed path
-			void lineIndex; // scripted-mode cursor; persona mode tracks its own state
 			const startMs = stampWire(durationMs(u));
 			turnDrafts.push({
 				speaker: 'bench',

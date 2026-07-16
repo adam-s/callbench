@@ -27,35 +27,22 @@ speed. All times are ms from `markTurnEnd`.
 | [`twilio-native/`](twilio-native/) | Twilio Real-Time Transcription + Media Streams | a hop, not a win | $0.027/min | text+confidence, but not faster than direct Deepgram |
 
 Each folder has its own README naming the exact env keys / Modal deploy it
-needs, and an adapter implementing `TurnPipeline`.
+needs.
 
-## Running the comparison
+## Status (2026-07-16): decided from live measurement; the offline harness was never built
 
-```sh
-# Each contender only runs if its prerequisites are met (keys / deployed
-# endpoint); the harness SKIPS a contender it can't reach and says so, so a
-# partial run still produces a partial table.
-node --env-file=.env experiments/latency-lab/bench.ts
-```
-
-The harness renders each fixture's agent turns to 8kHz audio once (shared across
-contenders for a fair fight), feeds them to each pipeline at real-time cadence,
-and prints a table of first-audio / final-audio / first-text / final-text per
-contender per turn, plus medians. Nothing here dials a phone — these measure the
-speech pipeline in isolation, before any of it touches the live-call path.
-
-## Two measurement modes — and the live one is the truth
-
-1. **Offline pipeline bench** ([bench.ts](bench.ts)) — feed a fixture's audio to
-   each `TurnPipeline` and time it in isolation. Fast to iterate, no phone, no
-   Twilio jitter. Good for tuning a single contender's config.
-2. **Live over the owned numbers** — the REAL measurement. Each contender, once
-   wired behind the `provider:model` seam, drives an owned-loop call (the bench
-   number to the simulator number, exactly the path that produced the 8.7s
-   baseline), and [`scripts/analyze-takes.ts`](../../scripts/analyze-takes.ts)
-   computes the real voice-to-voice latency distribution over N takes. This is
-   the number that decides the winner — the offline bench can't see Twilio's
-   own transit, and the whole point is the latency a real call has.
+`contract.ts` and `fixtures.ts` are the SPEC for an offline pipeline bench
+(`bench.ts`, one `adapter.ts` per contender) that was planned but not built —
+no adapter or harness exists in these folders. The decision did not wait for
+it: the self-host path was wired behind the `provider:model` seam and measured
+LIVE over the owned two-number loop, exactly the path that produced the 8.7s
+baseline, with [`scripts/analyze-takes.ts`](../../scripts/analyze-takes.ts)
+computing the real voice-to-voice distribution over takes. Live is the truth
+the offline bench could only approximate — it can't see Twilio's own transit.
+The measured ladder and the verdict live in
+[docs/latency-results.md](../../docs/latency-results.md); each contender's
+README records its own honest assessment. The spec files stay as the starting
+point if a head-to-head offline bench is ever wanted.
 
 The winner is then wired behind the existing `provider:model` seam
 ([docs/models.md](../../docs/models.md)) and carried into the live driver. The

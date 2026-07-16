@@ -4,12 +4,12 @@
  * corpus; output is one diffable table.
  *
  * Structure: a CLASSIFIER turns a channel into a per-20ms-frame speech/silence
- * timeline (the energy threshold; neural classifiers are scored by neural_gate.py, whose reference implementations avoid hand-rolled frontends); the
- * WINDOW MACHINE — the same provisional/confirm logic the live detector runs —
- * turns a timeline into turn-end times. Candidates are classifier × confirm
- * window, all scored against one classifier-independent-enough reference
- * (energy runs merged across gaps ≤1500ms). The smart-turn semantic gate is
- * scored by smart_turn_gate.py (it needs Whisper's exact mel frontend).
+ * timeline (the energy threshold); the WINDOW MACHINE — the same
+ * provisional/confirm logic the live detector runs — turns a timeline into
+ * turn-end times. Candidates are classifier × confirm window, all scored
+ * against one classifier-independent-enough reference (energy runs merged
+ * across gaps ≤1500ms). Neural classifiers (Silero, smart-turn) are scored by
+ * neural_gate.py, whose reference implementations avoid hand-rolled frontends.
  */
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
