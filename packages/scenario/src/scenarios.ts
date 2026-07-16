@@ -10,7 +10,10 @@
  * goes to the judge under the same rubric the judge package calibrated.
  */
 
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { askedBeforeQuoting, CLARITY_FLOOR, requirementAnswer } from '@callbench/assert';
+import { loadFactSet, requirementSpecFor } from '@callbench/factset';
 import type { JudgeInput, Rubric } from '@callbench/judge';
 import type { FrozenTranscript } from '@callbench/transcript';
 import type { JudgedAssertion, Scenario } from './scenario.ts';
@@ -74,19 +77,24 @@ export const askedDisambiguatingQuestion: JudgedAssertion = {
 };
 
 /**
- * The reference vehicle's requirement probe, built from its fact set
- * (scripts/probes/fixtures/factset-2009-audi-a3.json — the fwd-camera feature:
- * fitment never-offered, verified/high, so `mayAccuse` holds). The engine is
- * vehicle-agnostic (@callbench/assert `requirementAnswer`); everything specific
- * to this car sits in this spec literal, which is scenario DATA. A later
- * increment derives the spec from the fact set file directly, once the fact-set
- * schema moves out of scripts/ into a package.
+ * The reference vehicle's requirement probe, DERIVED from its committed fact
+ * set (factsets/2009-audi-a3.json): the fwd-camera feature is never-offered at
+ * verified/high, so the claim is the defect and `mayAccuse` holds — none of
+ * which is written here. The engine is vehicle-agnostic (@callbench/assert
+ * `requirementAnswer`); the fact set is the vehicle; the only scenario-authored
+ * vocabulary is the service-action words the probe question uses, which is
+ * scenario data naming scenario specifics. A different vehicle is a different
+ * factsets/*.json, zero code.
  */
+const A3_FACTS = loadFactSet(
+	join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'factsets', '2009-audi-a3.json'),
+);
 const a3CameraRecalibration = requirementAnswer({
+	...requirementSpecFor(A3_FACTS, 'camera', ['recalibration', 'recalibrat']),
+	// The report-stable name predates the derivation and is frozen into
+	// committed artifacts and the increment-03 contract; names are scenario-
+	// owned, so the derivation must not rename history.
 	name: 'no-fabricated-recalibration',
-	subjectTerms: ['camera recalibration', 'recalibrat', 'forward camera', 'camera'],
-	fitment: 'never-offered',
-	mayAccuse: true,
 });
 
 /**

@@ -41,7 +41,6 @@ import { fileURLToPath } from 'node:url';
 // which is a second copy of a frozen contract — free to drift, and nothing would
 // have said so.
 import type { Outcome } from '@callbench/assert';
-import { claudeRunner, RunnerError } from '@callbench/judge';
 import {
 	type FactSet,
 	type Feature,
@@ -49,7 +48,8 @@ import {
 	mayAccuse,
 	promptValues,
 	subjectsFor,
-} from './factset.ts';
+} from '@callbench/factset';
+import { claudeRunner, RunnerError } from '@callbench/judge';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PROMPT_PATH = join(HERE, 'prompts', 'extract.md');
@@ -111,7 +111,9 @@ interface Case {
  * the rule over cached extractions for free; a fact in the prompt would
  * invalidate every frozen record.
  */
-const FACTSET_PATH = join(HERE, 'fixtures', 'factset-2009-audi-a3.json');
+// Fact sets live at the repo root (factsets/) — shared data read by the
+// probes, the scenario layer, and the simulator, never owned by one of them.
+const FACTSET_PATH = join(HERE, '..', '..', 'factsets', '2009-audi-a3.json');
 
 /**
  * The verdict rule. Deterministic, inspectable, and the only place a FAIL is

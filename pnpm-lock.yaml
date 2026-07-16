@@ -18,6 +18,9 @@ importers:
       '@callbench/assert':
         specifier: workspace:*
         version: link:packages/assert
+      '@callbench/factset':
+        specifier: workspace:*
+        version: link:packages/factset
       '@callbench/judge':
         specifier: workspace:*
         version: link:packages/judge
@@ -150,6 +153,15 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
 
+  packages/factset:
+    devDependencies:
+      '@types/node':
+        specifier: ^24.13.3
+        version: 24.13.3
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
   packages/judge:
     dependencies:
       '@callbench/assert':
@@ -184,6 +196,9 @@ importers:
       '@callbench/assert':
         specifier: workspace:*
         version: link:../assert
+      '@callbench/factset':
+        specifier: workspace:*
+        version: link:../factset
       '@callbench/judge':
         specifier: workspace:*
         version: link:../judge
