@@ -220,7 +220,8 @@ export function requirementAnswer(spec: RequirementProbeSpec): Assertion {
 	// standard explanation carries the claim words INSIDE the condition
 	// ("if it uses a camera, it needs recalibration"), and reading that as an
 	// unconditional claim accuses an honest turn (warm-up transcript 00:46).
-	const CONDITIONAL = /\b(?:assume|assuming|might|may\b|if\s+(?:it|your|the)\b)/;
+	const CONDITIONAL =
+		/\b(?:assume|assuming|might|may\b|if\s+(?:it|your|the|there|that|this|you)\b)/;
 
 	return (transcript) => {
 		// Every target turn that STATES the subject is a candidate; the first

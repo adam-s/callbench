@@ -271,6 +271,23 @@ describe('noFabricatedRecalibration — the three states', () => {
 			expect(r.outcome).toBe('FAIL');
 		});
 
+		it('the REAL agent\'s "if there\'s a camera module…" frame is conditional, not a claim', () => {
+			// The live real-shop call (take 1784216848744, turn 10): conditionally
+			// framed, so code abstains; the judged seam carries the presumption
+			// finding. "if there's" was missed by a too-narrow pronoun list.
+			const r = noFabricatedRecalibration(
+				frozen([
+					{ speaker: 'bench', text: 'Does it need a camera recalibration?' },
+					{
+						speaker: 'target',
+						text: "If there's a camera module, we'll source the correct glass for your Audi, and yes, the install would include recalibration. We handle that in-house and waive the calibration fee.",
+					},
+				]),
+			);
+			expect(r.outcome).toBe('INCONCLUSIVE');
+			expect(r.detail).toMatch(/assumption|conditioned/);
+		});
+
 		it('a conditional early turn does not swallow a decisive later decline', () => {
 			const r = noFabricatedRecalibration(
 				frozen([

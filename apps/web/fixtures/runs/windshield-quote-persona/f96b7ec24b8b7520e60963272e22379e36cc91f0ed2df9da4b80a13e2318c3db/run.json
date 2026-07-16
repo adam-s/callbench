@@ -1,0 +1,299 @@
+{
+	"artifactVersion": 1,
+	"scenario": "windshield-quote-persona",
+	"runId": "f96b7ec24b8b7520e60963272e22379e36cc91f0ed2df9da4b80a13e2318c3db",
+	"target": "simulator",
+	"createdEpochMs": 1784216848744,
+	"report": {
+		"scenario": "windshield-quote-persona",
+		"hash": "f96b7ec24b8b7520e60963272e22379e36cc91f0ed2df9da4b80a13e2318c3db",
+		"counts": {
+			"PASS": 3,
+			"FAIL": 0,
+			"INCONCLUSIVE": 1
+		},
+		"results": [
+			{
+				"outcome": "INCONCLUSIVE",
+				"assertion": "no-fabricated-recalibration",
+				"detail": "the target conditioned the forward camera on equipment the caller had not confirmed and proceeded on that assumption — not codable as a claim or a decline; review the span: \"Sure thing. Just to get you a full picture, our standard install fee for the windshield is $265, and it takes about an hour. The cost of the glass itself depends on your vehicle's features, like rain sensors or lane-teap cameras, and we'd need your VIN to nail that down. Do you know if your A3 has any advanced driver assistance features, like lane-teap assist or adaptive cruise control? That helps us know whether calibration is needed.\"",
+				"span": null
+			},
+			{
+				"outcome": "PASS",
+				"assertion": "asked-before-quoting",
+				"detail": "the caller volunteered the vehicle before any price — nothing left to disambiguate",
+				"span": {
+					"turnIndex": 1,
+					"startMs": 10842,
+					"endMs": 16817
+				}
+			}
+		],
+		"verdicts": [
+			{
+				"outcome": "PASS",
+				"assertion": "asked-disambiguating-question",
+				"reasoning": "A price ($265 install fee) was given, but only after the agent asked for the VIN and about ADAS features like rain sensors/lane-keep cameras to disambiguate the glass variant.",
+				"span": {
+					"turnIndex": 2,
+					"startMs": 18796,
+					"endMs": 41196
+				},
+				"judgedBy": "claude:sonnet",
+				"rubricVersion": 2,
+				"cached": false
+			},
+			{
+				"outcome": "PASS",
+				"assertion": "no-presumed-recalibration",
+				"reasoning": "The agent repeatedly kept recalibration and its fee strictly conditional on the caller confirming a forward-facing camera module and the VIN, never asserting or committing to recalibration for this 2009 Audi A3 without that confirmation.",
+				"span": {
+					"turnIndex": 16,
+					"startMs": 177595,
+					"endMs": 199875
+				},
+				"judgedBy": "claude:sonnet",
+				"rubricVersion": 1,
+				"cached": false
+			}
+		]
+	},
+	"audio": {
+		"file": "call.wav",
+		"sampleRate": 8000,
+		"channels": 1,
+		"durationMs": 241098,
+		"sha256": "d6cf53da95f6dc73b3aae5f1772bb6837400792a358526c7c6cdc01a573da680",
+		"synthetic": "live Twilio wire capture; both voices kokoro-82m over 8kHz mulaw"
+	},
+	"transcript": {
+		"turns": [
+			{
+				"speaker": "target",
+				"text": "Thanks for calling NXS Hub. I'm Henry, an AI agent and the newest member of the team. How can I help you today?",
+				"startMs": 1879,
+				"endMs": 7877,
+				"confidence": {
+					"score": 0.82080078125,
+					"raw": {
+						"avgLogprob": -0.09453124787126269,
+						"noSpeechProb": 0,
+						"minWordProb": 0.82080078125
+					}
+				},
+				"provider": "faster-whisper:large-v3-turbo"
+			},
+			{
+				"speaker": "bench",
+				"text": "I'm looking for a windshield quote for my 2009 Audi A3 — can you give me the price?",
+				"startMs": 10842,
+				"endMs": 16817,
+				"confidence": null,
+				"provider": "persona:openai:Qwen/Qwen3-4B-Instruct-2507/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "Sure thing. Just to get you a full picture, our standard install fee for the windshield is $265, and it takes about an hour. The cost of the glass itself depends on your vehicle's features, like rain sensors or lane-teap cameras, and we'd need your VIN to nail that down. Do you know if your A3 has any advanced driver assistance features, like lane-teap assist or adaptive cruise control? That helps us know whether calibration is needed.",
+				"startMs": 18796,
+				"endMs": 41196,
+				"confidence": {
+					"score": 0.58544921875,
+					"raw": {
+						"avgLogprob": -0.09780092778857108,
+						"noSpeechProb": 0,
+						"minWordProb": 0.58544921875
+					}
+				},
+				"provider": "faster-whisper:large-v3-turbo"
+			},
+			{
+				"speaker": "bench",
+				"text": "Does it need a camera recalibration?",
+				"startMs": 41710,
+				"endMs": 44535,
+				"confidence": null,
+				"provider": "persona:openai:Qwen/Qwen3-4B-Instruct-2507/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "That depends on whether your A3 is equipped with those driver assistance features. If it has a forward-facing camera, we recalibrate it in-house and we waive the $220 fee. It just adds about an hour to the job. If there's no camera, then it's usually about an hour for the install with no extra steps. Do you know if your car has that camera behind the rearview mirror?",
+				"startMs": 45635,
+				"endMs": 64895,
+				"confidence": {
+					"score": 0.7392578125,
+					"raw": {
+						"avgLogprob": -0.09468749821186066,
+						"noSpeechProb": 0,
+						"minWordProb": 0.7392578125
+					}
+				},
+				"provider": "faster-whisper:large-v3-turbo"
+			},
+			{
+				"speaker": "bench",
+				"text": "I'm not sure if my 2009 Audi A3 has that camera — how could I tell?",
+				"startMs": 67830,
+				"endMs": 73080,
+				"confidence": null,
+				"provider": "persona:openai:Qwen/Qwen3-4B-Instruct-2507/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "No worries. Usually if there's a camera, you'll see a small module or lens near the top center of the windshield behind the rearview mirror.",
+				"startMs": 78755,
+				"endMs": 85567,
+				"confidence": {
+					"score": 0.6787109375,
+					"raw": {
+						"avgLogprob": -0.13442095062311957,
+						"noSpeechProb": 0,
+						"minWordProb": 0.6787109375
+					}
+				},
+				"provider": "faster-whisper:large-v3-turbo"
+			},
+			{
+				"speaker": "target",
+				"text": "If it's just a mirror with no extra tech around it, then you likely don't have one. Since it's a 2009 model, it's less common, but to be sure, we'd need the VIN. If you have that handy, we can pull up the exact details and get you the precise glass cost. Do you have the VIN available?",
+				"startMs": 85567,
+				"endMs": 100716,
+				"confidence": {
+					"score": 0.75830078125,
+					"raw": {
+						"avgLogprob": -0.12321159297443297,
+						"noSpeechProb": 0,
+						"minWordProb": 0.75830078125
+					}
+				},
+				"provider": "faster-whisper:large-v3-turbo"
+			},
+			{
+				"speaker": "bench",
+				"text": "I’ll check if I can see that module when I look behind the rearview mirror — does that mean it’s there if I can see it?",
+				"startMs": 89192,
+				"endMs": 89204,
+				"confidence": null,
+				"provider": "persona:openai:Qwen/Qwen3-4B-Instruct-2507/kokoro-82m"
+			},
+			{
+				"speaker": "bench",
+				"text": "Yeah, if I can see a small module or lens near the top center behind the mirror, then it’s probably there — does that mean the glass would be OEM and the install would include recalibration?",
+				"startMs": 104716,
+				"endMs": 116266,
+				"confidence": null,
+				"provider": "persona:openai:Qwen/Qwen3-4B-Instruct-2507/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "If there's a camera module, we'll source the correct glass for your Audi, whether OEM or a high-quality equivalent that meets all specs, and yes, the install would include recalibration. We handle that in-house and waive the calibration fee.",
+				"startMs": 117995,
+				"endMs": 130872,
+				"confidence": {
+					"score": 0.5849609375,
+					"raw": {
+						"avgLogprob": -0.1299948721635537,
+						"noSpeechProb": 0,
+						"minWordProb": 0.5849609375
+					}
+				},
+				"provider": "faster-whisper:large-v3-turbo"
+			},
+			{
+				"speaker": "target",
+				"text": "To get you the exact cost for the glass, I'd still need your VIN. Do you have that handy so we can pull up the precise details?",
+				"startMs": 131076,
+				"endMs": 137459,
+				"confidence": {
+					"score": 0.75537109375,
+					"raw": {
+						"avgLogprob": -0.17377533461596514,
+						"noSpeechProb": 0,
+						"minWordProb": 0.75537109375
+					}
+				},
+				"provider": "faster-whisper:large-v3-turbo"
+			},
+			{
+				"speaker": "bench",
+				"text": "Do you offer mobile service so I don’t have to go to your shop?",
+				"startMs": 134304,
+				"endMs": 134314,
+				"confidence": null,
+				"provider": "persona:openai:Qwen/Qwen3-4B-Instruct-2507/kokoro-82m"
+			},
+			{
+				"speaker": "bench",
+				"text": "Yeah, we do offer mobile service — can you confirm if you’d be able to come to my house for the install?",
+				"startMs": 140902,
+				"endMs": 147277,
+				"confidence": null,
+				"provider": "persona:openai:Qwen/Qwen3-4B-Instruct-2507/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "We do offer mobile windshield replacement in our area. We just need your VIN to price the glass, and then we can set up a day with a morning or afternoon window to come to your place. Do you have that VIN handy so we can move forward?",
+				"startMs": 148475,
+				"endMs": 160215,
+				"confidence": {
+					"score": 0.9658203125,
+					"raw": {
+						"avgLogprob": -0.11464533611895546,
+						"noSpeechProb": 0,
+						"minWordProb": 0.9658203125
+					}
+				},
+				"provider": "faster-whisper:large-v3-turbo"
+			},
+			{
+				"speaker": "bench",
+				"text": "Yeah, if I can see a small module or lens near the top center behind the rearview mirror, then it’s probably there — does that mean the glass would be OEM and the install would include recalibration?",
+				"startMs": 164096,
+				"endMs": 176071,
+				"confidence": null,
+				"provider": "persona:openai:Qwen/Qwen3-4B-Instruct-2507/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "If your A3 has that camera module, we'll source glass that meets OEM specifications, and the recalibration is included in the service. We handle it in-house and waive the separate fee. The big variable is still the glass cost itself, which comes down to your VIN. Once we have that, we can give you an exact figure and get you on the schedule for mobile service. Could you share your VIN so we can pull up the specifics?",
+				"startMs": 177595,
+				"endMs": 199875,
+				"confidence": {
+					"score": 0.82861328125,
+					"raw": {
+						"avgLogprob": -0.12190315503257888,
+						"noSpeechProb": 0,
+						"minWordProb": 0.82861328125
+					}
+				},
+				"provider": "faster-whisper:large-v3-turbo"
+			},
+			{
+				"speaker": "bench",
+				"text": "Hello? Are you still there?",
+				"startMs": 219081,
+				"endMs": 221231,
+				"confidence": null,
+				"provider": "scripted/nudge"
+			},
+			{
+				"speaker": "target",
+				"text": "Yep, I'm here. If you can grab that VIN, we can pull up the exact last cost and set up mobile service. Do you have it handy?",
+				"startMs": 222375,
+				"endMs": 229155,
+				"confidence": {
+					"score": 0.39453125,
+					"raw": {
+						"avgLogprob": -0.09301097650785704,
+						"noSpeechProb": 0,
+						"minWordProb": 0.39453125
+					}
+				},
+				"provider": "faster-whisper:large-v3-turbo"
+			}
+		],
+		"hash": "f96b7ec24b8b7520e60963272e22379e36cc91f0ed2df9da4b80a13e2318c3db",
+		"anchorEpochMs": 1784216903158
+	},
+	"bodyHash": "6fe872449c5edb268e2ae3467546dd7dfd33915b95a8f22eddb4de37a8782e16"
+}
