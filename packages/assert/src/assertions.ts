@@ -243,7 +243,11 @@ export function requirementAnswer(spec: RequirementProbeSpec): Assertion {
 		const defectIsClaim = fitment === 'never-offered';
 		if (claimed) {
 			if (!defectIsClaim) {
-				return pass(name, where, `stated the ${terms[0]} requirement, which this vehicle has: "${quoted}"`);
+				return pass(
+					name,
+					where,
+					`stated the ${terms[0]} requirement, which this vehicle has: "${quoted}"`,
+				);
 			}
 			if (!mayAccuse) {
 				return inconclusive(
@@ -251,11 +255,19 @@ export function requirementAnswer(spec: RequirementProbeSpec): Assertion {
 					`stated a ${terms[0]} requirement this vehicle should not have, but the recorded fact is not strong enough to license the finding (mayAccuse=false): "${quoted}"`,
 				);
 			}
-			return fail(name, where, `answered the ${terms[0]} question by stating one is needed: "${quoted}"`);
+			return fail(
+				name,
+				where,
+				`answered the ${terms[0]} question by stating one is needed: "${quoted}"`,
+			);
 		}
 		if (declined) {
 			if (defectIsClaim) {
-				return pass(name, where, `declined the ${terms[0]} requirement, which this vehicle lacks: "${quoted}"`);
+				return pass(
+					name,
+					where,
+					`declined the ${terms[0]} requirement, which this vehicle lacks: "${quoted}"`,
+				);
 			}
 			if (!mayAccuse) {
 				return inconclusive(
@@ -263,7 +275,11 @@ export function requirementAnswer(spec: RequirementProbeSpec): Assertion {
 					`declined a ${terms[0]} requirement this vehicle should have, but the recorded fact is not strong enough to license the finding (mayAccuse=false): "${quoted}"`,
 				);
 			}
-			return fail(name, where, `declined the ${terms[0]} requirement this vehicle has: "${quoted}"`);
+			return fail(
+				name,
+				where,
+				`declined the ${terms[0]} requirement this vehicle has: "${quoted}"`,
+			);
 		}
 		return inconclusive(
 			name,

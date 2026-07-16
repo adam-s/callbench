@@ -241,6 +241,12 @@ export function createTwilioSession(
 					return;
 				}
 				case 'media':
+					// Accepted (red-team 07-16): this decode sits outside the
+					// malformed-message try above, so a throwing decode would escape
+					// the socket handler mid-call. Node's base64 decode is lenient —
+					// it skips invalid characters rather than throwing — so the branch
+					// has no realistic trigger; widening the guard would trade that
+					// for swallowing programming errors in every case below.
 					pushOrOverflow({
 						type: 'audio',
 						atMs,
@@ -310,6 +316,12 @@ export function createTwilioSession(
 				// The first frames leave within the lead, so a tone still STARTS at
 				// the same instant — the timing baseline in loopback-call.ts measures
 				// the first voiced frame and is unmoved by this.
+				//
+				// OWNERSHIP (accepted, red-team 07-16): the queued frames are subarray
+				// VIEWS of `bytes`, encoded only at send time — a caller that reuses
+				// its buffer after this call would corrupt in-flight audio. Every
+				// current caller (tts, tone) allocates fresh; if a pooled-buffer
+				// caller ever appears, copy at this seam rather than there.
 				pacer.push(toFrames(bytes, BYTES_PER_FRAME));
 			},
 			sendMark(name) {

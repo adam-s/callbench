@@ -111,8 +111,17 @@ export function createPacer(opts: PacerOptions): Pacer {
 			sent = 0;
 		}
 		// Send everything already due, plus the lead. A single pump can emit
-		// several frames — that is the catch-up, and it is bounded by the schedule
-		// rather than by how long the loop was blocked.
+		// several frames — that is the catch-up, and its size is proportional to
+		// how long the loop was blocked (plus the lead), capped by what remains
+		// queued. That burst is CORRECT, not a hazard: while the loop was stalled
+		// the wire went quiet and Twilio's outbound buffer drained by exactly the
+		// stall, so the burst refills what played out, and the discard ceiling is
+		// ten MINUTES of buffered audio (Error 31931, verified 2026-07-16) — three
+		// orders of magnitude above a scripted utterance. pipecat re-anchors here
+		// instead, stretching the utterance by the stall; both are safe, and
+		// keeping the utterance its recorded length is the better fit for a bench
+		// that measures timing. Re-anchoring on EVERY pump, though, is the drift
+		// bug — see the fires-late test.
 		const horizon = now() + leadMs;
 		while (queue.length > 0 && anchor + sent * FRAME_MS <= horizon) {
 			const frame = queue.shift();
@@ -138,6 +147,14 @@ export function createPacer(opts: PacerOptions): Pacer {
 			queue.length = 0;
 			anchor = null;
 			sent = 0;
+			// Cancel any pending pump too: push() defers to a live timer, so a
+			// stale one left here would delay the first frame after a barge-in by
+			// up to its remaining interval. Small, but barge-in is exactly the
+			// moment latency is audible.
+			if (timer !== null) {
+				clearTimer(timer);
+				timer = null;
+			}
 		},
 		pending: () => queue.length,
 		stop() {

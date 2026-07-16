@@ -286,6 +286,10 @@ async function main(): Promise<void> {
 	}
 
 	// 6. Freeze: events, audio, timings, hashes.
+	// Accepted (red-team 07-16): two runs started in the same millisecond would
+	// share this directory. Every dial is human-started one at a time (the
+	// invariant), so the collision needs a human to launch two runs within 1ms —
+	// not a real path. Revisit only if runs ever start programmatically.
 	const dir = join('data', 'loopback', String(anchorEpochMs));
 	mkdirSync(dir, { recursive: true });
 	const allEvents = [...records.bench.events, ...records.sim.events].sort(

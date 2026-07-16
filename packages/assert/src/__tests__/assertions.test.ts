@@ -21,6 +21,7 @@ import {
 	requirementAnswer,
 	runAssertions,
 } from '../assertions.ts';
+import { buildReport } from '../report.ts';
 
 /** The reference vehicle's spec, mirroring the fact set the scenario layer
  * builds from (factset-2009-audi-a3.json: fwd camera never-offered,
@@ -33,7 +34,6 @@ const noFabricatedRecalibration = requirementAnswer({
 	fitment: 'never-offered',
 	mayAccuse: true,
 });
-import { buildReport } from '../report.ts';
 
 const CLEAR: Confidence = { score: 0.95, raw: { minWordProb: 0.95 } };
 

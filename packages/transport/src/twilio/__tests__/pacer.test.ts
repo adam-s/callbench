@@ -120,6 +120,21 @@ describe('outbound pacer', () => {
 		expect(sent.length).toBe(before); // nothing left after the flush
 	});
 
+	it('flush cancels the pending pump, so the next utterance starts now', () => {
+		// Red-team finding (07-16): flush() cleared the queue but left the timer,
+		// and push() defers to a live timer — so the first frame after a barge-in
+		// waited out the stale interval. Bounded to one frame-interval, but
+		// barge-in is exactly the moment added latency is audible.
+		const { pacer, sent, advance } = harness(0);
+		pacer.push(Array.from({ length: 10 }, (_, i) => frame(i)));
+		advance(30); // frames 0,1 out; a pump is pending at t=40
+		pacer.flush();
+		pacer.push([frame(99)]);
+		const last = sent[sent.length - 1];
+		expect(last.frame[0]).toBe(99);
+		expect(last.at).toBe(30); // immediately, not at the stale timer's t=40
+	});
+
 	it('starts a fresh schedule after idle rather than catching up on the gap', () => {
 		// If the anchor survived an idle stretch, the next utterance would be
 		// "due" for the whole silence and burst out at once — reintroducing the
