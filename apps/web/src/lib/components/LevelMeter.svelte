@@ -45,7 +45,12 @@
 		const muted = color('--border', '#ccc');
 		const gap = 2;
 		const bw = (w - gap * (bars - 1)) / bars;
-		const len = fd ? fd.length : 0;
+		// The recordings are 8kHz telephony: nothing above 4kHz exists in them,
+		// while the analyser's bins span the CONTEXT rate (usually 24kHz of
+		// spectrum). Mapping bars over the full range lit only the left third
+		// (maintainer-seen); map over the band a phone call can occupy.
+		const fullLen = fd ? fd.length : 0;
+		const len = Math.min(fullLen, Math.ceil(fullLen * (4000 / transport.nyquist)));
 		if (!peaks || peaks.length !== bars) peaks = new Float32Array(bars);
 
 		for (let i = 0; i < bars; i++) {

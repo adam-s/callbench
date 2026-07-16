@@ -113,6 +113,13 @@ export class Transport {
 	}
 
 	/** Lazily build the WebAudio graph (must follow a user gesture). Connected once. */
+	/** Top frequency the analyser's bins span (context sample rate / 2) — a
+	 * meter needs it to map bars onto the band an 8kHz telephony recording can
+	 * actually occupy instead of the context's full range. */
+	get nyquist(): number {
+		return this.#ctx ? this.#ctx.sampleRate / 2 : 24000;
+	}
+
 	#ensureAnalyser() {
 		if (this.#connected || !this.#audio || typeof AudioContext === 'undefined') return;
 		this.#ctx = new AudioContext();
