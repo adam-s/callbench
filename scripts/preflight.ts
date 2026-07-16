@@ -14,6 +14,7 @@
  */
 
 import { preflight, type RunPlan, renderPreflight } from '@callbench/runplan';
+import { allScenarios } from '@callbench/scenario';
 
 function intFromEnv(name: string, fallback: number): number {
 	const raw = process.env[name];
@@ -30,9 +31,11 @@ function main(): void {
 		process.exit(1);
 	}
 
-	// The scenarios whose outward text has passed the connotation pass — each has
-	// a committed artifact under docs/connotation/. Only these may be planned.
-	const scenarios = ['windshield-quote'];
+	// Every scenario the bench knows (the registry), not a list this script
+	// maintains. The connotation and consent gates live in @callbench/runplan's
+	// preflight — a scenario missing its committed connotation artifact is
+	// REFUSED there, so enumerating the registry here cannot plan ungated text.
+	const scenarios = allScenarios.map((s) => s.name);
 
 	const plan: RunPlan = {
 		target: { kind: 'system-under-test', number, label: 'system under test' },

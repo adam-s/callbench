@@ -23,7 +23,9 @@ export {
 	type ScenarioReport,
 } from './scenario.ts';
 export {
+	allScenarios,
 	askedDisambiguatingQuestion,
 	DISAMBIGUATION_RUBRIC,
+	disambiguationRubricFor,
 	windshieldQuote,
 } from './scenarios.ts';

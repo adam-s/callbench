@@ -13,21 +13,49 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { askedBeforeQuoting, CLARITY_FLOOR, requirementAnswer } from '@callbench/assert';
-import { loadFactSet, requirementSpecFor } from '@callbench/factset';
+import { type FactSet, loadFactSet, requirementSpecFor } from '@callbench/factset';
 import type { JudgeInput, Rubric } from '@callbench/judge';
 import { scriptFromFactSet } from '@callbench/simulator';
 import type { FrozenTranscript } from '@callbench/transcript';
 import type { JudgedAssertion, Scenario } from './scenario.ts';
 
-/** The disambiguation rubric — the same criterion and version the judge package
- * calibrated (packages/judge .../generate-calibration.mjs). Kept in step with
- * that file: a change here that is not mirrored there re-scores against stale
- * verdicts, which is why the version is part of the judge's cache key. */
+/** The fixed half of the disambiguation criterion — the procedure never varies
+ * by vehicle; only the domain nouns do. */
+const DISAMBIGUATION_PROCEDURE =
+	'A generic greeting is not such a question; asking for the VIN or the year/make/model counts. Procedure: (1) If the excerpt contains no price at all, the "before a price" condition has not been reached — answer INCONCLUSIVE, because the excerpt cannot show whether a question would precede a price that has not happened. (2) If a price appears and a disambiguating question preceded it, PASS. (3) If a price appears with no disambiguating question before it, FAIL.';
+
+/**
+ * The disambiguation rubric, derived from a fact set: the criterion's
+ * procedure is fixed; the domain nouns (the service, the equipment variants
+ * that genuinely change the job) come from the vehicle's data, so a
+ * brake-service call is not judged through windshield examples. Version 3
+ * marks the templating — the judge's cache key covers the full criterion text,
+ * so no stale verdict replays for a different vehicle's wording. A rubric only
+ * counts once CALIBRATED: re-run packages/judge .../generate-calibration.mjs
+ * (a bounded live-model script, by hand) for each new instantiation.
+ */
+export function disambiguationRubricFor(fs_: FactSet): Rubric {
+	const variants = fs_.features.map((f) => f.label).join(', ');
+	return {
+		name: 'asked-disambiguating-question',
+		version: 3,
+		criterion: `Did the agent ask a question that would resolve a genuine ambiguity about the vehicle or the requested service (${fs_.service}) — the year, the trim, an equipment variant that changes the job (${variants}), or the parts choice — BEFORE giving any price? ${DISAMBIGUATION_PROCEDURE}`,
+	};
+}
+
+/**
+ * The A3 scenario's rubric stays on the CALIBRATED version-2 text — frozen
+ * history, like the assertion name above: the judge's discrimination proof
+ * (packages/judge calibration.json) was generated against exactly this string,
+ * and a contract test pins the two equal. It moves to `disambiguationRubricFor`
+ * output the day the calibration generator re-runs against it (a live-model
+ * step the maintainer starts); until then, new scenarios use the builder and
+ * owe their own calibration before their judged verdicts count.
+ */
 export const DISAMBIGUATION_RUBRIC: Rubric = {
 	name: 'asked-disambiguating-question',
 	version: 2,
-	criterion:
-		'Did the agent ask a question that would resolve a genuine ambiguity about the vehicle or the glass (year, trim, sensor/camera variant, OEM vs aftermarket) BEFORE giving any price? A generic greeting is not such a question; asking for the VIN or the year/make/model counts. Procedure: (1) If the excerpt contains no price at all, the "before a price" condition has not been reached — answer INCONCLUSIVE, because the excerpt cannot show whether a question would precede a price that has not happened. (2) If a price appears and a disambiguating question preceded it, PASS. (3) If a price appears with no disambiguating question before it, FAIL.',
+	criterion: `Did the agent ask a question that would resolve a genuine ambiguity about the vehicle or the glass (year, trim, sensor/camera variant, OEM vs aftermarket) BEFORE giving any price? ${DISAMBIGUATION_PROCEDURE}`,
 };
 
 /**
@@ -149,3 +177,12 @@ export const windshieldQuote: Scenario = {
 	assertions: [a3CameraRecalibration, askedBeforeQuoting],
 	judged: [askedDisambiguatingQuestion],
 };
+
+/**
+ * The registry — every scenario the bench knows, enumerable by the preflight
+ * and the UI so neither carries its own list. Adding a vehicle appends here
+ * (with its fact set under factsets/ and its connotation artifact under
+ * docs/connotation/ — the preflight's coded gates refuse a scenario missing
+ * the latter, so this list is a catalog, not a safety surface).
+ */
+export const allScenarios: readonly Scenario[] = [windshieldQuote];
