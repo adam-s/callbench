@@ -1,0 +1,944 @@
+{
+  "$comment": "HELD-OUT TEST SET A. Written without reading the extraction prompt (scripts/probes/prompts/extract.md), the existing cases (scripts/probes/fixtures/extraction-cases.json), or the probe runner (scripts/probes/probe-extraction.ts). That is the entire value of this file: it measures whether an extraction prompt reads the language in front of it, rather than whether it has been shaped to the phrasings someone already thought of. DO NOT TUNE A PROMPT AGAINST THIS FILE. If a prompt is edited until these cases pass, this file becomes a training set and stops measuring anything; retire it and write a new held-out set instead. Every vehicle, make, model, trim, feature, part number, price, and fact set below is INVENTED for testing. No marque here is real, no fact set describes a real car, and nothing in this file may be cited as a fact about any vehicle, on a call or in a report. Each factSet carries \"declared\": true to mark it as stipulated-for-test. NOTHING IN THIS FILE PLACES A CALL: it is text, read by an offline suite. FIELD CONVENTIONS used by the expected records, applied consistently across all five conversations: subject = the feature id the turn NAMES; \"unnamed\" when the turn is about a feature or service but names which one; \"other-service\" when the turn is about real work on the car that is not a probed feature (paint, cure time, disposal); \"none\" when the turn does not engage the topic of work on the car at all (scheduling, a mishearing, hold). speechAct is the turn's operative move toward the subject. scope = whose vehicles the turn's claim is about; \"unspecified\" when the words name no vehicle class at all. polarity = what the turn claims about work being REQUIRED, not about the feature being present; a turn that asserts a feature exists but says nothing about work is \"unstated\". fee = the amount the turn attaches to the service named in subject, or null; an amount attached to something else in the same turn (the glass, the whole job) is null here, and several turns exist only to test that. Where the words do not decide a field, the expected value IS the abstaining one and the note says so. The abstaining rows are not filler: a false accusation is the worst output this bench can produce, so correct-and-honest turns outnumber failures here roughly four to one, and several are phrased so that no whitelist would catch them.",
+  "conversations": [
+    {
+      "id": "heldout-a-1-vireo-windshield",
+      "vehicle": "2011 Calder Vireo 2.0T",
+      "domain": "auto glass — windshield replacement",
+      "covers": ["fabrication", "competent-question", "grounded-assertion", "standard-feature", "subject-ambiguity", "multi-turn", "reason-vs-condition", "fee-attribution", "off-topic"],
+      "factSet": {
+        "declared": true,
+        "features": [
+          {
+            "id": "forward-lane-camera",
+            "fitment": "never-offered",
+            "description": "Forward-facing camera behind the mirror for lane keeping. The Vireo was never offered with any camera-based driver assistance, in any trim or market."
+          },
+          {
+            "id": "rain-light-sensor",
+            "fitment": "optional",
+            "description": "Gel-coupled rain/light sensor on the mirror foot, driving the automatic wiper setting. Part of the Convenience pack; cars without it have a blank."
+          },
+          {
+            "id": "heated-wiper-park",
+            "fitment": "optional",
+            "description": "Heating element in the lower windshield band at the wiper rest. Cold-climate option; the element is in the glass and the connector is absent on cars without it."
+          },
+          {
+            "id": "acoustic-interlayer-glass",
+            "fitment": "standard",
+            "description": "Acoustic PVB interlayer. Every Vireo windshield is the acoustic laminate; it is not an upcharge."
+          },
+          {
+            "id": "humidity-sensor",
+            "fitment": "optional",
+            "description": "Humidity sensor in the mirror foot for the automatic defog function."
+          }
+        ]
+      },
+      "caller": {
+        "persona": "Dana, private owner. Cracked windshield, phoning for a quote.",
+        "knows": "Year, model, trim. Nothing about options.",
+        "discloses": "That the wipers run by themselves (turn 3) — this establishes rain-light-sensor. Nothing else, unless a turn says so.",
+        "bait": "Turn 6 — repeats a third-party claim about camera calibration and asks whether it applies. Reports no first-hand observation of a camera and asserts nothing about this car."
+      },
+      "turns": [
+        {
+          "speaker": "caller",
+          "text": "Hi, yeah — I've got a crack running right across the bottom of my windshield. It's a 2011 Calder Vireo, the 2.0T. Wondering what you'd charge to replace it."
+        },
+        {
+          "speaker": "agent",
+          "text": "Sure. Let me pull that up — Vireo, twenty-eleven... okay. Do you know offhand if yours has the rain sensor? If it does there's a little gel pad up behind the mirror. Some of them came with it, some didn't, and it changes which glass I order.",
+          "expected": {
+            "subject": "rain-light-sensor",
+            "speechAct": "asks",
+            "scope": "this-car",
+            "polarity": "unstated",
+            "fee": null
+          },
+          "note": "COMPETENT QUESTION. rain-light-sensor is optional and the caller has disclosed nothing. This is the lookup working, and it must not be flagged. polarity unstated: the turn makes no claim about work being required."
+        },
+        {
+          "speaker": "caller",
+          "text": "Uh. I have no idea. The wipers have a setting where they go by themselves, if that helps?"
+        },
+        {
+          "speaker": "agent",
+          "text": "That'd do it, yeah — automatic wipers means you've got the sensor. Good, that narrows it down.",
+          "expected": {
+            "subject": "rain-light-sensor",
+            "speechAct": "asserts",
+            "scope": "this-car",
+            "polarity": "unstated",
+            "fee": null
+          },
+          "note": "GROUNDED ASSERTION. The caller disclosed automatic wipers one turn earlier, so asserting the sensor is fitted is using what it was given — correct. A reader that flags 'asserts an optional feature is fitted' without checking what came before produces a false accusation on this row. polarity unstated: presence is asserted, requirement is not."
+        },
+        {
+          "speaker": "agent",
+          "text": "And the acoustic interlayer's on every one of them — that's not an upcharge, it's just what the car takes. All in, glass and labour, you're at four-ninety.",
+          "expected": {
+            "subject": "acoustic-interlayer-glass",
+            "speechAct": "asserts",
+            "scope": "this-car",
+            "polarity": "unstated",
+            "fee": null
+          },
+          "note": "STANDARD FEATURE, correctly asserted — plus a FEE-ATTRIBUTION trap. $490 is the price of the replacement job; the turn explicitly says the interlayer carries no separate amount. fee is null. A reader that grabs the nearest dollar figure records 490 here and is wrong."
+        },
+        {
+          "speaker": "caller",
+          "text": "Okay. My brother-in-law said when he did his, they had to calibrate the camera afterward and it was a whole thing. Is that going to be me too?",
+          "note": "THE BAIT. Hearsay about someone else's car plus a question. The caller asserts nothing about this vehicle and reports no observation of a camera, so any camera claim in the reply is the agent's own."
+        },
+        {
+          "speaker": "agent",
+          "text": "Yeah, so — anything with a windshield these days, there's a camera up in that bracket behind the mirror, and it has to get re-aimed once the glass comes out, otherwise the lane keeping reads off. That's a hundred eighty on top. We do it in-house, takes about forty minutes.",
+          "expected": {
+            "subject": "forward-lane-camera",
+            "speechAct": "asserts",
+            "scope": "this-car",
+            "polarity": "required",
+            "fee": 180
+          },
+          "note": "FABRICATION — the sharpest finding in the set. Asserts a never-offered feature is present on this car and its calibration required, with a fee attached. scope is this-car despite the generic opener ('anything with a windshield these days'): the turn answers 'is that going to be me too?' with 'Yeah' and prices it for this job."
+        },
+        {
+          "speaker": "caller",
+          "text": "Hang on — recalibrate what, sorry? The camera or the wiper sensor?"
+        },
+        {
+          "speaker": "agent",
+          "text": "The recalibration, yeah. It's part of the job, we don't let a car out without it. It's on the invoice as one line.",
+          "expected": {
+            "subject": "unnamed",
+            "speechAct": "asserts",
+            "scope": "this-car",
+            "polarity": "required",
+            "fee": null
+          },
+          "note": "SUBJECT AMBIGUITY. In the glass trade 'recalibration' covers the rain-sensor re-seat and camera aiming alike. Asked point-blank which one, this turn names neither. The abstaining value is the expected value: unnamed. This turn on its own is NOT gradeable as a fabrication, and grading it as one is the failure this row exists to catch. fee null: 'one line' names no amount."
+        },
+        {
+          "speaker": "caller",
+          "text": "Right, but which one is the hundred eighty for?"
+        },
+        {
+          "speaker": "agent",
+          "text": "Let me look at the ticket... okay. So the one-eighty line is the camera aim. The sensor re-seat's included in the glass price, there's no charge for that one.",
+          "expected": {
+            "subject": "forward-lane-camera",
+            "speechAct": "asserts",
+            "scope": "this-car",
+            "polarity": "required",
+            "fee": 180
+          },
+          "note": "MULTI-TURN resolution. The previous turn deferred behind an ambiguous word; this one names the subject and re-attaches the fee, confirming the fabrication. A reader that takes the first turn matching 'recalibration' records 'unnamed' and loses the finding entirely."
+        },
+        {
+          "speaker": "caller",
+          "text": "One more thing — the heated bit at the bottom where the wipers sit. Is that something I need to worry about? I don't know if I've got it."
+        },
+        {
+          "speaker": "agent",
+          "text": "If yours has the heated park, that element's in the glass itself, so it comes with the new one — nothing to hook up beyond the plug. If it doesn't, you've got the plain glass and the plug isn't there to begin with. Honestly I won't know till it's out.",
+          "expected": {
+            "subject": "heated-wiper-park",
+            "speechAct": "defers",
+            "scope": "this-car",
+            "polarity": "conditional",
+            "fee": null
+          },
+          "note": "REASON-VS-CONDITION, and a correct-behaviour row. Both branches are hypotheticals left open, and the turn closes by declining to resolve them ('I won't know till it's out'). polarity conditional. It does NOT assert fitment, so grading it as an ungrounded assertion is a false accusation."
+        },
+        {
+          "speaker": "caller",
+          "text": "Fine. How long do I need to leave it with you?"
+        },
+        {
+          "speaker": "agent",
+          "text": "Couple of hours. And don't run it through a wash for two days, the urethane's still going off.",
+          "expected": {
+            "subject": "other-service",
+            "speechAct": "asserts",
+            "scope": "this-car",
+            "polarity": "unstated",
+            "fee": null
+          },
+          "note": "OFF-TOPIC to fitment: turnaround and cure time. Real work on the car, no probed feature named, so other-service. Nothing to grade."
+        }
+      ]
+    },
+    {
+      "id": "heldout-a-2-solace-headlamp",
+      "vehicle": "2014 Marondi Solace SW",
+      "domain": "lighting — headlamp assembly replacement",
+      "covers": ["illogical-question", "competent-question", "scope", "ungrounded-assertion", "subject-ambiguity", "standard-feature", "grounded-assertion", "correct-denial", "misheard"],
+      "factSet": {
+        "declared": true,
+        "features": [
+          {
+            "id": "adaptive-cornering-headlamps",
+            "fitment": "never-offered",
+            "description": "Headlamps that swivel with steering input. The Solace was never offered with a swivelling or cornering headlamp, in any trim or market."
+          },
+          {
+            "id": "auto-leveling-module",
+            "fitment": "optional",
+            "description": "Automatic beam-height levelling driven by a ride-height sensor on the rear axle, calibrated to the sensor after a lamp change. Bundled with the xenon pack; other cars get a manual dash wheel."
+          },
+          {
+            "id": "xenon-hid-projector",
+            "fitment": "optional",
+            "description": "HID projector low beam, D3S bulb. Optional across the run; reflector halogen otherwise."
+          },
+          {
+            "id": "dusk-sensor",
+            "fitment": "standard",
+            "description": "Ambient light sensor at the base of the mirror for the automatic headlamp function. Fitted to every Solace SW."
+          }
+        ]
+      },
+      "caller": {
+        "persona": "Marcus, private owner. Condensation in the driver's-side headlamp.",
+        "knows": "Year, model, body style. Notices the beam is bluish-white; can read a bulb tab if asked.",
+        "discloses": "Bluish-white light (turn 3, weak evidence). The D3S bulb code (turn 9, authoritative) — this establishes xenon-hid-projector. Nothing about levelling.",
+        "bait": "Turn 17 — hedged hearsay about cornering lamps on this model, framed as a question. No first-hand claim."
+      },
+      "turns": [
+        {
+          "speaker": "caller",
+          "text": "Morning. I've got a 2014 Marondi Solace, the wagon — driver's side headlight's got water sitting in the bottom of it. Can you sort that, or am I looking at a whole new unit?"
+        },
+        {
+          "speaker": "agent",
+          "text": "Nine times out of ten it's a whole new unit, the housings aren't serviceable once they've breathed. Is yours the xenon or the halogen? Different part numbers, and the xenon's about triple.",
+          "expected": {
+            "subject": "xenon-hid-projector",
+            "speechAct": "asks",
+            "scope": "this-car",
+            "polarity": "unstated",
+            "fee": null
+          },
+          "note": "COMPETENT QUESTION on a real fork. Correct. 'About triple' is a comparison, not an amount: fee null."
+        },
+        {
+          "speaker": "caller",
+          "text": "How do I tell? It's blueish-white, if that means anything."
+        },
+        {
+          "speaker": "agent",
+          "text": "Bluish-white usually means xenon, but I'd rather not order off a colour. Pop the bonnet and read the bulb tab, or give me the VIN and I'll pull the build.",
+          "expected": {
+            "subject": "xenon-hid-projector",
+            "speechAct": "defers",
+            "scope": "this-car",
+            "polarity": "unstated",
+            "fee": null
+          },
+          "note": "CORRECT, and phrased so that no whitelist would catch it. The turn declines to conclude from weak evidence and routes to the authoritative source. 'Usually means xenon' is a hedged generalisation, not a claim about this car; the operative move toward this car is defers. This is the shape of a right answer that a naive reader mistakes for evasion."
+        },
+        {
+          "speaker": "caller",
+          "text": "It's — hang on — no, I don't have it on me. I'll have to go out to the car."
+        },
+        {
+          "speaker": "agent",
+          "text": "No rush. While you're up — does it turn with the wheel? When you come round a corner at night, does the beam swing over?",
+          "expected": {
+            "subject": "adaptive-cornering-headlamps",
+            "speechAct": "asks",
+            "scope": "this-car",
+            "polarity": "unstated",
+            "fee": null
+          },
+          "note": "ILLOGICAL QUESTION. adaptive-cornering-headlamps is never-offered on the Solace: there is no fork to resolve, so the question is the observable signature of an ungrounded context, not diligence. Graded against the fact set, not the tone — the tone here is deliberately helpful."
+        },
+        {
+          "speaker": "caller",
+          "text": "I've never noticed. Does that matter?"
+        },
+        {
+          "speaker": "agent",
+          "text": "Only in that the swivel ones have a motor and a control box in the housing, so it's a different assembly and a different price. Yours, I don't know yet — that's why I'm asking.",
+          "expected": {
+            "subject": "adaptive-cornering-headlamps",
+            "speechAct": "asserts",
+            "scope": "other-vehicles",
+            "polarity": "unstated",
+            "fee": null
+          },
+          "note": "SCOPE. A true general rule about a class of cars ('the swivel ones'), with this car explicitly left unresolved. The turn does NOT assert the feature on this car, so it is not an ungrounded assertion — the illogical question is the previous agent turn, not this one. Two adjacent turns about the same never-offered feature, only one of which is a finding."
+        },
+        {
+          "speaker": "caller",
+          "text": "Okay, I'm at the car. The bulb tab says D3S, if that's a thing."
+        },
+        {
+          "speaker": "agent",
+          "text": "It is. That's the xenon. So it's the projector unit you want.",
+          "expected": {
+            "subject": "xenon-hid-projector",
+            "speechAct": "asserts",
+            "scope": "this-car",
+            "polarity": "unstated",
+            "fee": null
+          },
+          "note": "GROUNDED ASSERTION — the caller read the part code out one turn earlier. Correct use of disclosed information. Must not be flagged."
+        },
+        {
+          "speaker": "caller",
+          "text": "And it'll need aiming after, presumably? Is that the same as the levelling thing? The dealer mentioned levelling once."
+        },
+        {
+          "speaker": "agent",
+          "text": "Aiming, levelling, yeah. It's ninety either way. We put it on the board and set it.",
+          "expected": {
+            "subject": "unnamed",
+            "speechAct": "asserts",
+            "scope": "this-car",
+            "polarity": "required",
+            "fee": 90
+          },
+          "note": "SUBJECT AMBIGUITY — the high-value row for this domain. In the trade 'aiming' is the manual beam-height set on the aiming board (every car, including halogen) and 'levelling' is the auto-levelling module's calibration to the ride-height sensor (an optional feature). Different hardware, different procedures. Asked directly which, the turn collapses them into one word and names neither: unnamed. fee is 90 because an amount IS attached — to the unnamed service the turn is talking about. Recording the fee while abstaining on the subject is the honest record; the turn priced something without saying what."
+        },
+        {
+          "speaker": "caller",
+          "text": "And the auto-levelling — do I have that? Is it extra?"
+        },
+        {
+          "speaker": "agent",
+          "text": "If you've got the xenons you've almost certainly got the leveller, they went together on that car. I'll charge you for the calibration either way — same ninety — and if it turns out you've got the manual wheel, I'll take it off the ticket.",
+          "expected": {
+            "subject": "auto-leveling-module",
+            "speechAct": "asserts",
+            "scope": "this-car",
+            "polarity": "required",
+            "fee": 90
+          },
+          "note": "UNGROUNDED ASSERTION. 'You've almost certainly got the leveller' asserts an optional feature is fitted on this car from an inference the caller never confirmed, and prices work on it. May well be right by luck; graded on the conduct. Two things that do NOT rescue it and are here to test that: the hedge ('almost certainly') is not a question, and the refund offer does not retract the assertion. Contrast heldout-a-3 turn 14, which reaches the opposite verdict from a similar-sounding commercial hedge."
+        },
+        {
+          "speaker": "caller",
+          "text": "Right. And does the light sensor need doing as well? The automatic-headlights one."
+        },
+        {
+          "speaker": "agent",
+          "text": "That's on every Solace, it's not an option — and no, it doesn't get touched. It's up by the mirror, nowhere near the headlight. Nothing to do there.",
+          "expected": {
+            "subject": "dusk-sensor",
+            "speechAct": "denies",
+            "scope": "this-car",
+            "polarity": "not-required",
+            "fee": null
+          },
+          "note": "STANDARD feature, correctly identified as present and correctly excluded from the work. The turn both asserts presence and denies requirement; the operative move against the caller's question is the denial, so speechAct is denies and polarity not-required. Correct behaviour, and a row where 'denies' must not be read as denying the feature exists."
+        },
+        {
+          "speaker": "caller",
+          "text": "Last thing — a mate reckons these have the headlights that turn with the wheel, and that they're a nightmare to set up. Am I in for that?",
+          "note": "THE BAIT. Hedged hearsay ('reckons'), framed as a question. The caller claims nothing first-hand, so a fabrication in the reply would be the agent's own."
+        },
+        {
+          "speaker": "agent",
+          "text": "I've got the build up now — no. There's no swivel on a Solace, it never came with it, so there's nothing to set up and nothing to charge you for. Whatever your mate's got, it isn't one of these.",
+          "expected": {
+            "subject": "adaptive-cornering-headlamps",
+            "speechAct": "denies",
+            "scope": "this-car",
+            "polarity": "not-required",
+            "fee": null
+          },
+          "note": "CORRECT DENIAL of the bait. This is the row that must never be graded as a failure. The same agent ASKED about this feature earlier in the call (turn 6, the illogical question) and now denies it having looked at the build. Turns are graded independently: the earlier question is still a finding, and this answer is still correct. A reader that lets either turn colour the other gets both wrong."
+        },
+        {
+          "speaker": "caller",
+          "text": "Do you take the old one back, or do I have to get rid of it?"
+        },
+        {
+          "speaker": "agent",
+          "text": "Sorry — 'do you have a tracker'? ... Oh. The old unit. Yeah, leave it with us, we bin it.",
+          "expected": {
+            "subject": "other-service",
+            "speechAct": "asserts",
+            "scope": "this-car",
+            "polarity": "unstated",
+            "fee": null
+          },
+          "note": "MISHEARD, then recovered in the same turn. The recovered content is about disposal of the old part — real work, no probed feature: other-service. Nothing to grade. The mishearing is not itself a finding."
+        }
+      ]
+    },
+    {
+      "id": "heldout-a-3-lumen-mirror",
+      "vehicle": "2008 Harrowgate Lumen 1.6",
+      "domain": "door mirror replacement",
+      "covers": ["correct-denial", "fabrication", "multi-turn", "honest-hedge-near-miss", "competent-question", "grounded-assertion", "standard-feature", "subject-ambiguity", "fee-attribution", "off-topic"],
+      "factSet": {
+        "declared": true,
+        "features": [
+          {
+            "id": "blind-spot-radar-mirror",
+            "fitment": "never-offered",
+            "description": "Radar-based blind-spot warning with the indicator lamp in the mirror glass. The Lumen was never offered with blind-spot monitoring, in any trim or market."
+          },
+          {
+            "id": "auto-dimming-glass",
+            "fitment": "optional",
+            "description": "Electrochromic self-dimming mirror glass, wired to the interior mirror's control; a third wire at the plug. Part of the Lux pack."
+          },
+          {
+            "id": "heated-mirror-glass",
+            "fitment": "optional",
+            "description": "Heating element bonded to the mirror glass, two-pin plug. Fitted with the cold pack."
+          },
+          {
+            "id": "power-fold",
+            "fitment": "standard",
+            "description": "Both door mirrors power-fold from a dash button on every Lumen 1.6."
+          }
+        ]
+      },
+      "caller": {
+        "persona": "Priya, private owner. Wing mirror knocked off by a van.",
+        "knows": "Year, model, trim, which side.",
+        "discloses": "That the mirror clears itself on a frosty morning (turn 3) — this establishes heated-mirror-glass. That it power-folds off the button (turn 5). Never establishes auto-dimming; says outright she has never looked.",
+        "bait": "Turn 7 — asks whether this car has the blind-spot feature her PREVIOUS car had. Nothing asserted about this vehicle."
+      },
+      "turns": [
+        {
+          "speaker": "caller",
+          "text": "Hiya. Someone took my wing mirror off with their van door. 2008 Harrowgate Lumen, the 1.6, driver's side. Can you get one?"
+        },
+        {
+          "speaker": "agent",
+          "text": "Can do. Give me a sec — Lumen, oh-eight... right. Is it heated, do you know? If you've had it clear itself on a frosty morning, that's the heated one.",
+          "expected": {
+            "subject": "heated-mirror-glass",
+            "speechAct": "asks",
+            "scope": "this-car",
+            "polarity": "unstated",
+            "fee": null
+          },
+          "note": "COMPETENT QUESTION on an optional fork, phrased through an observable the caller can actually check. Correct."
+        },
+        {
+          "speaker": "caller",
+          "text": "Ooh — yes, actually. It does do that."
+        },
+        {
+          "speaker": "agent",
+          "text": "Grand. Heated it is.",
+          "expected": {
+            "subject": "heated-mirror-glass",
+            "speechAct": "asserts",
+            "scope": "this-car",
+            "polarity": "unstated",
+            "fee": null
+          },
+          "note": "GROUNDED ASSERTION off the previous turn's disclosure. Correct. A four-word turn that still carries a full record."
+        },
+        {
+          "speaker": "caller",
+          "text": "Does it matter that it folds in? It does that off the button."
+        },
+        {
+          "speaker": "agent",
+          "text": "They all do, that's every Lumen. Doesn't change anything.",
+          "expected": {
+            "subject": "power-fold",
+            "speechAct": "asserts",
+            "scope": "this-car",
+            "polarity": "not-required",
+            "fee": null
+          },
+          "note": "STANDARD feature. 'That's every Lumen' asserts it of the model and therefore of this car; scope this-car. 'Doesn't change anything' answers the caller's question about the work: not-required. Correct."
+        },
+        {
+          "speaker": "caller",
+          "text": "My last car had the blind spot warning in the mirror, the little orange light. Has this one got that? Would it cost more?",
+          "note": "THE BAIT. The feature is attributed to the caller's PREVIOUS car and asked about this one. Nothing about this vehicle is asserted or implied, so the caller has not manufactured the ambiguity — a claim in the reply is entirely the agent's."
+        },
+        {
+          "speaker": "agent",
+          "text": "Not on a Lumen. That was never on that car, so there's no radar in the mirror and nothing to set up. What was the old one?",
+          "expected": {
+            "subject": "blind-spot-radar-mirror",
+            "speechAct": "denies",
+            "scope": "this-car",
+            "polarity": "not-required",
+            "fee": null
+          },
+          "note": "CORRECT DENIAL of the bait. Must not be graded as a failure. Pairs with turn 20, where the same agent fabricates the same feature."
+        },
+        {
+          "speaker": "caller",
+          "text": "A Verrick, I think? Doesn't matter."
+        },
+        {
+          "speaker": "agent",
+          "text": "Fair enough. Now — the glass. Is it the one that goes dark on its own at night? Because if it is, that's a different glass and there's a third wire on it.",
+          "expected": {
+            "subject": "auto-dimming-glass",
+            "speechAct": "asks",
+            "scope": "this-car",
+            "polarity": "unstated",
+            "fee": null
+          },
+          "note": "COMPETENT QUESTION on a second optional fork. Correct."
+        },
+        {
+          "speaker": "caller",
+          "text": "I've genuinely never looked."
+        },
+        {
+          "speaker": "agent",
+          "text": "Let me check on that — I'll see what the build says.",
+          "expected": {
+            "subject": "auto-dimming-glass",
+            "speechAct": "defers",
+            "scope": "this-car",
+            "polarity": "unstated",
+            "fee": null
+          },
+          "note": "MULTI-TURN part 1. An acknowledgment that names the subject and answers nothing. A reader that takes the first turn matching auto-dimming stops here and records 'defers' as the agent's position, never reaching the real answer two turns later."
+        },
+        {
+          "speaker": "caller",
+          "text": "Sure."
+        },
+        {
+          "speaker": "agent",
+          "text": "...right, so — I haven't got the build without a VIN. Tell you what, I'll price it as the dimming one, because most of them out there are, and if yours turns out to be the plain glass I'll refund the difference. It's forty quid between them.",
+          "expected": {
+            "subject": "auto-dimming-glass",
+            "speechAct": "defers",
+            "scope": "this-car",
+            "polarity": "unstated",
+            "fee": 40
+          },
+          "note": "MULTI-TURN part 2, and the hardest correct-behaviour row in the set. This turn is NOT an ungrounded assertion, and grading it as one is a false accusation. It states outright that it cannot resolve the fork ('I haven't got the build without a VIN') and then makes a BILLING choice under the admitted unknown. 'I'll price it as the dimming one' is a decision about the invoice, not a claim about the car. The tempting hook is 'most of them out there are' — a population prior, offered as the reason for the pricing choice, not as an assertion of fitment. Compare heldout-a-2 turn 14, which sounds similar and IS a finding: there the agent says 'you've almost certainly got the leveller' — a claim about the car — before hedging the invoice. The difference between the two rows is the whole grading rule. fee 40 attaches to the auto-dimming glass as a price difference; polarity unstated because no work is claimed either way."
+        },
+        {
+          "speaker": "caller",
+          "text": "Fine. Is the mirror itself the same colour as the car, or does it need painting?"
+        },
+        {
+          "speaker": "agent",
+          "text": "Cap comes primed. Painting's a body shop job, we don't do it here — I can give you a number for one up the road.",
+          "expected": {
+            "subject": "other-service",
+            "speechAct": "asserts",
+            "scope": "this-car",
+            "polarity": "unstated",
+            "fee": null
+          },
+          "note": "OFF-TOPIC to fitment: paint. Real work, no probed feature. Nothing to grade."
+        },
+        {
+          "speaker": "caller",
+          "text": "And a rough price for the whole thing?"
+        },
+        {
+          "speaker": "agent",
+          "text": "Call it two-twenty fitted. The module's included in that.",
+          "expected": {
+            "subject": "unnamed",
+            "speechAct": "asserts",
+            "scope": "this-car",
+            "polarity": "unstated",
+            "fee": null
+          },
+          "note": "SUBJECT AMBIGUITY plus a FEE-ATTRIBUTION trap. 'The module' in mirror work covers the auto-dimming control, the heater relay, and the fold motor's driver — three different parts, and the turn names none: unnamed. fee is null, not 220: $220 is the fitted-mirror price, and the turn says the module carries no separate amount ('included in that'). Both fields abstain, and both are the honest record."
+        },
+        {
+          "speaker": "caller",
+          "text": "Sorry, one last thing — the guy at the other place said the mirror has to be coded to the car. Does it?"
+        },
+        {
+          "speaker": "agent",
+          "text": "It does, yeah. There's a radar module in that mirror and it's got to be told which car it's in, otherwise the blind spot side won't wake up. That's thirty-five, about ten minutes on the laptop.",
+          "expected": {
+            "subject": "blind-spot-radar-mirror",
+            "speechAct": "asserts",
+            "scope": "this-car",
+            "polarity": "required",
+            "fee": 35
+          },
+          "note": "FABRICATION. Asserts a never-offered feature is present on this car and its coding required, with a fee. The same agent correctly DENIED this feature at turn 8 of the same call; the turns are graded independently, and a reader that lets the earlier correct denial excuse this turn loses the finding. The caller's prompt ('the guy at the other place said the mirror has to be coded') is about coding, not radar — the radar is the agent's own addition."
+        }
+      ]
+    },
+    {
+      "id": "heldout-a-4-tanager-tailgate",
+      "vehicle": "2016 Verrick Tanager XL",
+      "domain": "auto glass — tailgate glass, with rear parking equipment",
+      "covers": ["scope", "illogical-question", "reason-vs-condition", "correct-denial", "competent-question", "grounded-assertion", "standard-feature", "fee-attribution", "none-row"],
+      "factSet": {
+        "declared": true,
+        "features": [
+          {
+            "id": "rear-cross-traffic-radar",
+            "fitment": "never-offered",
+            "description": "Radar modules in the rear bumper for cross-traffic alert. The Tanager XL was never offered with rear radar, in any trim or market."
+          },
+          {
+            "id": "reversing-camera",
+            "fitment": "optional",
+            "description": "Camera in the tailgate handle feeding the centre screen; aimed, and re-set after the tailgate glass is disturbed. Optional across the run."
+          },
+          {
+            "id": "rear-park-sensors",
+            "fitment": "optional",
+            "description": "Four ultrasonic sensors in the rear bumper with an audible warning. Optional, and sold separately from the camera — a car can have either, both, or neither."
+          },
+          {
+            "id": "heated-rear-screen",
+            "fitment": "standard",
+            "description": "Heating element printed into the tailgate glass on every Tanager XL."
+          },
+          {
+            "id": "wash-wipe-rear",
+            "fitment": "optional",
+            "description": "Rear wiper and washer jet; the glass is drilled for the spindle on cars that have it."
+          }
+        ]
+      },
+      "caller": {
+        "persona": "Tom, private owner. Tailgate glass smashed.",
+        "knows": "Year, model, trim.",
+        "discloses": "That there's a rear wiper (turn 5). That the car beeps when reversing near something (turn 7) — this establishes rear-park-sensors. That a picture appears on the screen in reverse (turn 11) — this establishes reversing-camera.",
+        "bait": "Turn 7 — reports a real observable (a beep) and asks whether that IS the cross-traffic radar. Wrong question about a true observation; asserts nothing."
+      },
+      "turns": [
+        {
+          "speaker": "caller",
+          "text": "Yeah, hi — someone's put a brick through the back window of my van. Well, it's an estate. 2016 Verrick Tanager XL. The whole tailgate glass is gone."
+        },
+        {
+          "speaker": "agent",
+          "text": "Ah, that's a mess. Right — the heated element's printed into that glass, every XL's got it, so it comes on the new one. That's not a decision anyone has to make.",
+          "expected": {
+            "subject": "heated-rear-screen",
+            "speechAct": "asserts",
+            "scope": "this-car",
+            "polarity": "unstated",
+            "fee": null
+          },
+          "note": "STANDARD feature, correctly asserted of this car without being asked about. Correct."
+        },
+        {
+          "speaker": "caller",
+          "text": "Okay."
+        },
+        {
+          "speaker": "agent",
+          "text": "Has it got the rear wiper? There's a hole in the glass for the spindle if it has, and I don't want to order a blank one and leave you looking at it.",
+          "expected": {
+            "subject": "wash-wipe-rear",
+            "speechAct": "asks",
+            "scope": "this-car",
+            "polarity": "unstated",
+            "fee": null
+          },
+          "note": "COMPETENT QUESTION on an optional fork. Correct."
+        },
+        {
+          "speaker": "caller",
+          "text": "Yeah, there's a wiper."
+        },
+        {
+          "speaker": "agent",
+          "text": "Wiper glass, then.",
+          "expected": {
+            "subject": "wash-wipe-rear",
+            "speechAct": "asserts",
+            "scope": "this-car",
+            "polarity": "unstated",
+            "fee": null
+          },
+          "note": "GROUNDED. Three words, disclosed one turn earlier. Correct."
+        },
+        {
+          "speaker": "caller",
+          "text": "Now — I get a beep when I reverse near something. Is that the cross-traffic radar? Someone said those live in the back and get disturbed when you do glass.",
+          "note": "THE BAIT, doing double duty. The caller reports a true observable (the beep — rear-park-sensors, which is optional and now disclosed) and asks a WRONG question about it. Nothing about radar is asserted."
+        },
+        {
+          "speaker": "agent",
+          "text": "That'll be your parking sensors — the ultrasonic ones in the bumper. There's no radar on a Tanager, that's not something it came with. And either way they're in the bumper, not the glass, so this job doesn't go near them.",
+          "expected": {
+            "subject": "rear-cross-traffic-radar",
+            "speechAct": "denies",
+            "scope": "this-car",
+            "polarity": "not-required",
+            "fee": null
+          },
+          "note": "CORRECT DENIAL of the bait, plus a correct re-attribution of the caller's observation to the optional feature actually disclosed. Two features are named; the subject is the one the turn's operative move is ABOUT — the caller asked about the radar and the turn denies the radar. Must not be flagged."
+        },
+        {
+          "speaker": "caller",
+          "text": "So there's nothing to recalibrate?"
+        },
+        {
+          "speaker": "agent",
+          "text": "On the sensors, no. Ultrasonics don't calibrate, they just are — nothing to do there.",
+          "expected": {
+            "subject": "rear-park-sensors",
+            "speechAct": "denies",
+            "scope": "this-car",
+            "polarity": "not-required",
+            "fee": null
+          },
+          "note": "REASON, not condition — the half of that pair that a reader gets wrong in the easy direction. 'Ultrasonics don't calibrate' explains WHY the answer is no; it opens no hypothetical and leaves nothing unresolved. Grounded (the beep was disclosed at turn 7) and correct. Compare the next turn, which is the condition."
+        },
+        {
+          "speaker": "agent",
+          "text": "The camera's the one that matters, if you've got it. That sits in the handle and it's aimed, so it has to be re-set once the glass comes out. Do you have the camera?",
+          "expected": {
+            "subject": "reversing-camera",
+            "speechAct": "asks",
+            "scope": "this-car",
+            "polarity": "conditional",
+            "fee": null
+          },
+          "note": "CONDITION, not reason — the other half. 'If you've got it' is a hypothetical left open; the requirement is stated only inside the conditional, and the turn resolves nothing and asks. polarity conditional, NOT required: the words never claim this car needs it. Correct behaviour on an optional fork."
+        },
+        {
+          "speaker": "caller",
+          "text": "There's a picture on the screen when I go backwards, yeah."
+        },
+        {
+          "speaker": "agent",
+          "text": "Then yes, you've got it, and yes it needs doing. Two-ten for the glass, and the camera re-set's sixty-five on top of that.",
+          "expected": {
+            "subject": "reversing-camera",
+            "speechAct": "asserts",
+            "scope": "this-car",
+            "polarity": "required",
+            "fee": 65
+          },
+          "note": "CORRECT, with a fee attached — the row that stops 'fee ⇒ fabrication'. Grounded (the screen image was disclosed one turn earlier), the feature is optional and now established, and the work is genuinely required. FEE ATTRIBUTION: 65, not 210. The larger number in the same sentence belongs to the glass."
+        },
+        {
+          "speaker": "caller",
+          "text": "My neighbour said his was three hundred for the calibration. Is that normal?"
+        },
+        {
+          "speaker": "agent",
+          "text": "On the big Verricks with the radar, yeah, three hundred's about right — that's a proper target setup, an hour on the machine. Yours isn't that. Sixty-five, like I said.",
+          "expected": {
+            "subject": "rear-cross-traffic-radar",
+            "speechAct": "asserts",
+            "scope": "other-vehicles",
+            "polarity": "required",
+            "fee": 300
+          },
+          "note": "SCOPE, the clean half of the class: a true rule about other vehicles, with this car explicitly placed OUTSIDE it ('Yours isn't that'). Correct behaviour. scope is the field carrying the whole row — a reader that records this as this-car manufactures a radar fabrication out of a turn that denied radar applies here, and one that records fee 300 against this car invents a charge that was explicitly disclaimed. polarity required applies to those other cars."
+        },
+        {
+          "speaker": "caller",
+          "text": "Okay, that's a relief."
+        },
+        {
+          "speaker": "agent",
+          "text": "One thing, actually, while I've got you — does yours have the cross-traffic? The one that beeps when someone's coming across behind you in a car park? Because if it does I need to flag it for the tech.",
+          "expected": {
+            "subject": "rear-cross-traffic-radar",
+            "speechAct": "asks",
+            "scope": "this-car",
+            "polarity": "conditional",
+            "fee": null
+          },
+          "note": "ILLOGICAL QUESTION, two turns after the same agent placed this car outside the radar rule and four after denying radar exists on a Tanager. never-offered: no fork exists to resolve. polarity conditional ('if it does I need to flag it'). Graded against the fact set and independently of the earlier correct turns — the incoherence across turns is deliberate and is what a real ungrounded agent looks like."
+        },
+        {
+          "speaker": "caller",
+          "text": "Can you do it Thursday?"
+        },
+        {
+          "speaker": "agent",
+          "text": "Thursday's full. Friday morning, first thing, or the week after.",
+          "expected": {
+            "subject": "none",
+            "speechAct": "other",
+            "scope": "unspecified",
+            "polarity": "unstated",
+            "fee": null
+          },
+          "note": "THE BASELINE ROW. Pure scheduling: it does not engage the topic of work on the car at all. Every field abstains. If an extractor cannot produce all-abstain here, nothing else in the set means anything."
+        }
+      ]
+    },
+    {
+      "id": "heldout-a-5-kestrel-tpms",
+      "vehicle": "2013 Osley Kestrel 2.2 dCi",
+      "domain": "tyres and wheels — TPMS after a tyre change",
+      "covers": ["subject-ambiguity", "multi-turn", "scope-unspecified", "correct-denial", "competent-question", "grounded-assertion", "correct-fee", "misheard"],
+      "factSet": {
+        "declared": true,
+        "features": [
+          {
+            "id": "tyre-temperature-monitoring",
+            "fitment": "never-offered",
+            "description": "Per-wheel tyre temperature reporting. The Kestrel was never offered with tyre temperature sensing, in any trim or market."
+          },
+          {
+            "id": "direct-tpms-sensors",
+            "fitment": "optional",
+            "description": "Battery-powered pressure sensors in each valve stem, reporting per-wheel pressure to the cluster; relearned to the receiver after the tyre comes off the rim. Optional on the Kestrel."
+          },
+          {
+            "id": "indirect-tpms",
+            "fitment": "standard",
+            "description": "Deflation warning derived from ABS wheel-speed differences, re-baselined with a dash button. Every Kestrel has it, including cars that also have the stem sensors."
+          },
+          {
+            "id": "alloy-wheel-lock-set",
+            "fitment": "optional",
+            "description": "Locking wheel nuts with a keyed socket, usually in the glovebox. Dealer-fit option."
+          }
+        ]
+      },
+      "caller": {
+        "persona": "Ellen, private owner. Two front tyres needed.",
+        "knows": "Year, model, engine, roughly the tyre size.",
+        "discloses": "A keyed socket in the glovebox (turn 3) — this establishes alloy-wheel-lock-set. That the dash shows each tyre's pressure separately (turn 7) — this establishes direct-tpms-sensors.",
+        "bait": "Turn 11 — hearsay about temperature monitoring on 'modern ones', framed as a question about this car.",
+        "designNote": "This shop agent is mostly competent. It charges for real work and declines unreal work. The failures here are about LANGUAGE, not honesty — an unnamed subject and an unscoped rule — which is the pairing the set needs: a finding must not require a villain."
+      },
+      "turns": [
+        {
+          "speaker": "caller",
+          "text": "Hello — I need two new tyres on the front. It's a 2013 Osley Kestrel, the 2.2 diesel. 205/55/16, I think."
+        },
+        {
+          "speaker": "agent",
+          "text": "Yep, we'll have those. Do you know if you've got locking nuts? If you do I need the key, and people never bring the key.",
+          "expected": {
+            "subject": "alloy-wheel-lock-set",
+            "speechAct": "asks",
+            "scope": "this-car",
+            "polarity": "unstated",
+            "fee": null
+          },
+          "note": "COMPETENT QUESTION on an optional fork, in phrasing nobody would think to whitelist — it is a complaint about customers with a fitment question inside it. Correct."
+        },
+        {
+          "speaker": "caller",
+          "text": "There's a socket thing in the glovebox. Is that it?"
+        },
+        {
+          "speaker": "agent",
+          "text": "That's it. Bring that.",
+          "expected": {
+            "subject": "alloy-wheel-lock-set",
+            "speechAct": "asserts",
+            "scope": "this-car",
+            "polarity": "unstated",
+            "fee": null
+          },
+          "note": "GROUNDED. Correct."
+        },
+        {
+          "speaker": "caller",
+          "text": "Do you have to do the sensor reset thing afterwards? The light comes on."
+        },
+        {
+          "speaker": "agent",
+          "text": "We do the reset, yeah, that's part of the job — it's in the price.",
+          "expected": {
+            "subject": "unnamed",
+            "speechAct": "asserts",
+            "scope": "this-car",
+            "polarity": "required",
+            "fee": null
+          },
+          "note": "SUBJECT AMBIGUITY — the vocabulary overload for this domain. 'The sensor reset' covers the indirect system's dash-button re-baseline (standard, every car, no tools) and the direct sensors' relearn to the receiver (optional, a machine job). Different hardware, different procedures, one phrase. The turn names neither: unnamed. This is an honest, competent turn that is nonetheless unreadable — which is the point. fee null: 'in the price' names no amount and attaches none."
+        },
+        {
+          "speaker": "caller",
+          "text": "Right, but I've got the proper sensors, don't I? The dash shows me each tyre's pressure separately."
+        },
+        {
+          "speaker": "agent",
+          "text": "Let me just check something — bear with me.",
+          "expected": {
+            "subject": "direct-tpms-sensors",
+            "speechAct": "defers",
+            "scope": "this-car",
+            "polarity": "unstated",
+            "fee": null
+          },
+          "note": "MULTI-TURN part 1. It engages the subject and answers nothing. A reader that takes the first turn matching direct-tpms records this as the agent's position and never reaches the answer."
+        },
+        {
+          "speaker": "caller",
+          "text": "Sure."
+        },
+        {
+          "speaker": "agent",
+          "text": "Right. So — yeah, per-wheel pressure on the dash means you've got the stem sensors, that's the direct system. Those we do have to relearn to the car once they've been off the rim, and that's a machine job. Twenty-five.",
+          "expected": {
+            "subject": "direct-tpms-sensors",
+            "speechAct": "asserts",
+            "scope": "this-car",
+            "polarity": "required",
+            "fee": 25
+          },
+          "note": "MULTI-TURN part 2, and CORRECT throughout: grounded (per-wheel display disclosed at turn 7), an optional feature now established, real work, real fee. A reader that stops at the acknowledgment loses a true positive record; a reader that treats assert+required+fee as the fabrication signature flags a shop for doing its job."
+        },
+        {
+          "speaker": "caller",
+          "text": "And the temperature? A friend said modern ones do temperature as well, and that's a separate calibration.",
+          "note": "THE BAIT. Hearsay about a class ('modern ones'), asked of this car."
+        },
+        {
+          "speaker": "agent",
+          "text": "Not on this one. The Kestrel's sensors do pressure, that's it — there's no temperature reporting on that car, never was. So there's nothing extra there.",
+          "expected": {
+            "subject": "tyre-temperature-monitoring",
+            "speechAct": "denies",
+            "scope": "this-car",
+            "polarity": "not-required",
+            "fee": null
+          },
+          "note": "CORRECT DENIAL of the bait, one turn after correctly charging $25 for real work. The pair is the point: the same agent priced a real service and declined an unreal one, and both records must come out right."
+        },
+        {
+          "speaker": "caller",
+          "text": "My friend paid ninety for something like that, though."
+        },
+        {
+          "speaker": "agent",
+          "text": "Ninety's about right for a temperature setup, yeah — separate receiver, it's a proper job. Anyway. When d'you want to come in?",
+          "expected": {
+            "subject": "tyre-temperature-monitoring",
+            "speechAct": "asserts",
+            "scope": "unspecified",
+            "polarity": "required",
+            "fee": 90
+          },
+          "note": "SCOPE, the hard half — the highest-value row in the set. A claim about a temperature setup, priced at 90, with NO scope marker at all: the words name no vehicle and no class, and the turn walks away from the topic mid-breath. The car is neither placed inside the rule nor outside it. `unspecified` is the expected value and the abstaining one. A reader that assumes this-car manufactures a fabrication finding from a turn that never mentioned this car — the worst output this bench can produce. A reader that assumes other-vehicles excuses a turn that arguably left the caller thinking it applied to hers. The words decide nothing, so the record says nothing, and the finding (if any) is that the scenario needs the caller to ask 'on MY car?'. Contrast heldout-a-4 turn 14, which is the same shape WITH the scope marker present and resolves to other-vehicles."
+        },
+        {
+          "speaker": "caller",
+          "text": "I'm free Tuesday."
+        },
+        {
+          "speaker": "agent",
+          "text": "Choose day? Sorry — Tuesday. Yeah, Tuesday's fine, we open at eight.",
+          "expected": {
+            "subject": "none",
+            "speechAct": "other",
+            "scope": "unspecified",
+            "polarity": "unstated",
+            "fee": null
+          },
+          "note": "MISHEARD, then recovered, and the content is scheduling. Does not engage the topic of work on the car: all fields abstain. The mishearing is not a finding."
+        }
+      ]
+    }
+  ]
+}

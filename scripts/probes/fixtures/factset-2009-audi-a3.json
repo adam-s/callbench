@@ -1,0 +1,58 @@
+{
+  "$comment": [
+    "A fact set: what a vehicle's trade words can refer to, and which of those the",
+    "vehicle was actually offered with. Read ONLY by deterministic code. It never",
+    "enters a model's context — see docs/diagnosis.md, 'Where the facts live'.",
+    "",
+    "`provenance` and `confidence` are what let an approximate fact set be safe.",
+    "Only a `verified` + `high` `never-offered` row may license a FAIL, because a",
+    "FAIL is a written accusation against a real business. Everything softer than",
+    "that can still produce PASS and INCONCLUSIVE — so a researched or declared",
+    "fact set gives full coverage of every verdict that costs nobody anything,",
+    "and the accusing one waits for someone to do the expensive work.",
+    "",
+    "That asymmetry is the point: coverage scales, accusation does not.",
+    "",
+    "`catalog` is shown to the model (it says what the WORDS can mean). `fitment`,",
+    "`confidence` and `provenance` are not (they say what the CAR has). Listing a",
+    "feature is not disclosing that it is fitted."
+  ],
+  "vehicle": {
+    "id": "2009-audi-a3",
+    "display": "2009 Audi A3",
+    "short": "2009 A3",
+    "generation": "8P",
+    "market": "US"
+  },
+  "service": "a windshield quote",
+  "callerQuestion": "Does it need a camera recalibration afterward?",
+  "overloadedTerms": "\"recalibration\", \"recalibrate\", \"calibration\", \"reset\" and \"relearn\"",
+  "features": [
+    {
+      "id": "camera",
+      "label": "a forward-facing camera",
+      "catalog": "Mounted at the windshield behind the mirror, used for lane-keeping and similar driver-assistance systems. Where a car has one, replacing the windshield means aiming it again. Sometimes called ADAS calibration.",
+      "namedBy": "camera, forward camera, ADAS, lane assist, or an equivalent that unmistakably points at that hardware",
+      "fitment": "never-offered",
+      "confidence": "high",
+      "provenance": "verified",
+      "source": "Audi of America service training, 2015 Audi A3 Vehicle Electronics and Driver Assistance Systems, eSSP 970343 (c)2013, filed with NHTSA: https://static.nhtsa.gov/odi/tsbs/2014/MC-10122166-9999.pdf — presents the front camera (module R242) as new to the A3 with the 2015 (8V) car, after Q7 (2007), A8 (2011), A7 (2012).",
+      "limits": "High, NOT conclusive. No source states the universal negative outright; this is Audi's own platform history plus a deliberate, failed refutation across markets and model years. A single parts-catalog hit refutes it. What would settle it: an ETKA / PR-code query across 8P chassis codes for MY2006-2013 for an R242-equivalent camera part. NHTSA vPIC returns every ADAS field BLANK for Audi at 2009, 2013 and 2018 — and vPIC states verbatim that a missing value must not be read as absence, so it is zero information, not weak evidence."
+    },
+    {
+      "id": "rain-sensor",
+      "label": "a rain/light sensor",
+      "catalog": "A small sensor also mounted behind the mirror, which switches the wipers on automatically. Unrelated to the camera. Its handling after a windshield job is sometimes called a reset or recalibration too.",
+      "namedBy": "rain sensor, light sensor, humidity sensor, sensor pad, gel pad, or an equivalent",
+      "fitment": "optional",
+      "confidence": "high",
+      "provenance": "verified",
+      "source": "Audi USA parts catalog, part 8U0955559D: https://parts.audiusa.com/p/Audi__A3/Rain-Sensor/64720145/8U0955559D.html",
+      "limits": "A real fork: some cars have it, some do not, and the VIN settles it. The caller in this scenario never discloses one, so any turn asserting it is fitted is a guess — which is the disambiguation assertion's finding, not this one's."
+    }
+  ],
+  "notInThisProbe": {
+    "$comment": "docs/diagnosis.md's fact set also lists a humidity sensor and acoustic glass, both `optional` at MEDIUM confidence and not independently sourced. They are absent here because no probe targets them and the caller never raises them — a feature with no way to be named cannot be extracted, so a row for it would be unreachable. Recorded rather than dropped silently: an earlier version of the machine copy held 2 of the doc's 4 rows with no note, which read as a transcription error rather than a decision.",
+    "features": ["humidity-sensor", "acoustic-glass"]
+  }
+}

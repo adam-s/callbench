@@ -1,0 +1,534 @@
+{
+  "fedab5649a8c9d7dfdec6f5e2777125b0b6a298d0b78b6ed9baa4b6817ff437c": {
+    "subject": "camera",
+    "speechAct": "denies",
+    "scope": "this-car",
+    "polarity": "not-required",
+    "fee": null
+  },
+  "8c79cc3858cf12fbf31b59af028b719ff16f1a86d37378fd0e3219a532bc6a0e": {
+    "subject": "camera",
+    "speechAct": "denies",
+    "scope": "this-car",
+    "polarity": "not-required",
+    "fee": null
+  },
+  "c4655108ee84a8b20165bd7f58daeba6695840661b12c126eda13ac0bd700a4b": {
+    "subject": "unnamed",
+    "speechAct": "denies",
+    "scope": "this-car",
+    "polarity": "not-required",
+    "fee": null
+  },
+  "562fb4e9cd4142f0c85d35cb8667ed063eb1522cf37e2316aa6d156d082bde24": {
+    "subject": "camera",
+    "speechAct": "denies",
+    "scope": "this-car",
+    "polarity": "not-required",
+    "fee": null
+  },
+  "3d6ccd415c7145c1c865e060853a93059e07a990d2f05e08273dc16a52362022": {
+    "subject": "camera",
+    "speechAct": "denies",
+    "scope": "this-car",
+    "polarity": "not-required",
+    "fee": null
+  },
+  "3619c3acd87d58bcd990a9373af36b85f639742c9029a7fc7a4d0086e0d7abae": {
+    "subject": "unnamed",
+    "speechAct": "denies",
+    "scope": "this-car",
+    "polarity": "not-required",
+    "fee": null
+  },
+  "6d16c7693afc3b171e96e990f1cebd6ccde7ced2c2702e3ad4e1f159f9015b66": {
+    "subject": "unnamed",
+    "speechAct": "denies",
+    "scope": "this-car",
+    "polarity": "not-required",
+    "fee": null
+  },
+  "61d71a2426941a661921f74cfb3614f6edf451bc3b39f5d166c90aa17ae941f3": {
+    "subject": "camera",
+    "speechAct": "denies",
+    "scope": "this-car",
+    "polarity": "not-required",
+    "fee": null
+  },
+  "1371429dd2c7622b7f99204976a788f6232a181dc4d93e516ef1420c3bf5a0bf": {
+    "subject": "camera",
+    "speechAct": "denies",
+    "scope": "this-car",
+    "polarity": "not-required",
+    "fee": null
+  },
+  "850a8422a499d556cbaff615813d36abce11bfc74144c34673c8bccb7ce4abd1": {
+    "subject": "camera",
+    "speechAct": "asserts",
+    "scope": "this-car",
+    "polarity": "required",
+    "fee": 265
+  },
+  "40b5f2700ddc08e7d68afcfee1547061a287df10de4abab7f261383aeb512fa3": {
+    "subject": "camera",
+    "speechAct": "denies",
+    "scope": "this-car",
+    "polarity": "not-required",
+    "fee": null
+  },
+  "3216030e49235ac0f942cd115ff51428f4bb52d7c8e6e4528e0e44defe6c3197": {
+    "subject": "camera",
+    "speechAct": "denies",
+    "scope": "this-car",
+    "polarity": "not-required",
+    "fee": null
+  },
+  "f220fb2e79f2c2ee351187255f9a1bc4da751571555b5a2ad1629b78e60d478a": {
+    "subject": "camera",
+    "speechAct": "asserts",
+    "scope": "this-car",
+    "polarity": "required",
+    "fee": 265
+  },
+  "a1853b754b9f34331015a2f5422dc83c38579b837389af87830c79d8c3536509": {
+    "subject": "unnamed",
+    "speechAct": "denies",
+    "scope": "this-car",
+    "polarity": "not-required",
+    "fee": null
+  },
+  "31525518bb0766d05340af1d80f31282dd289dc5d6bb6ebc04408db975e674ff": {
+    "subject": "camera",
+    "speechAct": "asserts",
+    "scope": "this-car",
+    "polarity": "required",
+    "fee": 220
+  },
+  "bf3e4b47846e4eb2bd9e4e02b5d1367ef0139ee622a8d49532c62ec151bb34ff": {
+    "subject": "camera",
+    "speechAct": "asserts",
+    "scope": "this-car",
+    "polarity": "required",
+    "fee": 220
+  },
+  "c7fd56c30869d6d3aeebaec3ba74fb7da6db8bee7c4b7fb7d9fe91aa7154d905": {
+    "subject": "camera",
+    "speechAct": "asserts",
+    "scope": "this-car",
+    "polarity": "required",
+    "fee": null
+  },
+  "27bef1be39b84b6e88eea7b90e21f2d2e68a3b61c27dd0327519726ca577366c": {
+    "subject": "unnamed",
+    "speechAct": "asserts",
+    "scope": "this-car",
+    "polarity": "required",
+    "fee": null
+  },
+  "99816d3f1d2fffaa6c3094d5cb056f7acfb8893cab0b1a8cba561c9b36599a99": {
+    "subject": "camera",
+    "speechAct": "asks",
+    "scope": "this-car",
+    "polarity": "unstated",
+    "fee": null
+  },
+  "af4d459ab2c6886a983a90e78d99517970a2d6563e02e0686651ac3cea093397": {
+    "subject": "camera",
+    "speechAct": "asks",
+    "scope": "this-car",
+    "polarity": "unstated",
+    "fee": null
+  },
+  "2cc15889a245b8fc272822dcb19d2d7aadb48ce6efbeebdc40f941d31380d429": {
+    "subject": "rain-sensor",
+    "speechAct": "asks",
+    "scope": "this-car",
+    "polarity": "conditional",
+    "fee": null
+  },
+  "cabf6d11b5992e6f185c3851bb80b8682c8ae99fa348ce31a67a6ae164bcb0be": {
+    "subject": "rain-sensor",
+    "speechAct": "asks",
+    "scope": "this-car",
+    "polarity": "unstated",
+    "fee": null
+  },
+  "73ff20006671cb650b5e7062da343f1b40243e6b398069012be7b07736e40ca6": {
+    "subject": "unnamed",
+    "speechAct": "defers",
+    "scope": "this-car",
+    "polarity": "unstated",
+    "fee": null
+  },
+  "1818eb322f96bba52c384751b794e0135a5ecf2b954880e5afb585cb52c8942d": {
+    "subject": "camera",
+    "speechAct": "asserts",
+    "scope": "this-car",
+    "polarity": "conditional",
+    "fee": 220
+  },
+  "0ef01ebdf0c76b672b3e2ec14d40ba6c146724697cb22af638300a17728941ff": {
+    "subject": "rain-sensor",
+    "speechAct": "asserts",
+    "scope": "this-car",
+    "polarity": "required",
+    "fee": 50
+  },
+  "e6e1acedef1f8e8b2dadbc92b9d212c2b4da8c17da4e49a967f23b9cf8c3c54b": {
+    "subject": "camera",
+    "speechAct": "denies",
+    "scope": "this-car",
+    "polarity": "not-required",
+    "fee": null
+  },
+  "853932a5a3c51745513a08fdffd0f5909b41b774d4636299e646fd8a233bfb8f": {
+    "subject": "unnamed",
+    "speechAct": "asserts",
+    "scope": "this-car",
+    "polarity": "required",
+    "fee": null
+  },
+  "3d23ca36a92f2e591d086fd7935a0da04baf921eb033368956f51d99049ec5fb": {
+    "subject": "unnamed",
+    "speechAct": "asserts",
+    "scope": "this-car",
+    "polarity": "conditional",
+    "fee": null
+  },
+  "019e7d593af1f71e7b3a4a34cfbb78ad693eb1ae579eb97505ad4e85f7a4f6b8": {
+    "subject": "unnamed",
+    "speechAct": "asserts",
+    "scope": "this-car",
+    "polarity": "required",
+    "fee": null
+  },
+  "2fbf2fcbc2670cba3f9cfd0ab8be36bae0028cd3bd4502138b539a1742eb8fa3": {
+    "subject": "unnamed",
+    "speechAct": "other",
+    "scope": "the-shop",
+    "polarity": "unstated",
+    "fee": null
+  },
+  "003a8b54af2dcbed5d0b27cbba03ee34592e3a6c0e05a342df57f0a6e7c04a7d": {
+    "subject": "other-service",
+    "speechAct": "other",
+    "scope": "this-car",
+    "polarity": "unstated",
+    "fee": null
+  },
+  "f87cd0652fa492174761fb0edc2f26e346cb9528c8823b25865a2c4d443e17c5": {
+    "subject": "unnamed",
+    "speechAct": "asks",
+    "scope": "this-car",
+    "polarity": "unstated",
+    "fee": null
+  },
+  "89c833008ab9ee439842b828da9a8e50086e820a47c38ebbb06fcbdaeab13663": {
+    "subject": "camera",
+    "speechAct": "defers",
+    "scope": "this-car",
+    "polarity": "unstated",
+    "fee": null
+  },
+  "3f1873faff298e5fe355ee630b90e5494093ae985efef184bd15e9303b0c75fb": {
+    "subject": "camera",
+    "speechAct": "denies",
+    "scope": "this-car",
+    "polarity": "not-required",
+    "fee": null
+  },
+  "e252580ee21e6f3ff340c8a3f0a810d533a241188acbb289650a3bfdb75af536": {
+    "subject": "unnamed",
+    "speechAct": "defers",
+    "scope": "this-car",
+    "polarity": "unstated",
+    "fee": null
+  },
+  "7b2be9bb6d71d748ab4d8188169ca154e1497bb6f1a4c301a63d073f2830ee53": {
+    "subject": "unnamed",
+    "speechAct": "other",
+    "scope": "unspecified",
+    "polarity": "unstated",
+    "fee": null
+  },
+  "638da2abcf88d55d09efa14b8620c661ddfda3a64b04d3789f6ddee0d3cd69b3": {
+    "subject": "none",
+    "speechAct": "other",
+    "scope": "unspecified",
+    "polarity": "unstated",
+    "fee": null
+  },
+  "34f43dcd1e455cc02a37d9394bdcc142e05c047e07abbdd97250841f423cd564": {
+    "subject": "camera",
+    "speechAct": "denies",
+    "scope": "this-car",
+    "polarity": "not-required",
+    "fee": null
+  },
+  "cfc33b2bacf18123f77709d89834481e7b91085c5892cfff711bc4b549472b3d": {
+    "subject": "camera",
+    "speechAct": "denies",
+    "scope": "this-car",
+    "polarity": "not-required",
+    "fee": null
+  },
+  "ef6809b9316ea47b603410836174b77212b88ac2ab028454135713299c51bc2c": {
+    "subject": "unnamed",
+    "speechAct": "denies",
+    "scope": "this-car",
+    "polarity": "not-required",
+    "fee": null
+  },
+  "ea4739ea0c0d9bc3c83527d996131dd28a1bb0a2c11e9c7ade782e7305b63997": {
+    "subject": "camera",
+    "speechAct": "denies",
+    "scope": "this-car",
+    "polarity": "not-required",
+    "fee": null
+  },
+  "26bb71019446921795454172f642704647d4180e865c238b87a0df3e2511d034": {
+    "subject": "camera",
+    "speechAct": "denies",
+    "scope": "this-car",
+    "polarity": "not-required",
+    "fee": null
+  },
+  "2313a9b68eb576e467f3fdedcdb68f91c9c9cc5f4e2488c5b5aba4a7ec861fff": {
+    "subject": "unnamed",
+    "speechAct": "denies",
+    "scope": "this-car",
+    "polarity": "not-required",
+    "fee": null
+  },
+  "6e562ffb21618f4696218ce153a6edcc9b33b1987ee3aeaecd2f4689a844c66f": {
+    "subject": "unnamed",
+    "speechAct": "denies",
+    "scope": "this-car",
+    "polarity": "not-required",
+    "fee": null
+  },
+  "ec833ef053afd3ef29ddbba110f11df524ceaebe31fea373ae60aa1ad529d1f0": {
+    "subject": "camera",
+    "speechAct": "denies",
+    "scope": "this-car",
+    "polarity": "not-required",
+    "fee": null
+  },
+  "03854aa5c9d209b82a439323e1faa85171ae00d1a8a90a560e90e1a156fbcecd": {
+    "subject": "camera",
+    "speechAct": "denies",
+    "scope": "this-car",
+    "polarity": "not-required",
+    "fee": null
+  },
+  "cb392265587faeedda84c53f9094d48ecca6ac169eea1b6fd35e4889b1038fb6": {
+    "subject": "camera",
+    "speechAct": "denies",
+    "scope": "this-car",
+    "polarity": "not-required",
+    "fee": null
+  },
+  "4d042b61feb438105d17f09814b9970864440641f6b16465221afc27ae0aa696": {
+    "subject": "camera",
+    "speechAct": "asserts",
+    "scope": "unspecified",
+    "polarity": "conditional",
+    "fee": null
+  },
+  "4219f9a25ce091ad7909f20ee4b8d92e64fefe8b496f394516a71f7775cf6987": {
+    "subject": "unnamed",
+    "speechAct": "denies",
+    "scope": "this-car",
+    "polarity": "not-required",
+    "fee": null
+  },
+  "b4f52cc803e99f89471d91e48e8c52ca2aa0a5ecce36077ff3732eb3224e6c52": {
+    "subject": "camera",
+    "speechAct": "denies",
+    "scope": "this-car",
+    "polarity": "not-required",
+    "fee": null
+  },
+  "fbeacd56a0cc7116d3a2b631ad6a5f699ed51b332496fe2663c9cda78808eb19": {
+    "subject": "camera",
+    "speechAct": "denies",
+    "scope": "this-car",
+    "polarity": "not-required",
+    "fee": null
+  },
+  "c36c3ef0084259e93404a89737d26b308b66b53b415317544dfc2f09bfeda4a7": {
+    "subject": "unnamed",
+    "speechAct": "denies",
+    "scope": "this-car",
+    "polarity": "not-required",
+    "fee": null
+  },
+  "6b30c362387072ae60fbc2316a4c707334a2a1778fe35265fd04949598bde066": {
+    "subject": "camera",
+    "speechAct": "asserts",
+    "scope": "this-car",
+    "polarity": "required",
+    "fee": 220
+  },
+  "5a8b97909f19c53bb1e19421f4f4b89f079b8d296bd039eeeb8c09648263c4e3": {
+    "subject": "camera",
+    "speechAct": "asserts",
+    "scope": "this-car",
+    "polarity": "required",
+    "fee": 220
+  },
+  "932aa5a771a4af4d75b456ab9a5ca6e58df4e446d55e55fb889895575c176dad": {
+    "subject": "camera",
+    "speechAct": "asserts",
+    "scope": "this-car",
+    "polarity": "required",
+    "fee": null
+  },
+  "68479f34b27f22098c10652da927ce9c608e3a64a627151b5ea2cb7b16a06106": {
+    "subject": "unnamed",
+    "speechAct": "asserts",
+    "scope": "this-car",
+    "polarity": "required",
+    "fee": null
+  },
+  "9d9ccf36460ecc40640432e5add15699d4dfc4056b5a2c3206f3680a85327301": {
+    "subject": "camera",
+    "speechAct": "asks",
+    "scope": "this-car",
+    "polarity": "unstated",
+    "fee": null
+  },
+  "ab9f39574aedc2f1359ee38bcb1a3b2a67ab6fb1430b7b51fb11f3e9f8457d1e": {
+    "subject": "camera",
+    "speechAct": "asks",
+    "scope": "this-car",
+    "polarity": "unstated",
+    "fee": null
+  },
+  "99b4cfba6b1b25653b160c4b9f81ef1061361d84c5df66a17987274cd2dd2305": {
+    "subject": "rain-sensor",
+    "speechAct": "asks",
+    "scope": "this-car",
+    "polarity": "unstated",
+    "fee": null
+  },
+  "f22b66fd1a31763584ed400b0b71503fbd1814c479e3c29858600e57ed963319": {
+    "subject": "rain-sensor",
+    "speechAct": "asks",
+    "scope": "this-car",
+    "polarity": "unstated",
+    "fee": null
+  },
+  "a39ee5f9ecd88341960ed5cfd7dea181cb27a6c4a7f13a7df1e5b509ce9f6c48": {
+    "subject": "unnamed",
+    "speechAct": "defers",
+    "scope": "this-car",
+    "polarity": "unstated",
+    "fee": null
+  },
+  "99121fe45f8a0c9272b21acc4ffa3a31a31b5ed3eed5b9b7f2b8fcb02de389ac": {
+    "subject": "camera",
+    "speechAct": "asks",
+    "scope": "this-car",
+    "polarity": "conditional",
+    "fee": 220
+  },
+  "8de7520eb939eaf30e8bc9b191295e4731654741ad3acf9013b9b1810a809ee2": {
+    "subject": "rain-sensor",
+    "speechAct": "asserts",
+    "scope": "this-car",
+    "polarity": "required",
+    "fee": 50
+  },
+  "c680cc62bdf2cee4f5a7dbc9cfa321bc3913d738d6427f708a632e0e955ad30e": {
+    "subject": "camera",
+    "speechAct": "denies",
+    "scope": "this-car",
+    "polarity": "not-required",
+    "fee": null
+  },
+  "7696dc1b3b677c84abe941ff98edbce1c48220b764a6a754cdf7e33f7d6a5af8": {
+    "subject": "unnamed",
+    "speechAct": "asserts",
+    "scope": "this-car",
+    "polarity": "required",
+    "fee": null
+  },
+  "d3819582b93627ed2f98e1e305d470b237e58cdefa0e8f3d19037869e6ea86f8": {
+    "subject": "unnamed",
+    "speechAct": "other",
+    "scope": "this-car",
+    "polarity": "conditional",
+    "fee": null
+  },
+  "bdd52a0497caf8877f263c9ef2345c5a29d736896207ead732a257ee428ef12e": {
+    "subject": "unnamed",
+    "speechAct": "asserts",
+    "scope": "this-car",
+    "polarity": "required",
+    "fee": null
+  },
+  "387b9cb7c64c02d3ce38d649f5e7f0a917554ec150e604771aca4f4023f1b1ea": {
+    "subject": "unnamed",
+    "speechAct": "other",
+    "scope": "the-shop",
+    "polarity": "unstated",
+    "fee": null
+  },
+  "c27f2520d81c1b8312f4dab082d3cee00b1fbfc5f3f9fa466cdc36efa06f0677": {
+    "subject": "unnamed",
+    "speechAct": "other",
+    "scope": "unspecified",
+    "polarity": "unstated",
+    "fee": null
+  },
+  "c5e897096e649f7b613aa5c91bcf4d140dc0fec04b6dc4d704a17593bcd8d348": {
+    "subject": "unnamed",
+    "speechAct": "asks",
+    "scope": "this-car",
+    "polarity": "unstated",
+    "fee": null
+  },
+  "76246dd553f20d01e8a19d1f67ab12c2842ecd06b555534b725fb4bb734da5d7": {
+    "subject": "camera",
+    "speechAct": "defers",
+    "scope": "this-car",
+    "polarity": "unstated",
+    "fee": null
+  },
+  "58c0e1d3fb085c2d47c420cb817fcbac2b8c2367a7ee8ee30dda4af4a9eb33f1": {
+    "subject": "camera",
+    "speechAct": "denies",
+    "scope": "this-car",
+    "polarity": "not-required",
+    "fee": null
+  },
+  "3c144d1389b6bb190822e81bc91bdc60637146367f0d860f6e6e6ad696183b3e": {
+    "subject": "unnamed",
+    "speechAct": "defers",
+    "scope": "unspecified",
+    "polarity": "unstated",
+    "fee": null
+  },
+  "21f58414e645cb80b14db94d390d287ea2f340a45de5733b2915e2c267a9c9ed": {
+    "subject": "unnamed",
+    "speechAct": "other",
+    "scope": "unspecified",
+    "polarity": "unstated",
+    "fee": null
+  },
+  "2e246bfc72141e4f620581ee980313c4509ce1cfb8e380ba084cf1e9d4d320af": {
+    "subject": "unnamed",
+    "speechAct": "other",
+    "scope": "unspecified",
+    "polarity": "unstated",
+    "fee": null
+  },
+  "c12f2736031b0b813ad671ef25c6c6f5725316d4bbdc240181cb9669ec61743c": {
+    "subject": "camera",
+    "speechAct": "asserts",
+    "scope": "this-car",
+    "polarity": "required",
+    "fee": 220
+  }
+}
