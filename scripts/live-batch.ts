@@ -76,7 +76,10 @@ function runTake(take: Take, judge: boolean): Promise<{ ok: boolean; line: strin
 		// SIGKILL only as the backstop for a truly wedged process.
 		const wall = setTimeout(() => {
 			child.kill('SIGTERM');
-			setTimeout(() => child.kill('SIGKILL'), 15_000);
+			// 45s: the child's SIGTERM cleanup includes a hang-up API call that is
+			// itself capped at 30s (lib/twilio.ts) — a 15s window could SIGKILL the
+			// process before its live call was ended (red-team, 07-16).
+			setTimeout(() => child.kill('SIGKILL'), 45_000).unref();
 		}, PER_TAKE_WALL_MS);
 		child.on('close', (code) => {
 			clearTimeout(wall);

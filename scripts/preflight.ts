@@ -34,11 +34,26 @@ function main(): void {
 		process.exit(1);
 	}
 
-	// Every scenario the bench knows (the registry), not a list this script
-	// maintains. The connotation and consent gates live in @callbench/runplan's
-	// preflight — a scenario missing its committed connotation artifact is
-	// REFUSED there, so enumerating the registry here cannot plan ungated text.
-	const scenarios = allScenarios.map((s) => s.name);
+	// Plan the reviewed INTERSECTION of the registry, and say aloud what was
+	// left out. The first wiring planned the whole registry and let runplan's
+	// gate sort it out — but that gate refuses the ENTIRE plan when any
+	// scenario lacks its connotation artifact (red-team, 07-16), so the one
+	// gate-checked path to a real dial failed closed the moment a deliberately
+	// unreviewed adversarial scenario entered the registry. The gate still
+	// stands behind this filter: anything unreviewed that reaches the plan
+	// anyway is refused there.
+	const reviewed = new Set(
+		readdirSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'docs', 'connotation'))
+			.filter((f) => f.endsWith('.md'))
+			.map((f) => f.replace(/\.md$/, '')),
+	);
+	const scenarios = allScenarios.map((s) => s.name).filter((n) => reviewed.has(n));
+	const excluded = allScenarios.map((s) => s.name).filter((n) => !reviewed.has(n));
+	if (excluded.length > 0) {
+		console.log(
+			`excluded (no connotation artifact yet — simulator-only until reviewed): ${excluded.join(', ')}`,
+		);
+	}
 
 	const plan: RunPlan = {
 		target: { kind: 'system-under-test', number, label: 'system under test' },
@@ -52,15 +67,10 @@ function main(): void {
 		// Consent for THIS target is settled by the maintainer and recorded in the
 		// docs (Increment 7 / warm-up-call). Re-settled if the target changes.
 		consentSettled: true,
-		// From the COMMITTED artifacts, never from the plan itself: this line
-		// used to read `connotationReviewed: scenarios`, which fed the gate its
-		// own input — a check that could not fail. A scenario is reviewed when
-		// docs/connotation/<name>.md exists, and only then.
-		connotationReviewed: readdirSync(
-			join(dirname(fileURLToPath(import.meta.url)), '..', 'docs', 'connotation'),
-		)
-			.filter((f) => f.endsWith('.md'))
-			.map((f) => f.replace(/\.md$/, '')),
+		// From the COMMITTED artifacts (the `reviewed` set above), never from the
+		// plan itself: an earlier wiring fed the gate the plan's own scenario
+		// list, a check that could not fail.
+		connotationReviewed: [...reviewed],
 	};
 
 	let report: ReturnType<typeof preflight>;

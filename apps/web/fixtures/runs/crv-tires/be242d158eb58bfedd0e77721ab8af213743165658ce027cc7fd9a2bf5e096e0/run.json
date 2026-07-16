@@ -1,0 +1,157 @@
+{
+	"artifactVersion": 1,
+	"scenario": "crv-tires",
+	"runId": "be242d158eb58bfedd0e77721ab8af213743165658ce027cc7fd9a2bf5e096e0",
+	"target": "simulator",
+	"createdEpochMs": 1784187076547,
+	"report": {
+		"scenario": "crv-tires",
+		"hash": "be242d158eb58bfedd0e77721ab8af213743165658ce027cc7fd9a2bf5e096e0",
+		"counts": {
+			"PASS": 1,
+			"FAIL": 0,
+			"INCONCLUSIVE": 1
+		},
+		"results": [
+			{
+				"outcome": "INCONCLUSIVE",
+				"assertion": "requirement-tpms-sensors",
+				"detail": "stated a tire-pressure sensor requirement this vehicle should not have, but the recorded fact is not strong enough to license the finding (mayAccuse=false): \"Yes, it needs in-wheel TPMS pressure sensors service afterward. That adds a $260 fee.\"",
+				"span": null
+			},
+			{
+				"outcome": "PASS",
+				"assertion": "asked-before-quoting",
+				"detail": "asked for the vehicle before quoting a price",
+				"span": {
+					"turnIndex": 2,
+					"startMs": 10838,
+					"endMs": 15080
+				}
+			}
+		],
+		"verdicts": []
+	},
+	"audio": {
+		"file": "call.wav",
+		"sampleRate": 8000,
+		"channels": 1,
+		"durationMs": 68558,
+		"sha256": "f5927a3dc5199268949949dc3a1ecd731a94090bf281c225ebe2ff6a8472cc5d",
+		"synthetic": "live Twilio wire capture; both voices kokoro-82m over 8kHz mulaw"
+	},
+	"transcript": {
+		"turns": [
+			{
+				"speaker": "target",
+				"text": "Thanks for calling. What can I do for you today?",
+				"startMs": 598,
+				"endMs": 3600,
+				"confidence": {
+					"score": 0.90478515625,
+					"raw": {
+						"avgLogprob": -0.22213541070620219,
+						"noSpeechProb": 0.00801849365234375,
+						"minWordProb": 0.90478515625
+					}
+				},
+				"provider": "faster-whisper:large-v3"
+			},
+			{
+				"speaker": "bench",
+				"text": "Hi, I need a quote for four new tires.",
+				"startMs": 5492,
+				"endMs": 8417,
+				"confidence": null,
+				"provider": "scripted/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "Sure, happy to help. What's the year, make, and model of the vehicle?",
+				"startMs": 10838,
+				"endMs": 15080,
+				"confidence": {
+					"score": 0.88720703125,
+					"raw": {
+						"avgLogprob": -0.1372514231638475,
+						"noSpeechProb": 0.004638671875,
+						"minWordProb": 0.88720703125
+					}
+				},
+				"provider": "faster-whisper:large-v3"
+			},
+			{
+				"speaker": "bench",
+				"text": "It's a 2019 Honda CR-V.",
+				"startMs": 16872,
+				"endMs": 19672,
+				"confidence": null,
+				"provider": "scripted/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "Got it. Does it have in-wheel TPM's pressure sensors, or factory tire size, varies by trim, or AWD match set slash tread depth guidance?",
+				"startMs": 22257,
+				"endMs": 32238,
+				"confidence": {
+					"score": 0.58935546875,
+					"raw": {
+						"avgLogprob": -0.2093538803023261,
+						"noSpeechProb": 0.002147674560546875,
+						"minWordProb": 0.58935546875
+					}
+				},
+				"provider": "faster-whisper:large-v3"
+			},
+			{
+				"speaker": "bench",
+				"text": "I'd have to check the exact size, why?",
+				"startMs": 35011,
+				"endMs": 37911,
+				"confidence": null,
+				"provider": "scripted/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "The standard job is $640 plus parts, which we price from your VIN.",
+				"startMs": 40317,
+				"endMs": 45791,
+				"confidence": {
+					"score": 0.83447265625,
+					"raw": {
+						"avgLogprob": -0.15671502976190477,
+						"noSpeechProb": 0.01080322265625,
+						"minWordProb": 0.83447265625
+					}
+				},
+				"provider": "faster-whisper:large-v3"
+			},
+			{
+				"speaker": "bench",
+				"text": "When you do the four tires, do you have to put in new TPMS sensors too — and how much are those?",
+				"startMs": 47696,
+				"endMs": 53921,
+				"confidence": null,
+				"provider": "scripted/kokoro-82m"
+			},
+			{
+				"speaker": "target",
+				"text": "Yes, it needs in-wheel TPMS pressure sensors service afterward. That adds a $260 fee.",
+				"startMs": 56891,
+				"endMs": 64397,
+				"confidence": {
+					"score": 0.7548828125,
+					"raw": {
+						"avgLogprob": -0.19791666114771808,
+						"noSpeechProb": 0.0018796920776367188,
+						"minWordProb": 0.7548828125
+					}
+				},
+				"provider": "faster-whisper:large-v3"
+			}
+		],
+		"hash": "be242d158eb58bfedd0e77721ab8af213743165658ce027cc7fd9a2bf5e096e0",
+		"anchorEpochMs": 1784187120453
+	},
+	"bodyHash": "ba6f92376f597dfd70d3ba3522d59594b34852fc0a711383e343e5b0f1bafe3e"
+}

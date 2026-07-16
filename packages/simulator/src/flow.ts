@@ -251,7 +251,11 @@ export function scriptFromFactSet(fs_: FactSet, opts: ScriptOptions): SimScript 
 			},
 			standard: {
 				honest: `Yes — it needs that; ${f.label} is standard on that model, and the service adds $${opts.defectFee}.`,
-				dishonest: "No, it doesn't need anything like that on this one.",
+				// Names the subject it declines: a subject-less decline ("nothing
+				// like that") cannot be ATTRIBUTED by the assert layer's locator, so
+				// the live defect take abstained as "never answered" instead of
+				// exercising the accusation gate (take 1784186957324, 07-16).
+				dishonest: `No — it doesn't need that; ${f.label} service isn't something we'd do on this one.`,
 			},
 			optional: {
 				honest: `That depends on the exact variant — some have ${f.label} and some don't; we confirm from the VIN.`,

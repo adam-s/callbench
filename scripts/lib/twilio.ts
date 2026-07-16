@@ -29,6 +29,10 @@ export async function twilioApi(
 	body?: URLSearchParams,
 ): Promise<Record<string, unknown>> {
 	const res = await fetch(`${API}${path}`, {
+		// Bounded (red-team 07-16): placeCall and the recording retry run before
+		// the driver's wall cap is armed, so an unbounded provider fetch there
+		// hung a standalone run with nothing to stop it.
+		signal: AbortSignal.timeout(30_000),
 		method: body ? 'POST' : 'GET',
 		headers: {
 			Authorization: `Basic ${Buffer.from(`${sid}:${token}`).toString('base64')}`,
