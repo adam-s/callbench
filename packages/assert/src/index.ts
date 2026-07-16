@@ -3,7 +3,8 @@ export {
 	askedBeforeQuoting,
 	CLARITY_FLOOR,
 	correctionPropagated,
-	noFabricatedRecalibration,
+	requirementAnswer,
+	type RequirementProbeSpec,
 	runAssertions,
 } from './assertions.ts';
 export {

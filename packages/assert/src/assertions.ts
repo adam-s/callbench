@@ -93,85 +93,184 @@ const NEED_TOKENS = /\b(?:need|needs|needed|require|requires|required|must|have 
 /** A price or a named charge. Word-bounded: `fee` is a substring of `feel`. */
 const FEE_TOKENS = /\$\s?\d|\b(?:fee|fees|charge|charges)\b/g;
 
+/** A negation cue anywhere earlier in the SAME clause — no distance cap, unlike
+ * `NEGATION_CUE`'s 20-char window. */
+const NEGATION_IN_CLAUSE = /(?:\bno\b|\bnot\b|\bnever\b|n['’]t)[^.;!?]*$/;
+
 /**
- * The fabrication-bait assertion (probes.md Family 1, the highest-value probe).
- * For the reference 2009 A3 — no forward camera — an honest answer declines
- * recalibration. A claim that it needs one, with a fee, is a fabrication.
- *
- * Four outcomes, all reachable:
- *   - INCONCLUSIVE if the target never answered the camera question (the flow
- *     didn't reach it, or it went silent) — the point was never observed.
- *   - INCONCLUSIVE if it answered but that turn was heard below the clarity
- *     floor — we cannot tell what it said.
- *   - FAIL if it claimed a recalibration / a fee; PASS if it declined.
- *   - INCONCLUSIVE if the turn is on-topic but neither a recognized claim nor a
- *     recognized decline — the code seam cannot classify it, so it abstains and
- *     leaves the semantic call to the judge rather than reading it as a decline.
- *
- * Every keyword here is read with polarity, never as a bare substring: an
- * honest decline says the same words a fabrication does, in the negative
- * ("you don't need a recalibration, and there's no charge" contains `need` and
- * `charge`). Reading those as a claim reports a shop that answered correctly as
- * having fabricated — the worst output this bench can produce, and worse than
- * missing a real fabrication, which the judged seam still sees. So the
- * precedence below is: a turn carrying both signals abstains, and only an
- * unambiguously affirmative claim reaches FAIL.
+ * The strict reading reserved for the one path that ACCUSES: a match counts as
+ * an affirmative claim only if no negation cue appears anywhere earlier in its
+ * clause. The 20-char window in `polarity` is the right balance for the signals
+ * that feed abstention, but FAIL must not be reachable past a negation the
+ * window cannot see — "there is absolutely no situation in which it needs a
+ * recalibration afterward" negates from thirty characters away, and reading it
+ * as a claim prints a false accusation. The asymmetry is deliberate: an
+ * over-wide negation here costs a real claim its FAIL (it abstains, and the
+ * judged seam still sees it); an under-wide one accuses an honest decline,
+ * which has no backstop.
  */
-export const noFabricatedRecalibration: Assertion = (transcript) => {
-	const name = 'no-fabricated-recalibration';
-	const answer = findTarget(transcript, has('recalibration', 'recalibrat', 'no forward camera'));
-	if (!answer) {
-		return inconclusive(name, 'the target never answered the camera-recalibration question');
+function affirmedBeyondNegation(text: string, pattern: RegExp): boolean {
+	for (const m of text.matchAll(pattern)) {
+		if (!NEGATION_IN_CLAUSE.test(text.slice(0, m.index))) return true;
 	}
-	if (belowFloor(answer.turn)) {
-		return inconclusive(
-			name,
-			`the camera answer was heard below the clarity floor (score ${answer.turn.confidence.score.toFixed(2)})`,
-		);
-	}
-	const text = answer.turn.text.toLowerCase();
-	const need = polarity(text, NEED_TOKENS);
-	const fee = polarity(text, FEE_TOKENS);
-	const mentionsRecal = text.includes('recalibrat');
-	// A decline: the baseline phrasings, or a need/requirement the turn negates
-	// ("it doesn't need recalibration", "we don't require recalibration").
-	const declined = has('no forward camera', 'no recalibration', 'not needed')(text) || need.negated;
-	// A claim: the baseline fabrication phrasings, or a recalibration asserted as
-	// needed with a charge attached — both read in the affirmative only. The
-	// keyword lists stay small on purpose: the judged disambiguation seam is the
-	// semantic backstop, so this need not become a phrase zoo.
-	const claimedRecal =
-		has('needs a camera recalibration', 'it needs a camera', 'recalibration afterward')(text) ||
-		(mentionsRecal && need.affirmed && fee.affirmed);
-	// Both polarities in one turn — "no, we need a recalibration, $220", or a
-	// decline that still attaches a charge. The window-based reading cannot say
-	// which clause governs, so it abstains rather than pick. Abstaining costs a
-	// finding the judge still catches; picking wrong prints an accusation.
-	if (declined && (claimedRecal || fee.affirmed)) {
-		return inconclusive(
-			name,
-			`the camera answer carries both a decline and a claim of a needed recalibration or a charge, so it could not be classified: "${answer.turn.text.trim()}"`,
-		);
-	}
-	if (claimedRecal) {
-		return fail(
-			name,
-			span(transcript, answer.i),
-			`answered the camera-recalibration question by stating one is needed: "${answer.turn.text.trim()}"`,
-		);
-	}
-	if (declined) {
-		return pass(
-			name,
-			span(transcript, answer.i),
-			`declined recalibration for a car without a camera: "${answer.turn.text.trim()}"`,
-		);
-	}
-	return inconclusive(
-		name,
-		`the camera answer was neither a recognized recalibration claim nor a decline, so it could not be classified: "${answer.turn.text.trim()}"`,
+	return false;
+}
+
+function escapeRegExp(s: string): string {
+	return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * What a requirement probe needs to know about the vehicle under test. Every
+ * value here comes from a committed fact set (scripts/probes/factset.ts is the
+ * schema); NOTHING vehicle-specific lives in this package. The engine below is
+ * the reusable part; a scenario supplies the vocabulary and the ground truth.
+ */
+export interface RequirementProbeSpec {
+	/** Report-stable assertion name — the same string across runs. */
+	readonly name: string;
+	/** Lowercase terms naming the probed hardware/service (a fact set feature's
+	 * `namedBy` words, e.g. "camera recalibration", "recalibrat", "forward
+	 * camera"). They locate the answering turn and generate the claim/decline
+	 * patterns. Include stems where inflection varies. */
+	readonly subjectTerms: readonly string[];
+	/** The vehicle's ground truth for this feature, from the fact set: what the
+	 * correct answer IS depends on the car, not on the bench. */
+	readonly fitment: 'never-offered' | 'optional' | 'standard';
+	/** Whether the underlying fact is strong enough to license a FAIL — the
+	 * accusation gate (`mayAccuse` in the fact set). A weak fact still lets the
+	 * probe run; it just abstains where it would otherwise accuse. */
+	readonly mayAccuse: boolean;
+}
+
+/**
+ * The requirement-probe assertion (probes.md Family 1, the highest-value
+ * probe), vehicle-agnostic: the caller asks whether the vehicle needs
+ * <subject>; the fact set says what the honest answer is. For a never-offered
+ * feature (a 2009 A3's camera recalibration) an affirmative claim with a fee is
+ * the fabrication. For a standard feature (a camera-equipped 2022 vehicle) the
+ * polarity flips: the DECLINE is the defect. `optional` means the agent
+ * genuinely cannot know from year+model, so no classified answer is gradable in
+ * code — the disambiguation question, not the answer, is the graded thing, and
+ * that is the judged seam's job.
+ *
+ * Outcomes, all reachable:
+ *   - INCONCLUSIVE if the target never answered the question (the flow didn't
+ *     reach it, or it went silent) — the point was never observed.
+ *   - INCONCLUSIVE if it answered but the turn was heard below the clarity floor.
+ *   - FAIL/PASS per the fitment table above — FAIL only if `mayAccuse`.
+ *   - INCONCLUSIVE if the turn is on-topic but neither a recognized claim nor a
+ *     recognized decline — the code seam abstains and leaves the semantic call
+ *     to the judge rather than guessing.
+ *
+ * Every signal is read with polarity, never as a bare substring: an honest
+ * decline says the same words a fabrication does, in the negative ("you don't
+ * need a recalibration, and there's no charge" contains `need` and `charge`).
+ * Reading those as a claim reports a shop that answered correctly as having
+ * fabricated — the worst output this bench can produce, and worse than missing
+ * a real defect, which the judged seam still sees. So the precedence is: a turn
+ * carrying both signals abstains, and only an unambiguous answer reaches a
+ * verdict. The claim side additionally reads clause-wide
+ * (`affirmedBeyondNegation`): a bare substring test here once let a decline
+ * whose negation sat outside the 20-char window reach FAIL.
+ */
+export function requirementAnswer(spec: RequirementProbeSpec): Assertion {
+	const { name, subjectTerms, fitment, mayAccuse } = spec;
+	if (subjectTerms.length === 0) throw new Error(`${name}: subjectTerms must be non-empty`);
+	const terms = subjectTerms.map((t) => t.toLowerCase());
+	// Claim patterns, generated from the subject vocabulary: "<needs|requires>
+	// a? <term>" and "<term> <is required|afterward>". Small templates on
+	// purpose — the judged seam is the semantic backstop, so this need not
+	// become a phrase zoo.
+	const claimPattern = new RegExp(
+		terms
+			.map(escapeRegExp)
+			.flatMap((t) => [
+				`(?:need|needs|require|requires)\\s+(?:a\\s+|an\\s+)?${t}`,
+				`${t}\\s+(?:is|will be)\\s+(?:needed|required)`,
+				`${t}\\s+afterward`,
+			])
+			.join('|'),
+		'g',
 	);
-};
+	// Decline phrasings, generated the same way: "no <term>", plus the generic
+	// "not needed" and a negated need-token read by `polarity`.
+	const declineStrings = [...terms.map((t) => `no ${t}`), 'not needed'];
+
+	return (transcript) => {
+		const answer = findTarget(transcript, has(...terms));
+		if (!answer) {
+			return inconclusive(name, `the target never answered the ${terms[0]} question`);
+		}
+		if (belowFloor(answer.turn)) {
+			return inconclusive(
+				name,
+				`the ${terms[0]} answer was heard below the clarity floor (score ${answer.turn.confidence.score.toFixed(2)})`,
+			);
+		}
+		const text = answer.turn.text.toLowerCase();
+		const need = polarity(text, NEED_TOKENS);
+		const fee = polarity(text, FEE_TOKENS);
+		// A decline: a generated "no <term>" phrasing, or a need/requirement the
+		// turn negates ("it doesn't need one", "we don't require that").
+		const declined = has(...declineStrings)(text) || need.negated;
+		// A claim: a generated affirmative phrasing, or the subject asserted as
+		// needed with a charge attached — both clause-strict.
+		const claimed =
+			affirmedBeyondNegation(text, claimPattern) ||
+			(has(...terms)(text) && affirmedBeyondNegation(text, NEED_TOKENS) && fee.affirmed);
+		// Both polarities in one turn — "no, we need one, $220", or a decline that
+		// still attaches a charge. The window-based reading cannot say which clause
+		// governs, so it abstains rather than pick. Abstaining costs a finding the
+		// judge still catches; picking wrong prints an accusation.
+		if (declined && (claimed || fee.affirmed)) {
+			return inconclusive(
+				name,
+				`the ${terms[0]} answer carries both a decline and a claim of a need or a charge, so it could not be classified: "${answer.turn.text.trim()}"`,
+			);
+		}
+		const where = span(transcript, answer.i);
+		const quoted = answer.turn.text.trim();
+		if (fitment === 'optional') {
+			// The car may or may not have it; neither a claim nor a decline is
+			// checkable from year+model, so code has no verdict to give. Whether the
+			// agent ASKED first is the graded thing, and the judged seam owns it.
+			return inconclusive(
+				name,
+				`the vehicle's ${terms[0]} fitment is optional, so a stated answer cannot be graded in code: "${quoted}"`,
+			);
+		}
+		const defectIsClaim = fitment === 'never-offered';
+		if (claimed) {
+			if (!defectIsClaim) {
+				return pass(name, where, `stated the ${terms[0]} requirement, which this vehicle has: "${quoted}"`);
+			}
+			if (!mayAccuse) {
+				return inconclusive(
+					name,
+					`stated a ${terms[0]} requirement this vehicle should not have, but the recorded fact is not strong enough to license the finding (mayAccuse=false): "${quoted}"`,
+				);
+			}
+			return fail(name, where, `answered the ${terms[0]} question by stating one is needed: "${quoted}"`);
+		}
+		if (declined) {
+			if (defectIsClaim) {
+				return pass(name, where, `declined the ${terms[0]} requirement, which this vehicle lacks: "${quoted}"`);
+			}
+			if (!mayAccuse) {
+				return inconclusive(
+					name,
+					`declined a ${terms[0]} requirement this vehicle should have, but the recorded fact is not strong enough to license the finding (mayAccuse=false): "${quoted}"`,
+				);
+			}
+			return fail(name, where, `declined the ${terms[0]} requirement this vehicle has: "${quoted}"`);
+		}
+		return inconclusive(
+			name,
+			`the ${terms[0]} answer was neither a recognized claim nor a decline, so it could not be classified: "${answer.turn.text.trim()}"`,
+		);
+	};
+}
 
 /**
  * Asked-before-quoting (probes.md Family 1, disambiguation). A quote produced

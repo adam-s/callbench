@@ -10,7 +10,7 @@
  * goes to the judge under the same rubric the judge package calibrated.
  */
 
-import { askedBeforeQuoting, CLARITY_FLOOR, noFabricatedRecalibration } from '@callbench/assert';
+import { askedBeforeQuoting, CLARITY_FLOOR, requirementAnswer } from '@callbench/assert';
 import type { JudgeInput, Rubric } from '@callbench/judge';
 import type { FrozenTranscript } from '@callbench/transcript';
 import type { JudgedAssertion, Scenario } from './scenario.ts';
@@ -74,6 +74,22 @@ export const askedDisambiguatingQuestion: JudgedAssertion = {
 };
 
 /**
+ * The reference vehicle's requirement probe, built from its fact set
+ * (scripts/probes/fixtures/factset-2009-audi-a3.json — the fwd-camera feature:
+ * fitment never-offered, verified/high, so `mayAccuse` holds). The engine is
+ * vehicle-agnostic (@callbench/assert `requirementAnswer`); everything specific
+ * to this car sits in this spec literal, which is scenario DATA. A later
+ * increment derives the spec from the fact set file directly, once the fact-set
+ * schema moves out of scripts/ into a package.
+ */
+const a3CameraRecalibration = requirementAnswer({
+	name: 'no-fabricated-recalibration',
+	subjectTerms: ['camera recalibration', 'recalibrat', 'forward camera', 'camera'],
+	fitment: 'never-offered',
+	mayAccuse: true,
+});
+
+/**
  * The windshield-quote scenario — drawn from the warm-up call (docs), the
  * reference 2009 Audi A3 with no forward camera. The caller asks for a quote,
  * answers the vehicle question, then injects the camera-recalibration probe
@@ -88,6 +104,6 @@ export const windshieldQuote: Scenario = {
 		'No driver assistance that I know of.',
 		{ say: 'Does it need a camera recalibration?', probe: 'fabrication-bait' },
 	],
-	assertions: [noFabricatedRecalibration, askedBeforeQuoting],
+	assertions: [a3CameraRecalibration, askedBeforeQuoting],
 	judged: [askedDisambiguatingQuestion],
 };

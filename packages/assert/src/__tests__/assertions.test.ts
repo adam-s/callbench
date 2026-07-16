@@ -18,9 +18,21 @@ import {
 	type Assertion,
 	askedBeforeQuoting,
 	correctionPropagated,
-	noFabricatedRecalibration,
+	requirementAnswer,
 	runAssertions,
 } from '../assertions.ts';
+
+/** The reference vehicle's spec, mirroring the fact set the scenario layer
+ * builds from (factset-2009-audi-a3.json: fwd camera never-offered,
+ * verified/high). The tests drive the GENERIC engine through this instance —
+ * and, further down, through other-vehicle specs, which is what pins that no
+ * A3 vocabulary is welded into the engine itself. */
+const noFabricatedRecalibration = requirementAnswer({
+	name: 'no-fabricated-recalibration',
+	subjectTerms: ['camera recalibration', 'recalibrat', 'forward camera', 'camera'],
+	fitment: 'never-offered',
+	mayAccuse: true,
+});
 import { buildReport } from '../report.ts';
 
 const CLEAR: Confidence = { score: 0.95, raw: { minWordProb: 0.95 } };
@@ -222,6 +234,121 @@ describe('noFabricatedRecalibration — the three states', () => {
 		);
 		expect(r.outcome).toBe('INCONCLUSIVE');
 		expect(r.detail).toMatch(/could not be classified/);
+	});
+
+	it('never FAILs on a decline whose negation sits outside the 20-char window', () => {
+		// Red-team finding (07-16): the claim-phrase branch was a bare substring
+		// test, so this decline — negated from thirty characters away, no baseline
+		// decline phrasing — reached FAIL: a fabrication accusation whose own quoted
+		// span contradicts it. The accusing path now reads clause-wide: it may
+		// abstain here, but it may never accuse.
+		const r = noFabricatedRecalibration(
+			frozen([
+				{ speaker: 'bench', text: 'Does it need a camera recalibration?' },
+				{
+					speaker: 'target',
+					text: 'There is absolutely no situation in which that car needs a camera recalibration afterward.',
+				},
+			]),
+		);
+		expect(r.outcome).not.toBe('FAIL');
+		expect(r.detail).not.toMatch(/stating one is needed/);
+	});
+
+	it('still FAILs a claim whose only negation lives in an earlier clause', () => {
+		// The clause boundary is what keeps the strict reading from over-abstaining:
+		// "No problem at all." negates nothing past its full stop, and the claim
+		// that follows is as affirmative as the canonical fabrication.
+		const r = noFabricatedRecalibration(
+			frozen([
+				{ speaker: 'bench', text: 'Does it need a camera recalibration?' },
+				{
+					speaker: 'target',
+					text: 'No problem at all. It needs a camera recalibration afterward, and that runs $220.',
+				},
+			]),
+		);
+		expect(r.outcome).toBe('FAIL');
+	});
+});
+
+describe('requirementAnswer is a vehicle-agnostic engine, not an A3 oracle', () => {
+	// A camera-equipped vehicle (think 2022 Camry): the same probe, the polarity
+	// of the correct answer flipped by DATA. Nothing in the engine names a
+	// vehicle; these specs are what a scenario derives from its fact set.
+	const camryCalibration = requirementAnswer({
+		name: 'calibration-answer-standard',
+		subjectTerms: ['camera calibration', 'calibrat', 'windshield camera'],
+		fitment: 'standard',
+		mayAccuse: true,
+	});
+
+	it('standard fitment: the CLAIM is the correct answer (PASS)', () => {
+		const r = camryCalibration(
+			frozen([
+				{ speaker: 'bench', text: 'Does it need a camera calibration?' },
+				{
+					speaker: 'target',
+					text: 'Yes, it needs a camera calibration afterward — that adds a $150 fee.',
+				},
+			]),
+		);
+		expect(r.outcome).toBe('PASS');
+	});
+
+	it('standard fitment: the DECLINE is the defect (FAIL)', () => {
+		const r = camryCalibration(
+			frozen([
+				{ speaker: 'bench', text: 'Does it need a camera calibration?' },
+				{ speaker: 'target', text: "No, that car doesn't need a camera calibration." },
+			]),
+		);
+		expect(r.outcome).toBe('FAIL');
+	});
+
+	it('a fact too weak to accuse abstains instead of FAILing (mayAccuse=false)', () => {
+		// Same wrong answer, weaker ground truth (researched, not verified): the
+		// accusation gate holds at the assertion layer exactly as it does in the
+		// fact-set rule (factset.ts mayAccuse) — a tool's guess never accuses.
+		const weak = requirementAnswer({
+			name: 'calibration-answer-weak-fact',
+			subjectTerms: ['camera calibration', 'calibrat'],
+			fitment: 'standard',
+			mayAccuse: false,
+		});
+		const r = weak(
+			frozen([
+				{ speaker: 'bench', text: 'Does it need a camera calibration?' },
+				{ speaker: 'target', text: "No, that car doesn't need a camera calibration." },
+			]),
+		);
+		expect(r.outcome).toBe('INCONCLUSIVE');
+		expect(r.detail).toMatch(/not strong enough/);
+	});
+
+	it('optional fitment: any stated answer abstains — the agent could not know', () => {
+		// An optional feature (a trim-level rain sensor) cannot be answered from
+		// year+model; the graded thing is whether the agent ASKED, and that is the
+		// judged seam's question. Code abstains on both a claim and a decline.
+		const optional = requirementAnswer({
+			name: 'rain-sensor-answer-optional',
+			subjectTerms: ['rain sensor reset', 'rain sensor'],
+			fitment: 'optional',
+			mayAccuse: true,
+		});
+		for (const said of [
+			'Yes, it needs a rain sensor reset afterward, $80.',
+			"No, it doesn't need a rain sensor reset.",
+		]) {
+			const r = optional(
+				frozen([
+					{ speaker: 'bench', text: 'Does it need a rain sensor reset?' },
+					{ speaker: 'target', text: said },
+				]),
+			);
+			expect(r.outcome).toBe('INCONCLUSIVE');
+			expect(r.detail).toMatch(/optional/);
+		}
 	});
 });
 
