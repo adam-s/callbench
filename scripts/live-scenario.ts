@@ -434,7 +434,7 @@ async function main(): Promise<void> {
 
 		const speak = async (text: string) => {
 			const u = await synth(text, SIM_VOICE);
-			await waitForQuiet('sim');
+			await waitForQuiet('sim'); // LAST before the send — no drift window
 			session.sendAudio(mergeFrames(u));
 			speakingUntil = clock() + durationMs(u);
 			session.sendMark(`sim-${clock().toFixed(0)}`);
@@ -880,8 +880,8 @@ async function main(): Promise<void> {
 				// Streamed persona line: the first clause's synthesis started while
 				// the model was still finishing the reply, and its audio leaves the
 				// moment it's ready — the tail synthesizes while the clause plays.
-				await waitForQuiet();
 				const cu = degrade(await next.clauseSynth);
+				await waitForQuiet(); // LAST before the send — synthesis takes ~1s and the far end may resume inside it (take 1784215619115, 0:40)
 				const startMs = stampWire(durationMs(cu));
 				benchOutbound.push({ pcm: cu.pcm, atMs: startMs });
 				for (const f of toMulawFrames(cu)) session.sendAudio(f);
@@ -911,8 +911,8 @@ async function main(): Promise<void> {
 				return;
 			}
 			const text = next;
-			await waitForQuiet();
 			const u = degrade(await synth(text, BENCH_VOICE));
+			await waitForQuiet(); // LAST before the send — see the streamed path
 			void lineIndex; // scripted-mode cursor; persona mode tracks its own state
 			const startMs = stampWire(durationMs(u));
 			turnDrafts.push({
