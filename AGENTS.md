@@ -205,6 +205,12 @@ auto-discovery; add skills only under `.agents/skills/` so the canon stays in on
 place. Red-team skills are read-only against production code (a mutation skill works
 in an isolated copy). Format conventions: [.agents/reference/](.agents/reference/).
 
+**Review and red-team skills run in a fresh subagent (Opus), never inline.** The
+orchestrating agent invokes the skill and receives findings; it does not open the
+skill file or perform the procedure itself. A reviewer that shares the author's
+context inherits the author's blind spots — the independence is the value, and
+reading the playbook contaminates it.
+
 ## Deferred findings
 
 A review or red-team finding is either fixed-and-pinned with a regression test, or
