@@ -95,7 +95,7 @@ export async function assertDialAllowed(sid: string, token: string, to: string):
 	if (target && digits(to) === digits(target)) {
 		throw new Error(
 			`Refusing to dial ${to}: it is the system under test. ` +
-				'Bench scripts dial owned numbers only; the target path is the live-call skill, human-gated dial by dial.',
+				'Bench scripts dial owned numbers only; the target path is the bench-live-call skill, human-gated dial by dial.',
 		);
 	}
 	const res = await twilioApi(sid, token, `/Accounts/${sid}/IncomingPhoneNumbers.json`);

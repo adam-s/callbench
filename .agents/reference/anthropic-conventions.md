@@ -59,7 +59,7 @@ material, bundle alongside and reference:
 **Two patterns:**
 1. **Skill-as-prompt-template** (e.g. our red-team skills): the SKILL.md body is
    a template Claude fills in and sends to an `Agent`. No external scripts.
-2. **Skill-as-procedure** (e.g. our `live-call`): the SKILL.md body documents a
+2. **Skill-as-procedure** (e.g. our `bench-live-call`): the SKILL.md body documents a
    sequence the agent walks, with the gates and stops made explicit.
 
 ---
@@ -171,7 +171,7 @@ Rows are claims. Re-verify against the tree before relying on any of them.
 | `CLAUDE.md` (root) | ✓ aligned | Thin `@AGENTS.md` import + entry-point note |
 | `.claude/CLAUDE.md` | ✓ aligned | Symlink → `../AGENTS.md` |
 | `.claude/skills` → `.agents/skills` | ✓ aligned | Symlink; skill folders keep the standard `SKILL.md` shape |
-| `.agents/skills/live-call/` | ✓ aligned | The dial procedure — pre-flight gate, one call at a time, never dials itself |
+| `.agents/skills/bench-live-call/` | ✓ aligned | The dial procedure — pre-flight gate, one call at a time, never dials itself |
 | `.agents/skills/red-team-review/` | ✓ aligned | Red-team bug review of production code |
 | `.agents/skills/test-red-team/` | ✓ aligned | Red-team audit of the test suite (fixture lies are the local hazard) |
 | `.agents/skills/mutation-red-team/` | ✓ aligned | Injects regressions in a `/tmp` copy; catalog carries Increments 0–7. The `/tmp` copy excludes `.env` — it now holds live credentials and the target's number |
