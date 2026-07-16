@@ -122,7 +122,9 @@
 	}
 	.track {
 		position: relative;
-		flex: 1;
+		/* no flex-basis here: in the column layout `flex: 1` (basis 0) crushed
+		 * the height to zero — blocks had width but no height (snapshot
+		 * ribbon-fix-02; maintainer-seen as empty tapes). */
 		height: 1.4rem;
 		background: var(--surface-2);
 		border-radius: 4px;
