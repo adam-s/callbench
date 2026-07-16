@@ -1,9 +1,7 @@
 import { error } from '@sveltejs/kit';
 import { loadRun, readRunAudio } from '$lib/server/runs.ts';
-import { peaksFromWav } from '$lib/server/waveform.ts';
+import { peaksFromWav, WAVE_COLUMNS } from '$lib/server/waveform.ts';
 import type { PageServerLoad } from './$types';
-
-const WAVE_COLUMNS = 900;
 
 /**
  * The deep link — one finding within one run. `[finding]` is the assertion's
@@ -83,7 +81,6 @@ export const load: PageServerLoad = ({ params }) => {
 	return {
 		scenario: artifact.scenario,
 		runId: artifact.runId,
-		target: artifact.target,
 		turns: artifact.transcript.turns,
 		finding,
 		audio,

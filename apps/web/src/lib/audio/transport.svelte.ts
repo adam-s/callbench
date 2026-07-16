@@ -16,11 +16,11 @@
 
 // --- global exclusive-audio bus: starting one source stops the previous ---
 let currentStop: (() => void) | null = null;
-export function claimAudio(stop: () => void) {
+function claimAudio(stop: () => void) {
 	if (currentStop && currentStop !== stop) currentStop();
 	currentStop = stop;
 }
-export function releaseAudio(stop: () => void) {
+function releaseAudio(stop: () => void) {
 	if (currentStop === stop) currentStop = null;
 }
 
@@ -163,9 +163,6 @@ export class Transport {
 		if (!this.#analyser || !this.#freq) return null;
 		this.#analyser.getByteFrequencyData(this.#freq);
 		return this.#freq;
-	}
-	get sampleRate(): number {
-		return this.#ctx?.sampleRate ?? 48000;
 	}
 
 	toggle() {

@@ -4,6 +4,7 @@
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import * as Table from '$lib/components/ui/table/index.js';
+	import { ago } from '$lib/format.ts';
 	import { shortRun, worstOutcome, type Outcome } from '$lib/types.ts';
 	import type { PageData } from './$types';
 	let { data }: { data: PageData } = $props();
@@ -34,13 +35,6 @@
 		return outcomes.size > 1;
 	}
 
-	function ago(epochMs: number): string {
-		const s = Math.max(0, (Date.now() - epochMs) / 1000);
-		if (s < 90) return 'just now';
-		if (s < 5400) return `${Math.round(s / 60)}m ago`;
-		if (s < 129600) return `${Math.round(s / 3600)}h ago`;
-		return `${Math.round(s / 86400)}d ago`;
-	}
 </script>
 
 <svelte:head>

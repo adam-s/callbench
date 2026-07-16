@@ -21,6 +21,11 @@
 /** One column of the envelope: the min and max sample in that column, in [-1, 1]. */
 export type Peak = readonly [min: number, max: number];
 
+/** How many columns of waveform envelope routes precompute. A fixed count keeps
+ * the page payload bounded regardless of call length; the canvas stretches
+ * them. One constant, so every page draws on the same grid. */
+export const WAVE_COLUMNS = 900;
+
 interface Pcm16 {
 	readonly samples: Int16Array;
 	readonly sampleRate: number;

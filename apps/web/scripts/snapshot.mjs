@@ -1,30 +1,34 @@
 #!/usr/bin/env node
 /**
- * Visual snapshot tool for iterative UI work — ported from the maintainer's
- * ~/Projects/separate/scripts/snapshot.mjs and adapted to a multi-route app.
+ * Visual snapshot + GEOMETRY PROOF for the run timeline (adapted from the
+ * maintainer's ~/Projects/separate scripts/snapshot.mjs pattern).
  *
- * Discovers the viewer's routes from the running app itself (overview → first
- * scenario → its runs → each run's findings, hard-capped), then captures each
- * route in three viewports: full-page + above-the-fold JPEGs, console/page/
- * network errors, and horizontal-overflow metrics. Everything lands in
- * .snapshots/<label>/ with a summary.json and a CLEAN / ISSUES FOUND verdict.
+ * Captures the run page's timeline card into .snapshots/<label>/ and — the
+ * part a screenshot alone can't prove — measures every time-mapped element's
+ * rectangle and checks the math that places it:
  *
- * Bounded by construction (route cap, viewport list, per-nav timeout) and
- * deterministic in output shape — a dynamic script per AGENTS.md, never part
- * of the static gate. It drives a localhost page over frozen fixtures; it
- * dials nothing.
+ *   - the waveform canvas and the ribbon tapes must share one x-axis
+ *     (left/width within TOLERANCE_PX);
+ *   - each playhead's position must equal transport.t / duration of its own
+ *     track's width;
+ *   - the first/last turn blocks must sit at startMs/durationMs of the tape.
  *
- * Usage:
- *   node scripts/snapshot.mjs [--url=http://localhost:5173]
- *                             [--label=iter-01] [--routes=/,/tests/foo]
+ * Exit 1 on any violation, so a visual regression fails loudly instead of
+ * shipping. Usage (or `npm run snapshot` from apps/web):
+ *   node apps/web/scripts/snapshot.mjs [--url=<run page>] [--label=x] [--play]
+ *
+ * This replaced the earlier multi-route visual crawler that lived at this
+ * path: its unique checks (per-viewport overflow, visual baselines) are now
+ * pinned by the e2e suite (e2e/responsive.spec.ts, e2e/visual.spec.ts), and
+ * geometry is the check a screenshot alone cannot make.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { chromium } from '@playwright/test';
+import { chromium } from 'playwright';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = resolve(__dirname, '..');
+const OUT_ROOT = resolve(__dirname, '../.snapshots');
 
 const args = Object.fromEntries(
 	process.argv
@@ -35,175 +39,142 @@ const args = Object.fromEntries(
 			return [k, v ?? 'true'];
 		}),
 );
-
-const BASE = (args.url ?? 'http://localhost:5173').replace(/\/$/, '');
+const URL =
+	args.url ??
+	'http://localhost:5199/tests/windshield-quote-persona/f96b7ec24b8b7520e60963272e22379e36cc91f0ed2df9da4b80a13e2318c3db';
 const LABEL = args.label ?? `snap-${new Date().toISOString().replace(/[:.]/g, '-')}`;
-const OUT_DIR = resolve(ROOT, '.snapshots', LABEL);
-const MAX_ROUTES = 12; // hard cap — a runaway crawl is a bug, not thoroughness
-mkdirSync(OUT_DIR, { recursive: true });
+const OUT = resolve(OUT_ROOT, LABEL);
+mkdirSync(OUT, { recursive: true });
 
-const VIEWPORTS = [
-	{ name: 'desktop', width: 1440, height: 900 },
-	{ name: 'tablet', width: 768, height: 1024 },
-	{ name: 'mobile', width: 375, height: 812 },
-];
+const TOLERANCE_PX = 2;
 
-/** Walk the app's own links: / → scenarios → runs → findings. Same-origin
- * hrefs only, capped, order-stable. The app is the map; no route list to
- * maintain by hand. */
-async function discoverRoutes(browser) {
-	if (args.routes) return args.routes.split(',').slice(0, MAX_ROUTES);
-	const page = await browser.newPage();
-	const seen = new Set(['/']);
-	const queue = ['/'];
-	for (const route of queue) {
-		if (seen.size >= MAX_ROUTES) break;
-		await page.goto(BASE + route, { waitUntil: 'networkidle', timeout: 15_000 });
-		const hrefs = await page.$$eval('a[href^="/"]', (as) => as.map((a) => a.getAttribute('href')));
-		for (const href of hrefs) {
-			if (!href || href.endsWith('/audio') || seen.has(href)) continue;
-			if (seen.size >= MAX_ROUTES) break;
-			seen.add(href);
-			queue.push(href);
-		}
-	}
-	await page.close();
-	return [...seen];
-}
-
-async function capture(browser, route, viewport) {
-	const context = await browser.newContext({
-		viewport: { width: viewport.width, height: viewport.height },
-		// 1x on purpose: these shots are read by a coding agent, which downscales
-		// anything wide anyway — retina doubling quadruples bytes for zero added
-		// legibility. CSS-pixel capture + JPEG below keeps each shot small.
-		deviceScaleFactor: 1,
-		isMobile: viewport.name === 'mobile',
-		hasTouch: viewport.name !== 'desktop',
-	});
-	const page = await context.newPage();
-
-	const consoleErrors = [];
-	const pageErrors = [];
-	const networkErrors = [];
-	page.on('console', (m) => m.type() === 'error' && consoleErrors.push(m.text()));
-	page.on('pageerror', (e) => pageErrors.push(e.message));
-	page.on('requestfailed', (r) =>
-		networkErrors.push({ url: r.url(), error: r.failure()?.errorText }),
-	);
-	page.on(
-		'response',
-		(r) => r.status() >= 400 && networkErrors.push({ url: r.url(), status: r.status() }),
-	);
-
-	const slug = route === '/' ? 'overview' : route.replace(/^\/|\/$/g, '').replace(/\//g, '_');
-	try {
-		await page.goto(BASE + route, { waitUntil: 'networkidle', timeout: 30_000 });
-	} catch (err) {
-		await context.close();
-		return { route, viewport: viewport.name, error: `navigation failed: ${err.message}` };
-	}
-
-	await page.evaluate(() => document.fonts.ready);
-	await page.waitForTimeout(300);
-
-	// JPEG at q80: on these UI shots it is ~5-10x smaller than PNG with text
-	// still crisp at 1x — the cheapest form a coding agent can actually read.
-	await page.screenshot({
-		path: resolve(OUT_DIR, `${slug}--${viewport.name}-full.jpg`),
-		fullPage: true,
-		type: 'jpeg',
-		quality: 80,
-		scale: 'css',
-	});
-	await page.screenshot({
-		path: resolve(OUT_DIR, `${slug}--${viewport.name}-fold.jpg`),
-		fullPage: false,
-		type: 'jpeg',
-		quality: 80,
-		scale: 'css',
-	});
-
-	const metrics = await page.evaluate(() => {
-		const b = document.body;
-		const h = document.documentElement;
-		const sw = Math.max(b.scrollWidth, h.scrollWidth);
-		return {
-			scrollWidth: sw,
-			clientWidth: h.clientWidth,
-			hasHorizontalScroll: sw > h.clientWidth + 1,
-			scrollHeight: Math.max(b.scrollHeight, h.scrollHeight),
-			h1: document.querySelector('h1')?.textContent?.trim().slice(0, 120) ?? null,
-		};
-	});
-
-	await context.close();
-	return {
-		route,
-		viewport: viewport.name,
-		size: `${viewport.width}x${viewport.height}`,
-		metrics,
-		consoleErrors,
-		pageErrors,
-		networkErrors,
-	};
-}
-
-async function main() {
-	const browser = await chromium.launch({ headless: true });
-	const routes = await discoverRoutes(browser);
-	console.log(
-		`\nSnapshot: ${BASE}\nLabel:    ${LABEL}\nRoutes:   ${routes.length} (cap ${MAX_ROUTES})\nOutput:   ${OUT_DIR}\n`,
-	);
-
-	const results = [];
-	for (const route of routes) {
-		for (const vp of VIEWPORTS) {
-			process.stdout.write(`  ${route.padEnd(44).slice(0, 44)} ${vp.name.padEnd(8)}... `);
-			const r = await capture(browser, route, vp);
-			results.push(r);
-			if (r.error) {
-				console.log(`ERROR: ${r.error}`);
-			} else {
-				const errs = r.consoleErrors.length + r.pageErrors.length + r.networkErrors.length;
-				console.log(`OK  errors=${errs}${r.metrics.hasHorizontalScroll ? ' [H-OVERFLOW]' : ''}`);
-			}
-		}
-	}
-	await browser.close();
-
-	writeFileSync(
-		resolve(OUT_DIR, 'summary.json'),
-		JSON.stringify({ url: BASE, label: LABEL, routes, results }, null, 2),
-	);
-
-	console.log('\n--- Report ---');
-	let clean = true;
-	for (const r of results) {
-		const errs = r.error
-			? 1
-			: r.consoleErrors.length + r.pageErrors.length + r.networkErrors.length;
-		if (errs || r.metrics?.hasHorizontalScroll) {
-			clean = false;
-			console.log(`\n[${r.route} @ ${r.viewport}]`);
-			if (r.error) console.log(`  ${r.error}`);
-			if (r.consoleErrors?.length) console.log(`  console: ${r.consoleErrors.join(' | ')}`);
-			if (r.pageErrors?.length) console.log(`  page:    ${r.pageErrors.join(' | ')}`);
-			if (r.networkErrors?.length)
-				console.log(
-					`  network: ${r.networkErrors.map((e) => `${e.status ?? 'fail'} ${e.url}`).join(' | ')}`,
-				);
-			if (r.metrics?.hasHorizontalScroll)
-				console.log(
-					`  overflow: scroll=${r.metrics.scrollWidth}px client=${r.metrics.clientWidth}px`,
-				);
-		}
-	}
-	console.log(`\n${clean ? 'CLEAN' : 'ISSUES FOUND'} — screenshots in ${OUT_DIR}\n`);
-	process.exit(clean ? 0 : 1);
-}
-
-main().catch((err) => {
-	console.error('Snapshot failed:', err);
-	process.exit(1);
+const browser = await chromium.launch({
+	args: ['--autoplay-policy=no-user-gesture-required', '--mute-audio'],
 });
+const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+const consoleErrors = [];
+page.on('console', (m) => m.type() === 'error' && consoleErrors.push(m.text()));
+page.on('pageerror', (e) => consoleErrors.push(String(e)));
+await page.goto(URL, { waitUntil: 'networkidle' });
+await page.waitForFunction(() => !!window.__cbTransport, null, { timeout: 10_000 });
+
+if (args.play) {
+	await page.evaluate(() => {
+		const tr = window.__cbTransport;
+		tr.seek(60);
+		tr.play();
+	});
+	await page.waitForTimeout(1500);
+}
+
+const geo = await page.evaluate(() => {
+	const rect = (el) => {
+		if (!el) return null;
+		const r = el.getBoundingClientRect();
+		return { left: r.left, width: r.width, right: r.right, height: r.height };
+	};
+	const snap = window.__cbTransport.debugSnapshot();
+	const canvas = document.querySelector('.wave canvas');
+	const tapes = document.querySelector('.tapes');
+	const wavePlayhead = document.querySelector('.wave > div[aria-hidden]');
+	const ribbonPlayhead = document.querySelector('.playhead');
+	const blocks = [...document.querySelectorAll('.tapes .block')].map((b) => ({
+		...rect(b),
+		label: b.getAttribute('aria-label')?.slice(0, 40),
+	}));
+	return {
+		snap,
+		canvas: rect(canvas),
+		tapes: rect(tapes),
+		wavePlayhead: rect(wavePlayhead),
+		ribbonPlayhead: rect(ribbonPlayhead),
+		blockCount: blocks.length,
+		firstBlock: blocks[0] ?? null,
+		lastBlock: blocks[blocks.length - 1] ?? null,
+	};
+});
+
+const failures = [];
+const check = (name, actual, expected, tol = TOLERANCE_PX) => {
+	const ok = actual !== null && expected !== null && Math.abs(actual - expected) <= tol;
+	if (!ok) failures.push(`${name}: actual=${actual?.toFixed(1)} expected=${expected?.toFixed(1)}`);
+	return `${ok ? 'OK  ' : 'FAIL'} ${name}: ${actual?.toFixed(1)} vs ${expected?.toFixed(1)}`;
+};
+
+const lines = [];
+if (!geo.canvas) failures.push('waveform canvas missing');
+if (!geo.tapes) failures.push('ribbon tapes missing');
+if (geo.blockCount === 0) failures.push('no turn blocks rendered');
+// Heights are part of visibility: a zero-height track renders nothing while
+// every x-coordinate still measures perfectly (the bug that taught us this).
+if (geo.tapes && geo.tapes.height < 20)
+	failures.push(`tapes collapsed: height=${geo.tapes.height}px`);
+if (geo.firstBlock && geo.firstBlock.height < 8)
+	failures.push(`blocks collapsed: height=${geo.firstBlock.height}px`);
+if (geo.canvas && geo.tapes) {
+	lines.push(check('axis left  (tapes vs waveform)', geo.tapes.left, geo.canvas.left));
+	lines.push(check('axis width (tapes vs waveform)', geo.tapes.width, geo.canvas.width));
+}
+const frac = geo.snap.duration > 0 ? geo.snap.t / geo.snap.duration : 0;
+if (geo.wavePlayhead && geo.canvas) {
+	lines.push(
+		check(
+			'waveform playhead == t/duration',
+			geo.wavePlayhead.left - geo.canvas.left,
+			frac * geo.canvas.width,
+			3,
+		),
+	);
+}
+if (geo.ribbonPlayhead && geo.tapes) {
+	lines.push(
+		check(
+			'ribbon playhead == t/duration',
+			geo.ribbonPlayhead.left - geo.tapes.left,
+			frac * geo.tapes.width,
+			3,
+		),
+	);
+}
+
+// Clip to the UNION of the waveform and the tapes (plus margin) — the subject
+// framed, small file, regardless of scroll position.
+const clip = await page.evaluate(() => {
+	const els = [document.querySelector('.wave'), document.querySelector('.tapes')].filter(Boolean);
+	if (els.length === 0) return null;
+	const rs = els.map((e) => e.getBoundingClientRect());
+	const top = Math.min(...rs.map((r) => r.top)) + window.scrollY;
+	const bottom = Math.max(...rs.map((r) => r.bottom)) + window.scrollY;
+	const left = Math.min(...rs.map((r) => r.left));
+	const right = Math.max(...rs.map((r) => r.right));
+	return {
+		x: Math.max(0, left - 12),
+		y: Math.max(0, top - 12),
+		width: right - left + 24,
+		height: bottom - top + 24,
+	};
+});
+await page.screenshot({
+	path: resolve(OUT, 'timeline.png'),
+	clip: clip ?? { x: 0, y: 0, width: 1280, height: 900 },
+	fullPage: true,
+});
+
+writeFileSync(
+	resolve(OUT, 'summary.json'),
+	JSON.stringify({ url: URL, geo, checks: lines, failures, consoleErrors }, null, 2),
+);
+console.log(`snapshot: ${OUT}/timeline.png`);
+console.log(
+	`transport: t=${geo.snap.t.toFixed(2)} dur=${geo.snap.duration.toFixed(2)} ct=${geo.snap.ct?.toFixed(2)} decDur=${geo.snap.decoderDuration?.toFixed(2)}`,
+);
+console.log(`blocks rendered: ${geo.blockCount}`);
+for (const l of lines) console.log(l);
+if (consoleErrors.length) console.log('console errors:', consoleErrors.slice(0, 3));
+await browser.close();
+if (failures.length) {
+	console.error(`\nGEOMETRY PROOF FAILED (${failures.length}):`);
+	for (const f of failures) console.error(`  ${f}`);
+	process.exit(1);
+}
+console.log('\nGEOMETRY PROOF PASSED');

@@ -144,52 +144,14 @@
 </Card.Root>
 
 <style>
+	/* The turn grid itself is the shared .transcript block in app.css; this
+	 * page's treatment — dim everything but the cited moment — lives here. */
 	.turn {
-		display: grid;
-		grid-template-columns: 3.6rem 1fr auto;
-		gap: 8px;
-		align-items: baseline;
-		padding: 4px 8px;
-		border-radius: 6px;
 		opacity: 0.55;
 		transition: opacity var(--t-fast);
 	}
 	.turn.cited {
 		opacity: 1;
 		outline: 2px solid var(--accent);
-	}
-	.turn.bench {
-		background: var(--bench-bg);
-	}
-	.turn.target {
-		background: var(--target-bg);
-	}
-	.turn + .turn {
-		margin-top: 2px;
-	}
-	.who {
-		font-family: var(--mono);
-		font-size: 0.6875rem;
-		font-weight: 700;
-	}
-	.turn.bench .who {
-		color: var(--bench);
-	}
-	.turn.target .who {
-		color: var(--target);
-	}
-	.time {
-		font-size: 0.75rem;
-		white-space: nowrap;
-	}
-	/* Same as the run page: the timing cell gets its own row on a phone. */
-	@media (max-width: 560px) {
-		.turn {
-			grid-template-columns: 3.6rem 1fr;
-		}
-		.time {
-			grid-column: 1 / -1;
-			justify-self: end;
-		}
 	}
 </style>

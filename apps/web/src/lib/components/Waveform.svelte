@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Transport } from '$lib/audio/transport.svelte.ts';
+	import { fmtTime as fmt } from '$lib/format.ts';
 	import type { Outcome } from '$lib/types.ts';
 
 	export interface WaveSpan {
@@ -41,12 +42,6 @@
 	// Hover: a ghost line + time readout following the cursor, so click-to-seek
 	// says where it will land before it is clicked. Pure overlay, no redraw.
 	let hoverFrac = $state<number | null>(null);
-
-	function fmt(sec: number): string {
-		const m = Math.floor(sec / 60);
-		const s = Math.floor(sec % 60);
-		return `${m}:${s.toString().padStart(2, '0')}`;
-	}
 
 	// Colors read from the page's CSS custom properties so the waveform matches
 	// the app vocabulary instead of hardcoding hexes.
