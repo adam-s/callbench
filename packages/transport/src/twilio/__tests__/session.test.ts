@@ -333,6 +333,34 @@ describe('inbound events', () => {
 });
 
 describe('outbound', () => {
+	it('paces a multi-frame payload instead of dumping it on the wire', async () => {
+		// The pacer's own tests prove it PACES. This one proves sendAudio USES it.
+		// Without it, ripping the pacer out of sendAudio leaves every transport test
+		// green — the same hole the dial guard had, where a well-tested mechanism
+		// sat behind an unpinned call site.
+		//
+		// One second of audio (50 frames). Dumped, all 50 hit the socket at once and
+		// Twilio discards the overflow (31931) while `mark` still fires — the far end
+		// simply hears less than was said, and nothing errors.
+		const { socket, session } = await handshaken();
+		session.sendAudio(new Uint8Array(160 * 50).fill(0x2a));
+
+		// Assert on the PAYLOAD, not the message count. A first attempt at this test
+		// checked `sent.length < 50` and passed the mutation cleanly — because
+		// dumping does not produce 50 messages, it produces ONE carrying all 8000
+		// bytes. The count is 1, which is happily under 50. The property that
+		// actually distinguishes them is the size of what each message carries.
+		const payloads = socket.sent
+			.map((raw) => JSON.parse(raw) as { event: string; media?: { payload: string } })
+			.filter((m) => m.event === 'media')
+			.map((m) => Buffer.from(m.media?.payload ?? '', 'base64').length);
+
+		expect(payloads.length).toBeGreaterThan(0); // the lead leaves immediately
+		for (const size of payloads) expect(size).toBe(160); // one frame each, never the whole utterance
+		expect(payloads.length).toBeLessThan(50); // and the rest is still on a schedule
+		session.end();
+	});
+
 	it('sends media, mark, and clear carrying the real streamSid', async () => {
 		const { socket, session } = await handshaken();
 		session.sendAudio(new Uint8Array(160).fill(0x2a));
