@@ -107,7 +107,9 @@ describe('loadFactSet — refuses rather than repairs', () => {
 	});
 
 	it('loads a well-formed set and derives the subject enum from it', () => {
-		const fs_ = loadFactSet(write(base([feature(), feature({ id: 'rain-sensor', fitment: 'optional' })])));
+		const fs_ = loadFactSet(
+			write(base([feature(), feature({ id: 'rain-sensor', fitment: 'optional' })])),
+		);
 		expect(subjectsFor(fs_)).toEqual(['camera', 'rain-sensor', 'unnamed', 'other-service', 'none']);
 	});
 });
@@ -120,10 +122,25 @@ describe('promptValues — the fact-blind guarantee, mechanically', () => {
 		// A mutation appending `(fitment: never-offered)` to the catalog passed the
 		// entire suite before this existed.
 		const fs_ = loadFactSet(
-			write(base([feature(), feature({ id: 'rain-sensor', fitment: 'optional', confidence: 'medium' })])),
+			write(
+				base([
+					feature(),
+					feature({ id: 'rain-sensor', fitment: 'optional', confidence: 'medium' }),
+				]),
+			),
 		);
 		const shown = JSON.stringify(promptValues(fs_)).toLowerCase();
-		for (const leak of ['never-offered', 'optional', 'standard', 'verified', 'researched', 'declared', 'fitment', 'confidence', 'provenance']) {
+		for (const leak of [
+			'never-offered',
+			'optional',
+			'standard',
+			'verified',
+			'researched',
+			'declared',
+			'fitment',
+			'confidence',
+			'provenance',
+		]) {
 			expect(shown, `"${leak}" reached the model's prompt`).not.toContain(leak);
 		}
 	});

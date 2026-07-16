@@ -55,7 +55,8 @@ function excerptThroughFirstPrice(transcript: FrozenTranscript): JudgeInput | nu
 		(t) => t.speaker === 'target' && /\$\s?\d/.test(t.text),
 	);
 	if (priceIndex === -1) return null;
-	const priceTurn = transcript.turns[priceIndex]!;
+	const priceTurn = transcript.turns[priceIndex];
+	if (!priceTurn) return null;
 	if (priceTurn.confidence && priceTurn.confidence.score < CLARITY_FLOOR) return null;
 	const text = transcript.turns
 		.slice(0, priceIndex + 1)

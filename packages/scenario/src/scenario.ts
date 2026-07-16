@@ -204,36 +204,36 @@ export async function assess(
 	const results = runAssertions(transcript, scenario.assertions);
 
 	const judged = scenario.judged ?? [];
-	if (judged.length > 0 && !judgeCtx) {
-		throw new Error(
-			`scenario "${scenario.name}" has ${judged.length} judged assertion(s) but no judge ` +
-				'context was supplied; refusing to skip them silently.',
-		);
-	}
-
 	const verdicts: Verdict[] = [];
-	for (const j of judged) {
-		const input = j.extract(transcript);
-		if (input === null) {
-			// Structural abstention: the excerpt the rubric needs was not available
-			// — absent, or present but heard too poorly to trust (the extractor
-			// applies the same clarity floor the code assertions do). The harness
-			// decided this, not the model — say so, and never consult the model for
-			// a question the transcript cannot answer.
-			verdicts.push({
-				outcome: 'INCONCLUSIVE',
-				assertion: j.rubric.name,
-				reasoning:
-					'the excerpt this rubric needs was not available (absent or heard below the clarity floor)',
-				span: null,
-				judgedBy: HARNESS,
-				rubricVersion: j.rubric.version,
-				cached: false,
-			});
-			continue;
+	if (judged.length > 0) {
+		if (!judgeCtx) {
+			throw new Error(
+				`scenario "${scenario.name}" has ${judged.length} judged assertion(s) but no judge ` +
+					'context was supplied; refusing to skip them silently.',
+			);
 		}
-		// judgeCtx is guaranteed here: judged.length > 0 already threw if absent.
-		verdicts.push(await judge(j.rubric, input, judgeCtx!.runner, judgeCtx!.cache));
+		for (const j of judged) {
+			const input = j.extract(transcript);
+			if (input === null) {
+				// Structural abstention: the excerpt the rubric needs was not available
+				// — absent, or present but heard too poorly to trust (the extractor
+				// applies the same clarity floor the code assertions do). The harness
+				// decided this, not the model — say so, and never consult the model for
+				// a question the transcript cannot answer.
+				verdicts.push({
+					outcome: 'INCONCLUSIVE',
+					assertion: j.rubric.name,
+					reasoning:
+						'the excerpt this rubric needs was not available (absent or heard below the clarity floor)',
+					span: null,
+					judgedBy: HARNESS,
+					rubricVersion: j.rubric.version,
+					cached: false,
+				});
+				continue;
+			}
+			verdicts.push(await judge(j.rubric, input, judgeCtx.runner, judgeCtx.cache));
+		}
 	}
 
 	const counts: Record<Outcome, number> = { PASS: 0, FAIL: 0, INCONCLUSIVE: 0 };
