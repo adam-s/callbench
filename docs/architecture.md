@@ -83,7 +83,8 @@ judge earns its place, under three constraints:
    [AGENTS.md](../AGENTS.md), and the report format is what enforces it.
 3. **Frozen at first evaluation.** A verdict is cached against a content hash of
    what it judged. Re-running the suite replays the cache — deterministic and
-   offline. A cache miss is the only thing that reaches the network, and it never
+   offline. A cache miss is the only thing that consults the model (today a
+   local `claude -p` invocation — see [models.md](models.md)), and it never
    happens under test.
 
 That third point is not a convenience. **Sampling controls cannot deliver

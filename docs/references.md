@@ -1564,440 +1564,56 @@ probe against real or invented recalibration-ambiguous utterances can.
 
 ## False presuppositions and sycophancy — the probe's academic framing
 
-Researched 2026-07-15 against [diagnosis.md](diagnosis.md)'s camera probe: the
-bench asks a real shop's voice agent whether a 2009 Audi A3 needs a camera
-recalibration, a feature the 8P generation never offered, so the question
-itself carries a false presupposition by design. Five rounds of building that
-probe happened before anyone searched for its academic name — the search this
-section runs late, per [AGENTS.md](../AGENTS.md)'s own rule that a day spent
-re-deriving a solved thing looks identical, from the inside, to a day spent
-working. This section is upstream of the two above: [Scoped-claim
-classification](#scoped-claim-classification--negation-abstention-and-the-fabrication-bait-assertion)
-and [Closed-set classification, abstention, and judge bias](#closed-set-classification-abstention-and-judge-bias)
-ask how to *classify* a turn once it exists; this section asks whether the
-probe *design itself* — bait a false presupposition, fail an agent that
-accepts it, fail an agent that asks a fork-resolving question about a fork
-that does not exist — already has a name, a benchmark, and a published
-failure-rate estimate in the literature. Not re-covered here: NLI, ScoNe,
-HANS, Naik et al., Gururangan et al., Llama Guard, Chow's rule — see those two
-sections.
+Researched 2026-07-15 against [diagnosis.md](diagnosis.md)'s camera probe; the
+full literature tour was condensed 2026-07-16 to its load-bearing findings
+(the tour's conclusion did not change: the framing fits, no benchmark
+transfers, hold a wide prior). The probe design — bait a false presupposition,
+fail an agent that accepts it — has a name: **false-presupposition QA**.
 
-**1. Presupposition verification in QA.**
+The verified sources and what each contributes:
 
-- **Kim, Pavlick et al., "Which Linguist Invented the Lightbulb? Presupposition
-  Verification for Question-Answering" (ACL 2021, [arXiv
-  2101.00391](https://arxiv.org/abs/2101.00391)).** **VERIFIED** (fetched via
-  ar5iv). Defines a false presupposition as a background assumption a question
-  requires to hold — "Who is the current monarch of France?" presupposes a
-  current French monarch — and builds a three-step pipeline (generate the
-  presupposition, verify it, explain the failure) evaluated against 100
-  unanswerable Natural Questions wh-questions and a 462-item verification set
-  (234 dev / 228 test). **No aggregate acceptance-rate number is reported** —
-  the paper argues its case with worked failures instead: Google answered
-  "Which linguist invented the lightbulb?" with "Thomas Edison," Bing answered
-  "When did Marie Curie discover Uranium?" with "1896." Both are real search
-  engines accepting the presupposition and inventing an answer, which is
-  structurally identical to a shop quoting $220 for a camera that isn't there
-  — same shape, no camera. **Presupposition type: world facts, historical
-  facts, and entity existence/possession** (a monarch existing, a stock symbol
-  existing) — none is a product-catalog attribute.
-- **Yu, Min, Zettlemoyer, Hajishirzi, "CREPE: Open-Domain Question Answering
-  with False Presuppositions" (ACL 2023, [arXiv
-  2211.17257](https://arxiv.org/abs/2211.17257)).** **VERIFIED** (fetched via
-  ar5iv). Sources 8,400 real Reddit ELI5 questions (not invented by the
-  researchers) and finds **25% carry a false presupposition** by the community's
-  own top-voted answer — the closest published base rate for "how often does a
-  real questioner's premise turn out to be wrong" in an open forum, though it
-  is a rate of *questions asked*, not *models fooled*. Presupposition
-  subtypes: false predicate (30%), false property (22%), false causal relation
-  (22%), false clausal claim (14%), **false existential presupposition
-  (6%)** — the last is the shape closest to callbench's camera bait (assuming
-  an entity/feature exists when it doesn't), and it is the smallest, least-
-  studied slice of their own taxonomy. **The best detection model reaches only
-  67.1% F1** on flagging a false presupposition at all — meaning roughly a
-  third of false-presupposition questions are not caught before any answering
-  step even starts. Human evaluation additionally found models "rarely
-  correctly satisfy users['] information need" once a presupposition is
-  flagged, with corrections themselves sometimes containing new false claims.
-  **No per-model "answered anyway" acceptance percentage is tabulated** —
-  detection F1 and correction quality are the reported metrics, not an
-  accept/reject rate, so CREPE is evidence that the *problem* is common and
-  hard, not a direct estimate of the *failure rate on acceptance* that
-  callbench's probe measures.
-- **Kim, Htut, Bowman, Petty, "(QA)² : Question Answering with Questionable
-  Assumptions" (ACL 2023, [arXiv
-  2212.10003](https://arxiv.org/abs/2212.10003)).** **VERIFIED** (fetched via
-  ar5iv). Sources 602 real Google-autocomplete search queries (570 eval), half
-  carrying a false or unverifiable assumption, and scores end-to-end QA output
-  by human-judged acceptability rather than a classifier label — closer to
-  callbench's own PASS/FAIL grading of a live response than CREPE's
-  detection-F1 framing. **The best system tested (text-davinci-003,
-  in-context) reaches 56% acceptable responses on questionable-assumption
-  questions, against 62% on valid ones** — a real but modest 6-point gap, not
-  the wholesale collapse a reader might expect, and the paper's own framing is
-  that this "leaves substantial headroom," not that models fail outright.
-  Assumption types: 77% wh-word-associated, 15% definite-description
-  existence/uniqueness — again all general-knowledge domains (movie plots,
-  athlete trades), no product-catalog attribute case. **The paper does not
-  evaluate or discuss models asking a clarifying question as a response
-  strategy at all** — acceptable responses are scored as "point out the
-  problem, repair, and answer"; a clarifying-question response is neither
-  named as correct nor as an error, which is a direct, notable silence on
-  research question 4 below.
-- **Won't Get Fooled Again: Answering Questions with False Premises (Hu et
-  al., ACL 2023, [aclanthology.org/2023.acl-long.309](https://aclanthology.org/2023.acl-long.309/)),
-  FalseQA dataset.** **VERIFIED** existence and construction, **INFERRED** on
-  numbers (only the abstract loaded cleanly; the PDF's baseline
-  acceptance-rate table did not extract). 2,365 human-written false-premise
-  questions (FPQs) with explanations and true-premise revisions; reports that
-  pretrained LMs learn to discriminate FPQs after fine-tuning on as few as 256
-  examples, which is a smaller sample-efficiency floor than the "many-shot"
-  finding [Scoped-claim classification](#scoped-claim-classification--negation-abstention-and-the-fabrication-bait-assertion)
-  §6 reports for ScoNe's scoped-negation contrast sets — worth a closer read
-  before assuming the two findings transfer to each other, since FalseQA's
-  premises (illustrated with "How many eyes does the sun have?") read as
-  world-knowledge absurdities rather than scope-ambiguous negation.
-- **Related, math-domain, found while chasing an unverifiable "86%
-  acceptance" claim a search summary attributed to GPT-OSS-120B and could not
-  be traced to a primary source — dropped rather than cited on secondhand
-  authority:** Wang et al., "Don't Take the Premise for Granted: Evaluating
-  the Premise Critique Ability of Large Language Models" ([arXiv
-  2505.23715](https://arxiv.org/html/2505.23715v1)). **VERIFIED** (fetched).
-  Not a QA-presupposition paper — it injects flawed premises into math word
-  problems and measures a "Proactive Premise Critique Rate" (does the model
-  flag the flaw before solving). Measured PPCR: GPT-4o 11.0%, DeepSeek-R1
-  19.6%, Llama-4-Maverick-17B 27.2%, Gemini-2.0-flash-thinking 38.2%,
-  Claude-3.7-Sonnet 36.2%, DeepSeek-V3 40.5% — **every model tested proactively
-  catches a planted false premise well under half the time**, in a domain
-  (arithmetic) with none of the negation-scope or trade-vocabulary ambiguity
-  this project's own transcripts carry. Cited for the direction of the number,
-  not the domain match: even in an unambiguous, single-fact domain, models
-  overwhelmingly solve past a flawed premise rather than name it.
+- **Kim, Pavlick et al. (ACL 2021, [arXiv 2101.00391](https://arxiv.org/abs/2101.00391))**
+  defines the shape: a question whose background assumption fails ("Which
+  linguist invented the lightbulb?"), with real search engines accepting the
+  premise and inventing an answer — structurally identical to a shop quoting a
+  fee for a camera that isn't there.
+- **CREPE (ACL 2023, [arXiv 2211.17257](https://arxiv.org/abs/2211.17257))**:
+  25% of 8,400 real forum questions carry a false presupposition; the best
+  detector reaches only 67.1% F1; the **false existential presupposition**
+  (assuming a feature exists — callbench's exact shape) is the smallest,
+  least-studied slice of its taxonomy (6%).
+- **Zhang et al. (EMNLP Findings 2025, [arXiv 2505.23840](https://arxiv.org/html/2505.23840v4))**,
+  the single most useful finding (§6.2, "Ignorance or Sycophancy?"): models
+  that failed to flag a false presupposition inside a natural conversation,
+  when separately asked "true or false?" about the same premise stripped of
+  framing, identified it correctly **51%–75%** of the time — the knowledge was
+  present; conversational framing suppressed it. Premise-acceptance in
+  question form IS sycophancy's mechanism, not a separate failure mode.
+- The comparable published figures span "a sizable minority to a slim
+  majority of systems accept a well-constructed false presupposition"
+  (CREPE's ~1/3 unflagged; (QA)²'s 6-point gap; 11%–40.5% proactive-flag
+  rates in the math-domain analogue). A **range, not a number** — the right
+  prior walking into a live call, never a prediction for this shop.
 
-**Cross-cutting read on research question 1's crux — does the literature find
-that models accept false presuppositions rather than reject them, and at what
-rate — plus the product-attribute question:** yes, consistently, across every
-paper fetched, with rates that vary by task shape rather than converging on
-one number: CREPE's 67.1% F1 ceiling implies roughly a third missed outright;
-(QA)² finds a real but modest 6-point acceptability gap; the premise-critique
-paper finds 11-40.5% proactive-flag rates in an unrelated domain. **No
-fetched source studies a presupposition about a product attribute** — every
-dataset here is built from open-domain world knowledge (historical facts,
-Reddit ELI5 science questions, autocomplete trivia, arithmetic) or, in
-FalseQA's illustrative example, plain absurdity. None resembles "does this
-specific 2009 vehicle, identified by VIN-adjacent facts, have this specific
-hardware option" — a presupposition whose truth value depends on a narrow,
-sourced catalog fact rather than general world knowledge. That gap is
-addressed directly in §5 below.
+**Why no benchmark transfers** (the honest limit): every fetched source is
+open-domain, text-in/text-out, with no revenue at stake. Callbench differs on
+three axes at once — narrow low-resource catalog ground truth, a respondent
+with a business incentive to find work, and live spoken dialogue under
+real-time pressure. The literature establishes the failure is real, common,
+and understudied in exactly the existential/attribute shape; it does not
+establish the rate transfers here.
 
-**2. Sycophancy.**
+**The load-bearing gap**: no published work scores "asked a clarifying
+question about a fork that does not exist" as a first-class outcome — the
+bench's disambiguation-vs-fabrication distinction is unclaimed territory, not
+a re-derivation.
 
-**Sharma et al., "Towards Understanding Sycophancy in Language Models"
-(Anthropic, [arXiv 2310.13548](https://arxiv.org/abs/2310.13548)).**
-**VERIFIED** (fetched via ar5iv). Defines sycophancy as "responses that match
-user beliefs over truthful ones" and measures it three ways: feedback
-sycophancy (rating a user's own work more positively when told the user likes
-it, ~85% positivity under some prompts), answer sycophancy (a user
-suggesting an answer, correct or not, shifts the model's stated answer —
-suggesting a *wrong* answer costs up to 27 accuracy points on LLaMA 2, GPT-4
-is the most robust model tested), and mimicry sycophancy (repeating an
-incorrect attribution the user supplied without correcting it). **The paper
-treats accepting a false user premise as sycophancy itself, not a distinct,
-separately-named phenomenon** — there is no separate "false-premise
-acceptance" category set apart from the three sycophancy measures above.
-**Preference-model and human evidence on why this persists:** preference
-models favor a convincingly-written sycophantic response over a truthful one
-a non-negligible fraction of the time, and on the hardest misconception
-items human raters preferred the sycophantic response over the correct one in
-over 35% of comparisons — RLHF's own reward signal is implicated, not just
-model capability.
-
-**Question vs. assertion — the maintainer's specific concern, and the honest
-gap in the fetched evidence.** Sharma et al.'s own experiments do not run
-this comparison directly: the "are you sure?" challenge is a question, the
-answer-sycophancy setup is a hedge-plus-assertion ("I think the answer is X,
-but I'm not sure"), and the paper does not report accuracy or acceptance
-broken out by which grammatical form carried the false premise. **The closest
-direct evidence found is a different paper, not Sharma et al.:** Zhang et
-al., "Measuring Sycophancy of Language Models in Multi-turn Dialogues"
-(EMNLP Findings 2025, [arXiv 2505.23840](https://arxiv.org/html/2505.23840v4)).
-**VERIFIED** (fetched). Reuses **CREPE's own false-presupposition questions**,
-delivered as ordinary questions in a natural multi-turn conversation (its own
-worked example: "Are there even people living there?", about Crimea) —
-i.e. this paper's whole setup is presupposition-carried-by-question, not
-assertion. Its §6.2 ("Ignorance or Sycophancy?") finding is the single most
-useful data point for callbench's design: when a model failed to flag a false
-presupposition inside the natural conversational turn, then was *separately,
-directly* asked "true or false?" about the same presupposition stripped of
-conversational framing, **51%-75% of models correctly identified it as
-false** — meaning the knowledge was present the whole time and conversational
-framing, not ignorance, suppressed it. The paper reads this as sycophancy
-proper (conversational pressure overriding known-correct knowledge), which
-answers the "same phenomenon or distinct" half of research question 2:
-**accepting a false premise stated as a question is sycophancy's own
-mechanism in this paper's design, not a separate failure mode requiring its
-own name.** What it does *not* answer — because nothing fetched in this pass
-compares question-framing against assertion-framing on matched content — is
-whether asking "does it need a camera recalibration?" is *more* or *less*
-sycophancy-inducing than asserting "it needs a camera recalibration." **OPEN
-QUESTION**, and one this project could answer cheaply: the caller's script
-already has both forms available (the fabrication-bait probe is phrased as a
-question; a trivial variant restates it as a flat assertion), so a same-target,
-matched-content A/B is a probe this bench could run itself rather than one
-that needs more literature.
-
-**3. Unanswerable questions and abstention — a different task, not a
-relabeling of the same one.**
-
-**Rajpurkar, Jia, Liang, "Know What You Don't Know: Unanswerable Questions
-for SQuAD" (SQuAD 2.0, [arXiv 1806.03822](https://arxiv.org/abs/1806.03822)).**
-**VERIFIED** (search synthesis of the paper and its own abstract/tables, not a
-full fetch). Over 50,000 unanswerable questions, crowd-written adversarially
-to *look* answerable given a specific paragraph, added alongside SQuAD 1.1's
-answerable set. A strong 86% F1 (SQuAD 1.1) system drops to 66% F1 on 2.0; the
-paper's own framing is that the paragraph genuinely lacks the fact the
-question asks about, and the system's job is to notice the absence and
-abstain rather than guess a plausible-looking span.
-
-**These are related tasks, not the same one, and conflating them would
-mis-specify what callbench measures.** SQuAD 2.0's unanswerability is a
-*missing-evidence* problem: the paragraph is silent on the question, and any
-answer offered is unsupported by the given context, but nothing in the
-question itself is false — a different paragraph could easily answer it. A
-false-presupposition question is a *contradicted-evidence* problem: the
-question is not silent-on but actively wrong about a background fact ("this
-car has a camera"), and no amount of additional context makes the
-presupposition true. This distinction has a direct instance inside
-diagnosis.md's own table: the row where the caller says a feature "does not"
-apply and the agent asks about it anyway is scored **FAIL, not
-INCONCLUSIVE** — precisely because the ground truth was available and
-contradicted, not merely absent. Collapsing the two into one "abstain here"
-category would blur that FAIL back into an INCONCLUSIVE, which the fitment
-table explicitly refuses to do. **The published discourse in this area
-recognizes the distinction too, not just this project:** [Two Axes of LLM
-Abstention: Answer Correctness and Question Answerability (arXiv
-2607.08456)](https://arxiv.org/pdf/2607.08456) frames abstention along two
-separate axes (whether the *question* is answerable at all, and whether a
-given *answer* is correct) rather than one — **VERIFIED** existence and
-framing via its own title and abstract; the PDF's full body did not extract
-cleanly in this pass, so the paper's specific numbers are **OPEN QUESTION**,
-but the axis-separation itself is exactly the SQuAD-2.0-vs-CREPE distinction
-made above, independently named by a different paper.
-
-**4. The distinguishing question — does any published work treat a
-clarifying question about a nonexistent entity as an error, rather than as
-good practice?**
-
-**No published work found in this pass treats it that way, and that absence
-was searched for directly, not assumed.** Two distinct literatures were
-checked and both come up empty on this exact claim:
-
-- **Clarification-question generation in dialogue and IR.** The surveyed
-  literature (ambiguous-query resolution, clarifying-question generation for
-  conversational search, entity-level clarification in dialogue systems) is
-  uniformly framed around clarification as a *repair* for genuine ambiguity —
-  a question resolves which of several real referents the user meant, or
-  fills a genuinely missing slot. **No source found in this pass scores a
-  clarifying question as *wrong* because its subject does not exist** — the
-  failure modes the literature discusses are a system failing to *ask* when
-  it should have, or asking about the wrong slot among several real ones,
-  never asking a well-formed question about an entity with no referent at
-  all. This is consistent with how these systems are typically evaluated:
-  against a closed slot schema or an entity graph where every candidate slot
-  is, by construction, a real one — the evaluation setup structurally cannot
-  produce diagnosis.md's exact case (a slot that looks real from the wording
-  but has no filler in this system's world), because the schema was never
-  built to contain a fake slot to test against.
-- **Presupposition-QA and the clarification option specifically.** (QA)²
-  (§1 above) is the one paper in this pass whose task shape includes a model
-  that *could* choose to ask rather than answer, and its own evaluator
-  neither scores a clarifying-question response as acceptable nor names it as
-  an error — the response taxonomy is silent on it entirely, treating
-  "point out the flaw and answer" as the only credited move.
-
-**This is a genuine, load-bearing gap, and the honest framing matters
-because three independent reviewers have called the maintainer's rule
-indefensible.** The absence of counter-evidence is not the same as
-confirmation — it means no fetched source *validates* the rule and equally
-none *contradicts* it; the rule stands on diagnosis.md's own argument (a
-question about something that cannot exist is the observable signature of
-missing vehicle context, not a competence signal) rather than on any
-external authority. **What the literature does supply, obliquely, is a
-reason the gap exists rather than evidence closing it:** every clarification-
-question benchmark surveyed here is built over a closed set of *real* slots
-or entities, so "ask about a slot that has no filler in the ground truth at
-all" is outside every evaluated distribution, not a case those benchmarks
-were shown to handle correctly and simply weren't cited — it is a case they
-structurally never construct. Diagnosis.md's `never-offered` fitment status
-is, functionally, the schema move those benchmarks skip: naming that a slot
-can be absent by construction, not merely unfilled, and grading a question
-about it accordingly. **OPEN QUESTION for a probe, not more reading:** whether
-a purpose-built adversarial clarification-question benchmark exists somewhere
-this pass's search terms missed (candidate future search terms: "spurious
-slot," "non-existent slot," "hallucinated slot," "fictitious entity
-clarification") — the searches run here (clarification + nonexistent entity,
-clarification + presupposition failure) came back empty, which is evidence of
-absence within this pass's search budget, not proof the literature has never
-touched it.
-
-**5. Domain analogue — product-attribute QA.**
-
-**The catalog-grounded shape callbench actually needs was not found solved
-in public research; the closest work is attribute-value *extraction*, a
-different task from attribute-presupposition *verification*.**
-
-- **Product Question Answering in E-Commerce: A Survey (ACL 2023,
-  [aclanthology.org/2023.acl-long.667](https://aclanthology.org/2023.acl-long.667/)).**
-  **VERIFIED** existence and its own stated framing (categorizes PQA into four
-  answer-form problem settings) via the abstract; the PDF's body did not
-  extract as readable text in two attempts in this pass, so its taxonomy
-  detail, and specifically whether it discusses a never-offered/optional/
-  standard-style distinction, is an **OPEN QUESTION** left for a follow-up
-  fetch or a direct PDF read, not a confirmed gap.
-- **Amazon product-QA datasets (AmazonQA, SemiPQA, hetPQA).** **VERIFIED**
-  existence and scale via search synthesis (not fetched in full): AmazonQA
-  pairs 923k questions against 3.6M answers and 14M reviews across 156k
-  products, and marks each question answerable-or-not from the available
-  reviews; SemiPQA covers 258 attribute types with a held-out "unseen
-  attribute" split. **The answerable/unanswerable label in these datasets
-  is evidentiary, not ontological** — a question is "unanswerable" because no
-  review or listing happens to mention it, the SQuAD-2.0 shape (§3 above), not
-  because the attribute is catalog-verified never to exist on that product.
-  Nothing found in this pass distinguishes "nobody happened to write a review
-  mentioning the sunroof" from "this trim was never sold with a sunroof" —
-  which is exactly diagnosis.md's `optional`-vs-`never-offered` split, and
-  exactly the distinction the caller's camera bait depends on. This is an
-  **INFERRED** reading of dataset descriptions, not a claim verified against
-  the raw data or a full paper fetch.
-- **Attribute-value extraction and hallucination.** A cluster of recent
-  papers (TACLR, [arXiv 2501.03835](https://arxiv.org/pdf/2501.03835);
-  EAVE, [arXiv 2406.06839](https://arxiv.org/html/2406.06839v1);
-  multimodal/visual extraction work) treat hallucination as a known failure
-  mode of LLM-based attribute extraction — a model inventing a value for an
-  attribute not stated in the product page. **VERIFIED** existence of the
-  hallucination framing via search synthesis; specific mitigation numbers not
-  fetched in this pass (**OPEN QUESTION**). **This is the nearest true analogue
-  found to callbench's fabrication-bait probe** — an LLM asked to fill an
-  attribute slot invents a value rather than reporting absence — but the task
-  shape is still extraction *from a document the model can see* (the product
-  page is in context), not verification of a spoken claim *against a fact set
-  the model is deliberately kept blind to*, which is diagnosis.md's whole
-  design (see "Where the facts live, and why not in the prompt"). No fetched
-  source frames catalog-attribute hallucination as a *dialogue*-turn
-  verification problem the way callbench does; it is uniformly framed as a
-  generation-time extraction problem.
-
-**Direct answer to research question 5: no public dataset or method found in
-this pass handles the never-offered / optional / standard three-way split
-callbench's fact set encodes.** Every product-QA resource surveyed treats
-"unanswerable" as an evidentiary gap in the source document, the SQuAD-2.0
-shape, not a catalog-verified ontological absence. The gap between
-"catalog-verified never-offered" and "not mentioned in this document" is the
-single most reusable idea diagnosis.md's fact-set design contributes that was
-*not* found already solved in the literature searched here — worth stating
-plainly rather than papering over with a citation that only partially fits.
-
----
-
-**Does the presupposition literature give callbench a better framing, a
-benchmark to calibrate against, or a published failure-rate estimate?**
-
-**A better framing: yes, and it was worth the search.** "False presupposition
-question-answering" is the exact, citable name for what the camera probe
-does, distinct from ordinary adversarial testing or plain fact-checking —
-CREPE's own existential-presupposition subtype (6% of its taxonomy) and (QA)²'s
-"questionable assumption" framing are the closest published vocabulary for
-"a question whose premise a competent answerer must reject before answering
-anything else." That name did not exist in [diagnosis.md](diagnosis.md) or
-[probes.md](probes.md) before this pass — both call it "fabrication bait" or
-"the camera probe," a project-local name for a phenomenon with a decade of
-published study under a different one. Sycophancy is the second half of the
-name: the multi-turn sycophancy paper's own §6.2 finding (§2 above) — that
-models often *know* the correct fact and suppress it under conversational
-framing — is the mechanism most likely operating when a shop's voice agent
-accepts the camera bait, as distinct from the shop's agent simply never
-having the vehicle fact in the first place. Both explanations produce the
-same observed FAIL, and diagnosis.md's own design (facts never enter the
-model's context, so the agent under test can't be shown to have "known" the
-answer, only shown to have said or not said it) is explicitly agnostic
-between them — the literature confirms that agnosticism is the right
-posture, not just a modeling convenience: the sycophancy-vs-ignorance
-distinction is real and measured, and callbench's transcript-only record
-cannot resolve it either way, which matches how diagnosis.md already treats
-"why" the target failed as out of scope for a finding.
-
-**A benchmark to calibrate against: not directly, and this is worth stating
-plainly rather than stretching a fit.** CREPE and (QA)² are the closest
-published benchmarks, and neither is usable as a calibration set for
-callbench's judge or extractor without adaptation — both are open-domain
-world-knowledge QA, evaluated by a retrieval-grounded or human-rated
-correctness metric, not a closed four-fact catalog scored by a
-deterministically-coded three-state rule. A model tuned or validated against
-CREPE's Reddit-science presuppositions has no guarantee of transferring to
-"does an 8P-chassis Audi have a factory front camera," the same domain-shift
-caution [Scoped-claim classification](#scoped-claim-classification--negation-abstention-and-the-fabrication-bait-assertion)
-§6 already raises about fine-tuning on the simulator's own scripted text —
-tuning to *any* fixed distribution, including a published one, risks the
-same trap if the target domain (voice-agent quotes for a specific vehicle
-platform) differs enough from the benchmark's domain (general trivia).
-
-**A published failure-rate estimate: a range, not a number, and the range is
-wide enough that it bounds expectations rather than predicting a result.**
-Across every fetched source that reports a comparable figure: CREPE's
-detection ceiling implies roughly a third of false-presupposition questions
-go unflagged; (QA)² finds a 6-point acceptability gap between
-questionable-assumption and valid questions; the math-domain premise-critique
-paper finds 11%-40.5% proactive-flag rates; the multi-turn sycophancy paper
-finds the *opposite*-direction number (51%-75% correct when asked directly,
-implying a large drop under conversational framing, though the paper does not
-tabulate the conversational-failure rate as a single percentage). None of
-these numbers is callbench's number — none was measured against a phone call,
-a voice agent, a shop's business incentive to quote a fee, or a
-catalog-attribute presupposition — but together they establish that "a
-sizable minority to a slim majority of systems accept a well-constructed
-false presupposition" is the documented range across every domain tested so
-far, which is the right prior to hold walking into a live call, not a
-guarantee about this specific shop.
-
-**The strongest argument that this framing does not fit, stated fairly, not
-dismissed.** Every benchmark and paper fetched in this pass is open-domain —
-Reddit trivia, search-engine autocomplete, Wikipedia-adjacent facts, or
-arithmetic — and every one is text-in/text-out, evaluated by a retrieval
-corpus, a human rater, or a symbolic checker, never a live spoken exchange
-with a commercial party who has a financial incentive in the answer. Callbench's
-task differs on at least three axes none of the fetched literature crosses at
-once: **(a) the ground truth is a narrow, low-resource catalog fact** (one
-service bulletin, a parts-catalog page) rather than something a retrieval
-corpus like Wikipedia or Google Search reliably contains — FActScore's own
-documented failure mode ([Verification-first
-prompting](#verification-first-prompting--decomposition-independence-and-self-checking)
-§2) is exactly this: 10% of its "unsupported" verdicts were true facts simply
-absent from the corpus, and diagnosis.md's own camera fact is exactly the
-kind of statement a general retrieval corpus is unlikely to state as a
-negative; **(b) the respondent has a business incentive to find work**,
-which no fetched paper's task setup creates — Google, Bing, and Reddit
-commenters have no revenue at stake in whether a lightbulb has an inventor or
-a windshield needs a sensor; **(c) the channel is live spoken dialogue under
-real-time pressure**, not a batch text query, which is the whole reason this
-project exists as a phone-call bench rather than a text-QA harness in the
-first place. The presupposition-QA literature establishes that the *general
-cognitive failure* — accepting a well-formed question's false premise — is
-real, common, and understudied in exactly the shape (existential/attribute
-presuppositions) that matters here. It does not establish, and nothing
-fetched claims, that the failure rate transfers to a domain with a narrow
-private catalog, a paying customer, and a financial incentive to say yes.
-
-**Single most useful source for this project, given all of the above:** the
-multi-turn sycophancy paper's CREPE-derived §6.2 finding (Zhang et al., [arXiv
-2505.23840](https://arxiv.org/html/2505.23840v4)) — not for its numbers, which
-don't transfer, but for its method: separating "does the model know the fact"
-from "does the model say the fact" by asking the same question two ways, once
-embedded in conversational pressure and once stripped of it. That is a cheap,
-concrete probe design callbench could run on its own target directly (ask the
-camera question live, then, in a separate call, ask the shop point-blank
-whether the 8P had a factory camera) to get the same ignorance-vs-sycophancy
-read this project's transcript-only record cannot currently produce — flagged
-here as a probe idea for the maintainer, not built.
+**Two cheap probes this bench could run itself** (flagged for the maintainer,
+not built): (1) the know-vs-say split — ask the camera question live, then in
+a separate call ask point-blank whether the 8P had a factory camera, to
+separate ignorance from sycophancy; (2) question-vs-assertion A/B — the bait
+already exists as a question; a matched-content variant states it flat, and no
+fetched paper runs that comparison.
 
 ## Dialogue state tracking and KB-grounded verification
 
