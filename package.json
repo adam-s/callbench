@@ -6,11 +6,12 @@
 		"lint": "biome check .",
 		"lint:fix": "biome check --write .",
 		"test": "vitest run",
-		"typecheck": "tsc -p packages/shared/tsconfig.json && tsc -p packages/transport/tsconfig.json && tsc -p packages/transcript/tsconfig.json && tsc -p packages/stt/tsconfig.json && tsc -p packages/tts/tsconfig.json && tsc -p packages/turn/tsconfig.json && tsc -p packages/simulator/tsconfig.json && tsc -p packages/factset/tsconfig.json && tsc -p packages/assert/tsconfig.json && tsc -p packages/judge/tsconfig.json && tsc -p packages/scenario/tsconfig.json && tsc -p packages/runplan/tsconfig.json && tsc -p scripts/tsconfig.json && pnpm --filter @callbench/web check"
+		"typecheck": "tsc -p packages/shared/tsconfig.json && tsc -p packages/transport/tsconfig.json && tsc -p packages/transcript/tsconfig.json && tsc -p packages/stt/tsconfig.json && tsc -p packages/tts/tsconfig.json && tsc -p packages/turn/tsconfig.json && tsc -p packages/simulator/tsconfig.json && tsc -p packages/factset/tsconfig.json && tsc -p packages/audioqc/tsconfig.json && tsc -p packages/assert/tsconfig.json && tsc -p packages/judge/tsconfig.json && tsc -p packages/scenario/tsconfig.json && tsc -p packages/runplan/tsconfig.json && tsc -p scripts/tsconfig.json && pnpm --filter @callbench/web check"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.5.4",
 		"@callbench/assert": "workspace:*",
+		"@callbench/audioqc": "workspace:*",
 		"@callbench/factset": "workspace:*",
 		"@callbench/judge": "workspace:*",
 		"@callbench/runplan": "workspace:*",

@@ -18,6 +18,9 @@ importers:
       '@callbench/assert':
         specifier: workspace:*
         version: link:packages/assert
+      '@callbench/audioqc':
+        specifier: workspace:*
+        version: link:packages/audioqc
       '@callbench/factset':
         specifier: workspace:*
         version: link:packages/factset
@@ -145,6 +148,15 @@ importers:
       '@callbench/transcript':
         specifier: workspace:*
         version: link:../transcript
+    devDependencies:
+      '@types/node':
+        specifier: ^24.13.3
+        version: 24.13.3
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/audioqc:
     devDependencies:
       '@types/node':
         specifier: ^24.13.3
