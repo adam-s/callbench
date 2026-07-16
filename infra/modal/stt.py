@@ -27,14 +27,18 @@ point of the seam.
 import modal
 
 from common import (
-    GPU, HF_CACHE, HF_CACHE_PATH, MAX_CONTAINERS, SCALEDOWN_WINDOW, WARM_CONTAINERS, app, cuda_image,
+    GPU,
+    REGION, HF_CACHE, HF_CACHE_PATH, MAX_CONTAINERS, SCALEDOWN_WINDOW, WARM_CONTAINERS, app, cuda_image,
 )
 
 # large-v3-turbo: the 809M pruned-decoder Whisper — ~2.7x faster inference
 # than large-v3 at neutral WER (SYSTRAN faster-whisper #1030), half the VRAM.
 # The single highest-latency-won-per-effort STT change (docs/latency.md).
 MODEL = "large-v3-turbo"
-GPU_TIER = GPU["small"]  # turbo fits a T4 with room to spare
+# medium (L4), not small (T4): turbo FITS a T4, but decode speed is the live
+# turn's third-biggest block (measured ~1.0-1.5s/turn, 2026-07-16) and the L4
+# roughly halves it for ~$0.21/hr more while warm.
+GPU_TIER = GPU["medium"]
 
 app = app("stt")
 # faster-whisper 1.1.0 imports `requests` at load but doesn't pull it as a
@@ -44,6 +48,7 @@ image = cuda_image("faster-whisper==1.1.0", "fastapi[standard]==0.115.6", "reque
 
 @app.cls(
     gpu=GPU_TIER,
+    region=REGION,
     image=image,
     volumes={HF_CACHE_PATH: HF_CACHE},
     scaledown_window=SCALEDOWN_WINDOW,

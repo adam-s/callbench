@@ -40,6 +40,12 @@ GPU = {
     "large": "L40S",  # ~$1.95/hr — 14B+ LLMs (the persona / bootstrap judge)
 }
 
+# --- placement ----------------------------------------------------------------
+# All endpoints pin to one region group so STT/LLM/TTS sit near each other AND
+# near Twilio's US1 media gateway (Virginia) + the driver (US-east). Unpinned,
+# containers scatter across regions and every turn pays the extra RTT ×3 hops.
+REGION = "us-east"
+
 # --- scale-to-zero ----------------------------------------------------------
 # The cost model. A container releases its GPU this long after the last
 # request, so back-to-back use never re-pays the cold start but an idle

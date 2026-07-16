@@ -51,10 +51,30 @@ the fast regime than 8.7s suggests.
 
 ### Measured (real calls, owned loop)
 
-| What | Median voice-to-voice | Take | Notes |
+| What | Median measured turn (stt+llm+tts) | Take | Notes |
 |---|---|---|---|
 | Sequential loop (STT→LLM→TTS, no overlap, cold-start-prone) | **8.7s** (7.5–11.8s) | `c41db469` | the baseline; batch faster-whisper + `claude -p` subprocess + whole-utterance Kokoro |
 | Same loop, per-stage split | **8.9s** (7.9–10.6s) | `1784193757706` | 11-turn unscripted call; the split below |
+| Warm vLLM (`openai:` streaming runner), turbo STT, warm Kokoro | **~2.9–4.3s** | `1784204584210` | the 4.7s subprocess block became ~1.4s; stt ~1.5s, tts ~1.4s fresh / 4ms cached |
+| + speculative STT at `turn-maybe-end`, clause→TTS overlap | **~2.9s** | `1784205512765` | spec-STT hit 11/11 turns (paid wait as low as 358ms); first clause fired on all 3 multi-sentence replies |
+| + region pin `us-east`, STT on L4, streaming TTS to the wire | **2.2s** (1.4–3.8s) | `1784206114174` | stt-wait median 507ms (two turns 0–5ms — fully absorbed); tts 595ms median, 1–3ms cached; LLM full-completion ~1.4s now dominates again |
+| **+ driver moved in-region** (EC2 us-east-1; identical code) | **1.09s** (0.80–1.49s) | `1784207852425` | stt-wait **0ms** median (spec absorbs it 9/10 turns), llm 869ms, tts 291ms; best turn **802ms**; first fully clean grade (PASS 2 / FAIL 0 / INCONCLUSIVE 0) |
+
+The driver's location was worth a full second: the same code, same fleet, same
+scenario measured 2.2s from a driver ~140ms away (Bolivia, via VPN) and 1.09s
+from a driver in-region (LLM first frame 113ms, reused request 42–57ms from
+EC2). Geography is a stage.
+
+Add the detector's 900ms confirm-silence window (not in the stage sums) for the
+gap a caller actually hears: **~3.1s median as of `1784206114174`**, from 9.6s+
+at baseline. Not yet the ~1s target — the remaining blocks and their owners are
+in "How the projected numbers become measured" below.
+
+**Region pinning was the sleeper.** Unpinned, containers landed far enough away
+that a zero-compute request cost ~190ms reused / ~460ms fresh from the driver,
+and the LLM's first frame took ~1.1s from the driver vs 433ms in-Modal. Pinned
+`us-east` (`REGION`, common.py), the same probe hit **235ms first-frame / 660ms
+total** from the driver.
 
 #### Per-stage breakdown (measured, take `1784193757706`)
 
@@ -85,10 +105,14 @@ the Modal co-location of stages is the SECOND lever, not the first — collapse 
 
 | Change | From → to | Effect | Status |
 |---|---|---|---|
-| STT model | `large-v3` → `large-v3-turbo` | ~2.7× faster inference, neutral WER | committed, needs deploy |
-| TTS | whole-utterance → clause-streamed to pacer | first-audio 1–3s → tens of ms | committed, needs deploy |
-| Cold start | scale-to-zero → `CALLBENCH_WARM=1` keep-warm | removes 2–120s cold tail | committed, needs deploy |
+| STT model | `large-v3` → `large-v3-turbo` | ~2.7× faster inference, neutral WER | **deployed & measured** (2026-07-16) |
+| STT GPU | T4 → L4 | decode was the turn's #3 block | **deployed & measured** |
+| TTS | whole-utterance → clause-streamed to the wire | live first-byte 476ms, full render still in flight | **deployed & measured** (sim leg `speakStreaming`) |
+| Cold start | scale-to-zero → `CALLBENCH_WARM=1` keep-warm | removes 2–120s cold tail | **deployed** |
+| LLM runner | `claude -p` subprocess → `openai:` streaming vLLM | 4.7s → ~1.4s full completion; 235ms first frame from the driver | **deployed & measured** |
+| Region | unpinned → `us-east` all endpoints | driver-to-LLM first frame ~1.1s → 235ms | **deployed & measured** |
 | Turn-taking | single 900ms hangover → two-stage cancellable | mid-sentence pause re-attaches; the eager-EoT substrate | committed & live-proven |
+| Speculative endpointing | STT waits for confirm → starts at `turn-maybe-end`, `turn-resumed` cancels | STT wait median 1.5s → 507ms (best 0ms) | **live-proven** (`1784206114174`: 11/11 hits, 13 clean discards) |
 
 ## The one setting that matters most, per contender
 

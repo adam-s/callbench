@@ -24,7 +24,8 @@ import io
 import modal
 
 from common import (
-    GPU, HF_CACHE, HF_CACHE_PATH, MAX_CONTAINERS, SCALEDOWN_WINDOW, WARM_CONTAINERS, app, cuda_image,
+    GPU,
+    REGION, HF_CACHE, HF_CACHE_PATH, MAX_CONTAINERS, SCALEDOWN_WINDOW, WARM_CONTAINERS, app, cuda_image,
 )
 
 VOICE = "af_heart"  # a clear American-English preset; swappable per request
@@ -45,6 +46,7 @@ image = cuda_image(
 
 @app.cls(
     gpu=GPU_TIER,
+    region=REGION,
     image=image,
     volumes={HF_CACHE_PATH: HF_CACHE},
     scaledown_window=SCALEDOWN_WINDOW,

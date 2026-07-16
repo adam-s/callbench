@@ -30,6 +30,13 @@ function seededCache() {
 
 const rubric = calibration.rubric;
 
+// ACCEPTED LIMITATION (test red-team, 2026-07-16): these cases prove REPLAY of
+// verdicts frozen by generate-calibration.mjs — which only freezes when the
+// live verdict already matches `expected` — so a silently regressed live judge
+// stays green here until the generator is re-run. Discrimination is proven AT
+// GENERATION TIME, not continuously; a continuous live-judge check would put a
+// model call in the unit suite, which this repo's offline-test discipline
+// forbids. Re-run the generator when the judge model or rubric changes.
 describe('discrimination — the calibration set (frozen from a live judge run)', () => {
 	for (const c of calibration.cases) {
 		it(`case "${c.id}" replays ${c.expected} without touching the network`, async () => {
