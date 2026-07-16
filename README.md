@@ -51,7 +51,11 @@ what else improves — the full set is in [AGENTS.md](AGENTS.md).
 - **Every dial to a system we don't own is human-approved, one call at a time.**
   No retry-on-failure, no scheduled run, no loop. The bench prepares a call and
   stops; a human starts it. No surface is exempt — a confirmation dialog in front
-  of a dial path is still a dial path.
+  of a dial path is still a dial path. Dials between numbers THIS ACCOUNT OWNS
+  (the bench line calling the simulator line) may run unattended within caps
+  enforced in code — the ownership check gates every dial, so no config can
+  extend the unattended path to a stranger's number (maintainer decision,
+  2026-07-16).
 - **A human on the line ends the test.** The bench tests an automated system. If
   a person answers or the call transfers, the only remaining move is to identify
   the call as a test and end it.

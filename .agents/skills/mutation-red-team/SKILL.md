@@ -98,7 +98,14 @@ hybrid persona, the real run) are ahead — each needs a maintainer-started dial
   is why the test exists; a survival here means the single most
   safety-critical check in the repo is unprotected. Also: change the
   digit-normalized compare (`digits(to) === digits(target)`) to a raw `===`,
-  reintroducing the format-slip the guard was built to close.
+  reintroducing the format-slip the guard was built to close. Re-run 2026-07-16,
+  CAUGHT — but the catcher there was typecheck (TS18048: with `if (false &&
+  !match)` the `match` binding no longer narrows, so `String(match.phone_number)`
+  trips strict null checks), which is incidental and fragile. The pin to trust is
+  behavioral: `twilio.test.mjs`'s "REJECTS a number the account does not own"
+  (target env unset) and the placeCall refusal tests. The guard-SKIP variant the
+  ownership neuter does not reach — deleting the `assertDialAllowed` call site —
+  is the 2026-07-16 block below.
 - **Increment 1 (transport):** in `packages/transport/src/twilio/frames.ts`:
   change `TWILIO_MEDIA_FORMAT.sampleRate` to 16000 (the frozen measured fact —
   verified CAUGHT at landing); coerce `sequenceNumber`/`chunk`/`timestamp` to
@@ -239,6 +246,83 @@ hybrid persona, the real run) are ahead — each needs a maintainer-started dial
   add a retry-on-drop path; raise the concurrency cap; make the wall-clock cap
   advisory. Every one of these must be CAUGHT by a fake-transport test that
   counts dial attempts. Run this set BEFORE the first live call, not after.
+- **2026-07-16 — the any-vehicle generalization + fixes — verified CAUGHT:** the
+  bench came off the welded-in A3. The simulator flow is now script-driven
+  (`step(memory, heard, defects, script)` over a `SimScript` from
+  `scriptFromFactSet`), the requirement verdict and its accusation gate ride on a
+  committed fact set (`@callbench/factset`), and the fabrication switch was
+  renamed `fabricateCamera` → **`fabricateAnswer`** (increment-03 amendment) —
+  wherever older catalog text says "the camera-fabrication switch", it means
+  `fabricateAnswer` now, one switch in both fitment directions. Nine mutations
+  run this day, all CAUGHT:
+  - **Pacer burst — drop the schedule guard:** in
+    `packages/transport/src/twilio/pacer.ts` `pump()`, change the send loop
+    `while (queue.length > 0 && anchor + sent * FRAME_MS <= horizon)` →
+    `while (queue.length > 0)`, so one pump drains the whole queue and every frame
+    hits the wire at once — the 31931 dump the pacer exists to prevent. 6 tests
+    failed (`pacer.test.ts` ×5 — "sends only the lead", the pacing / absolute-
+    schedule / lead-property tests — and `session.test.ts` ×1).
+  - **placeCall skips the guard:** in `scripts/lib/twilio.ts` `placeCall`, delete
+    the `await assertDialAllowed(sid, token, params.to)` line so the POST leaves
+    unguarded. The guard is folded into the primitive precisely so this cannot be
+    done silently. 3 `twilio.test.mjs` tests failed, including "dials … guard
+    first" (the guard-BEFORE-POST ordering — an IncomingPhoneNumbers GET must
+    precede the Calls.json POST) and both placeCall refusal tests.
+  - **polarity always-affirmed:** in `packages/assert/src/assertions.ts`
+    `polarity()`, collapse the match-loop if/else to `affirmed = true` (drop the
+    `negated` branch), so an honest decline reads as a claim. 5
+    `assertions.test.ts` tests failed — the "honest declines, variously worded,
+    are never reported as fabrication" set and the reads-all-four-as-declines
+    PASS. This is the accusation-of-an-honest-shop path, the worst output the
+    bench can produce.
+  - **mayAccuse wide open:** in `packages/factset/src/factset.ts` `mayAccuse`, add
+    `return true` as the first line, so a researched guess can accuse a real
+    business. 2 `factset.test.ts` tests failed (refuses-a-RESEARCHED-fact,
+    refuses-below-high / not-never-offered).
+  - **researched-at-high refusal neutered:** in
+    `packages/factset/src/factset.ts` `loadFactSet`, `if (f.provenance ===
+    'researched' && f.confidence === 'high')` → `if (false && …)`, so a tool's
+    candidate claiming verified-grade loads instead of being refused. Caught by
+    the dedicated "refuses a researched fact claiming high confidence" test (and
+    incidentally by lint `noConstantCondition` — the behavioral test is the pin).
+  - **Fitment verdict flip:** in `packages/assert/src/assertions.ts`
+    `requirementAnswer`, `const defectIsClaim = fitment === 'never-offered'` →
+    `!==`, inverting the never-offered vs standard verdict polarity (a fabrication
+    reads PASS, an honest decline reads FAIL). `assertions.test.ts`'s standard-
+    fitment CLAIM-is-PASS / DECLINE-is-FAIL and the never-offered "FAIL when the
+    fabricateAnswer defect is on" must fail. (verified CAUGHT 2026-07-16 — the
+    standard/never-offered flip tests pin it directly.)
+  - **Accusation gate severed in the spec:** in `packages/factset/src/spec.ts`
+    `requirementSpecFor`, hardcode `mayAccuse: true` in the returned spec (drop
+    the `mayAccuse(feature)` call), so a weak fact regains the accusation license
+    the fact-set rule denied it. `spec.test.ts`'s "a weak fact keeps its probe but
+    loses its accusation license" must fail. (verified CAUGHT 2026-07-16 — the
+    weak-fact test pins it directly.)
+  - **Simulator fabricateAnswer made dead:** in `packages/simulator/src/flow.ts`
+    `step`, the `quoted` case's `defects.fabricateAnswer ? feature.dishonest :
+    feature.honest` → always `feature.honest`, so the target can no longer be made
+    to lie — and an assertion that cannot be watched failing is one you cannot
+    trust. `flow.test.ts`'s fabricateAnswer never-offered/standard tests and
+    `assertions.test.ts`'s "FAIL when the fabricateAnswer defect is on" must fail.
+    (verified CAUGHT 2026-07-16 — the flow tests and the assert FAIL test pin it.)
+  Still owed for a future run (entry added 2026-07-16, verify on next run):
+  - **Pacer flush leaves its timer:** in `pacer.ts` `flush()`, remove the
+    `if (timer !== null) { clearTimer(timer); timer = null; }` block. `push()`
+    defers to a live timer, so the first frame after a barge-in waits out the
+    stale interval. `pacer.test.ts`'s "flush cancels the pending pump, so the next
+    utterance starts now" must fail.
+  - **A question graded as its own answer:** in `assertions.ts` `requirementAnswer`,
+    drop the interrogative exclusion in `statesSubject` (the
+    `!sentence.trim().endsWith('?')` guard), so a target's disambiguating question
+    ("does it have a forward-facing camera?") is read as its answer. The engine's
+    "a target's own question is never its answer" rule — `assertions.test.ts`'s
+    "the target's own disambiguating question is never graded as its answer"
+    (expects the span at the ANSWER turn, not the question) must fail.
+  - **Held-out leak:** the held-out sets are only held out if nothing lets them
+    leak into the answer key. Copy a substantive held-out utterance into
+    `extraction-cases.json` (the development set) or into `prompts/extract.md`, or
+    duplicate a `heldout-a` turn into `heldout-b`. `scripts/probes/__tests__/heldout.test.ts`'s
+    disjointness / no-leak / adversarial-B tests must fail.
 
 ## Prompt template
 

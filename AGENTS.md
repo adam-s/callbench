@@ -142,7 +142,12 @@ Load-bearing to the product, not any one module; breaking one is a regression
 regardless of what else improves. Mechanisms and rationale live in the docs.
 
 - **Gate irreversible or outward-facing actions behind a human checkpoint.** The
-  system under test is somebody's live business line. No unattended dial.
+  system under test is somebody's live business line. No unattended dial to a
+  number this account does not own, and no flag or config can extend an
+  unattended path to one. Dials BETWEEN bench-owned numbers may run unattended
+  (maintainer decision, 2026-07-16): the live ownership check gates every dial
+  in code, caps are declared and enforced in code, and every attempt and
+  outcome is recorded.
 - **An overridden gate is restated, not skipped.** When a maintainer instruction
   bypasses a coded safety gate, restate what the gate protects against at the moment
   of the bypass and get the go-ahead with that warning in view. Relaying the
