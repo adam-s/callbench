@@ -37,7 +37,12 @@ export function subjectTermsFor(feature: Feature): string[] {
 		// characters is a determiner or a scrap, not hardware.
 		.map((t) => t.replace(/^(?:sometimes called|also called|known as|called)\s+/, ''))
 		.map((t) => t.replace(/^(?:the|a|an)\s+/, ''))
-		.filter((t) => t.length >= 4);
+		.filter((t) => t.length >= 4)
+		// A namedBy CLAUSE is not a name: "equivalent that unmistakably points at
+		// that hardware" would never match a turn, but it pollutes the derived
+		// list and — sorted longest-first — becomes the finding text's subject.
+		// Hardware names run one to three words; anything longer is prose.
+		.filter((t) => t.split(' ').length <= 3);
 	return [...new Set(terms)].sort((a, b) => b.length - a.length);
 }
 
