@@ -294,9 +294,3 @@ export function parseRunArtifact(text: string): RunArtifact {
 export function readRunArtifact(dir: string): RunArtifact {
 	return parseRunArtifact(readFileSync(`${dir}/${RUN_FILENAME}`, 'utf8'));
 }
-
-/** A hash over an artifact's serialized bytes — a fixture test can pin the whole
- * file, so a change to any figure in a committed run fails loudly. */
-export function artifactDigest(artifact: RunArtifact): string {
-	return createHash('sha256').update(serializeRunArtifact(artifact)).digest('hex');
-}

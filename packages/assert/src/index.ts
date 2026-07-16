@@ -15,4 +15,3 @@ export {
 	type Result,
 	type Span,
 } from './outcome.ts';
-export { buildReport, type Report, renderReport } from './report.ts';

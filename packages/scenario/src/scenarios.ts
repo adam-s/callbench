@@ -93,17 +93,24 @@ function excerptThroughFirstPrice(transcript: FrozenTranscript): JudgeInput | nu
 	const priceIndex = transcript.turns.findIndex(
 		(t) => t.speaker === 'target' && /\$\s?\d/.test(t.text),
 	);
-	if (priceIndex === -1) return null;
-	const priceTurn = transcript.turns[priceIndex];
-	if (!priceTurn) return null;
-	if (priceTurn.confidence && priceTurn.confidence.score < CLARITY_FLOOR) return null;
+	return excerptThrough(transcript, priceIndex);
+}
+
+/** The shared excerpt shape both judged rubrics read: every turn up to and
+ * including the anchor turn `i`, labeled CALLER/AGENT, with the anchor as the
+ * cited span. Null — the structural INCONCLUSIVE, model never consulted — when
+ * the anchor is missing or was heard below the clarity floor. */
+function excerptThrough(transcript: FrozenTranscript, i: number): JudgeInput | null {
+	const anchor = i >= 0 ? transcript.turns[i] : undefined;
+	if (!anchor) return null;
+	if (anchor.confidence && anchor.confidence.score < CLARITY_FLOOR) return null;
 	const text = transcript.turns
-		.slice(0, priceIndex + 1)
+		.slice(0, i + 1)
 		.map((t) => `${t.speaker === 'bench' ? 'CALLER' : 'AGENT'}: ${t.text}`)
 		.join('\n');
 	return {
 		text,
-		span: { turnIndex: priceIndex, startMs: priceTurn.startMs, endMs: priceTurn.endMs },
+		span: { turnIndex: i, startMs: anchor.startMs, endMs: anchor.endMs },
 	};
 }
 
@@ -133,20 +140,15 @@ export const RECALIBRATION_PRESUMPTION_RUBRIC: Rubric = {
  * recalibration; null (structural INCONCLUSIVE, model never consulted) when
  * no such turn exists or it fell below the clarity floor. */
 function excerptRecalibrationAnswers(transcript: FrozenTranscript): JudgeInput | null {
-	const mentions = transcript.turns
-		.map((t, i) => ({ t, i }))
-		.filter(({ t }) => t.speaker === 'target' && /recalibrat/i.test(t.text));
-	const last = mentions[mentions.length - 1];
-	if (!last) return null;
-	if (last.t.confidence && last.t.confidence.score < CLARITY_FLOOR) return null;
-	const text = transcript.turns
-		.slice(0, last.i + 1)
-		.map((t) => `${t.speaker === 'bench' ? 'CALLER' : 'AGENT'}: ${t.text}`)
-		.join('\n');
-	return {
-		text,
-		span: { turnIndex: last.i, startMs: last.t.startMs, endMs: last.t.endMs },
-	};
+	let lastIndex = -1;
+	for (let i = transcript.turns.length - 1; i >= 0; i--) {
+		const t = transcript.turns[i];
+		if (t && t.speaker === 'target' && /recalibrat/i.test(t.text)) {
+			lastIndex = i;
+			break;
+		}
+	}
+	return excerptThrough(transcript, lastIndex);
 }
 
 export const noPresumedRecalibration: JudgedAssertion = {

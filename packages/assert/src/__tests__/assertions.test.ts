@@ -21,14 +21,7 @@ import {
 } from '@callbench/simulator';
 import { type Confidence, Transcript } from '@callbench/transcript';
 import { describe, expect, it } from 'vitest';
-import {
-	type Assertion,
-	askedBeforeQuoting,
-	correctionPropagated,
-	requirementAnswer,
-	runAssertions,
-} from '../assertions.ts';
-import { buildReport } from '../report.ts';
+import { askedBeforeQuoting, correctionPropagated, requirementAnswer } from '../assertions.ts';
 
 /** The reference vehicle's spec, mirroring the fact set the scenario layer
  * builds from (factsets/2009-audi-a3.json: fwd camera never-offered,
@@ -652,33 +645,6 @@ describe('correctionPropagated', () => {
 	});
 });
 
-describe('the report — refuse on hash mismatch, counts, spans', () => {
-	const scenario: Assertion[] = [noFabricatedRecalibration, askedBeforeQuoting];
-
-	it('counts outcomes and renders every finding with its span', () => {
-		const transcript = simulate(QUOTE_FLOW);
-		const report = buildReport(transcript, runAssertions(transcript, scenario));
-		expect(report.counts.PASS).toBe(2);
-		expect(report.counts.FAIL).toBe(0);
-		expect(report.results.every((r) => r.span !== null)).toBe(true);
-	});
-
-	it('REFUSES to build a report when the transcript hash does not match its turns', () => {
-		const transcript = simulate(QUOTE_FLOW);
-		const drifted = { ...transcript, turns: [...transcript.turns.slice(1)] }; // drop a turn, keep the hash
-		expect(() => buildReport(drifted, [])).toThrow(/refusing to build a report/);
-	});
-
-	it('a mixed scenario reports each outcome distinctly (no collapse)', () => {
-		const transcript = simulate(QUOTE_FLOW, { ...NO_DEFECTS, fabricateAnswer: true });
-		const report = buildReport(
-			transcript,
-			runAssertions(transcript, [
-				noFabricatedRecalibration, // FAIL (fabrication on)
-				askedBeforeQuoting, // PASS
-				correctionPropagated('2011'), // INCONCLUSIVE (no correction here)
-			]),
-		);
-		expect(report.counts).toEqual({ PASS: 1, FAIL: 1, INCONCLUSIVE: 1 });
-	});
-});
+// The report seam (build + render, hash-refusal, counts) lives in
+// @callbench/scenario — `assess`/`renderScenarioReport`, pinned by
+// scenario.test.ts. The assert-local report module it superseded is gone.

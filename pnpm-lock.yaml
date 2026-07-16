@@ -163,6 +163,10 @@ importers:
         version: 5.9.3
 
   packages/audioqc:
+    dependencies:
+      '@callbench/shared':
+        specifier: workspace:*
+        version: link:../shared
     devDependencies:
       '@types/node':
         specifier: ^24.13.3

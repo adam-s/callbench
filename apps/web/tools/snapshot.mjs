@@ -169,7 +169,7 @@ if (consoleErrors.length) console.log('console errors:', consoleErrors.slice(0, 
 await browser.close();
 if (failures.length) {
 	console.error(`\nGEOMETRY PROOF FAILED (${failures.length}):`);
-	for (const f of failures) console.error('  ' + f);
+	for (const f of failures) console.error(`  ${f}`);
 	process.exit(1);
 }
 console.log('\nGEOMETRY PROOF PASSED');

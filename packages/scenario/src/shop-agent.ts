@@ -20,7 +20,7 @@
  */
 
 import { canStream, type Runner } from '@callbench/judge';
-import { type ExchangeTurn, firstClause } from './persona.ts';
+import { type ExchangeTurn, firstLine, renderExchange, streamWithFirstClause } from './lines.ts';
 
 export interface ShopAgentSpec {
 	/** The business the agent fronts, in one line. */
@@ -57,7 +57,7 @@ export const NEXUS_IMITATION: ShopAgentSpec = {
 	maxTurns: 12,
 };
 
-export function shopAgentPrompt(spec: ShopAgentSpec, exchange: readonly ExchangeTurn[]): string {
+function shopAgentPrompt(spec: ShopAgentSpec, exchange: readonly ExchangeTurn[]): string {
 	return [
 		`You are the voice agent answering the phone for ${spec.business}.`,
 		'Reply with ONLY your next spoken line — ONE short spoken sentence, plain',
@@ -74,7 +74,7 @@ export function shopAgentPrompt(spec: ShopAgentSpec, exchange: readonly Exchange
 		'- If the call is clearly wrapping up, say a brief goodbye.',
 		'',
 		'The call so far (AGENT is you):',
-		...exchange.map((t) => `${t.speaker === 'agent' ? 'AGENT' : 'CALLER'}: ${t.text}`),
+		...renderExchange(exchange),
 		'',
 		'AGENT:',
 	].join('\n');
@@ -89,7 +89,7 @@ export async function agentReply(
 ): Promise<{ text: string; prompt: string; raw: string }> {
 	const prompt = shopAgentPrompt(spec, exchange);
 	const raw = await runner.run(prompt);
-	const text = raw.trim().split('\n')[0]?.trim().replace(/^"|"$/g, '') ?? '';
+	const text = firstLine(raw).replace(/^"|"$/g, '');
 	return { text, prompt, raw };
 }
 
@@ -117,24 +117,13 @@ export async function agentReplyStreaming(
 		return { ...r, rest: r.text, firstClauseMs: null };
 	}
 	const prompt = shopAgentPrompt(spec, exchange);
-	const started = performance.now();
-	let acc = '';
-	let firedClause: string | null = null;
-	let firstClauseMs: number | null = null;
-	for await (const delta of runner.stream(prompt)) {
-		acc += delta;
-		if (firedClause === null && onFirstClause) {
-			const clause = firstClause(acc);
-			if (clause) {
-				firedClause = clause;
-				firstClauseMs = performance.now() - started;
-				onFirstClause(clause);
-			}
-		}
-	}
+	const { acc, firedClause, firstClauseMs } = await streamWithFirstClause(
+		runner.stream(prompt),
+		onFirstClause,
+	);
 	// `rest` is computed against the UNstripped line so the spoken clause is a
 	// true prefix; only the returned text sheds any wrapping quotes.
-	const line = acc.trim().split('\n')[0]?.trim() ?? '';
+	const line = firstLine(acc);
 	const text = line.replace(/^"|"$/g, '');
 	const rest =
 		firedClause !== null && line.startsWith(firedClause)

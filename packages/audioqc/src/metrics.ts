@@ -11,6 +11,8 @@
  * Every click here is relative to its own 20ms window's RMS.
  */
 
+import { goertzelFraction } from '@callbench/shared';
+
 export interface WavChannel {
 	readonly label: string;
 	readonly pcm: Int16Array;
@@ -71,31 +73,6 @@ export interface AudioMetrics {
 	/** Energy fraction at 3.7kHz over the loudest speech — resample artifacts;
 	 * a phone channel carries ≈nothing above 3.4kHz. */
 	readonly outOfBandFraction: number;
-}
-
-/** Goertzel power at `freq` over one window, as a fraction of window energy. */
-function bandFraction(
-	pcm: Int16Array,
-	from: number,
-	len: number,
-	freq: number,
-	rate: number,
-): number {
-	const n = Math.min(len, pcm.length - from);
-	if (n <= 0) return 0;
-	const coeff = 2 * Math.cos((2 * Math.PI * freq) / rate);
-	let s1 = 0;
-	let s2 = 0;
-	let total = 0;
-	for (let i = 0; i < n; i++) {
-		const x = pcm[from + i] ?? 0;
-		total += x * x;
-		const s0 = x + coeff * s1 - s2;
-		s2 = s1;
-		s1 = s0;
-	}
-	const power = s1 * s1 + s2 * s2 - coeff * s1 * s2;
-	return total > 0 ? power / (total * n) : 0;
 }
 
 /** Mean |PCM| speech gate, same family as the turn detector's energy. */
@@ -164,7 +141,7 @@ export function analyzeChannel(ch: WavChannel): AudioMetrics {
 	const loudest = [...speechWins].sort((a, b) => b[0] - a[0]).slice(0, 5);
 	const outOfBandFraction =
 		loudest.length > 0
-			? loudest.reduce((a, [, w]) => a + bandFraction(pcm, w * win, win, 3700, sampleRate), 0) /
+			? loudest.reduce((a, [, w]) => a + goertzelFraction(pcm, w * win, win, 3700, sampleRate), 0) /
 				loudest.length
 			: 0;
 

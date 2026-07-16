@@ -57,7 +57,6 @@ import {
 	decodeMulaw,
 	encodePcm,
 	serveTwilioMedia,
-	type TransportEvent,
 	type TransportSession,
 } from '@callbench/transport';
 import { durationMs, ModalKokoroTts, toMulawFrames, type Utterance } from '@callbench/tts';

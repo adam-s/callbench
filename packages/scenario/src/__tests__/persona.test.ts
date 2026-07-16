@@ -15,7 +15,8 @@
 
 import type { Runner } from '@callbench/judge';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { firstClause, isDoneToken, nextLine, nextLineStreaming, type Persona } from '../persona.ts';
+import { firstClause, isDoneToken } from '../lines.ts';
+import { nextLine, nextLineStreaming, type Persona } from '../persona.ts';
 
 afterEach(() => vi.restoreAllMocks());
 

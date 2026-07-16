@@ -21,9 +21,20 @@
  * Bounded by construction: a hard cap on persona turns per call, a per-reply
  * text length cap, and a DONE convention. Runs against the simulator first —
  * an improvising persona is cheap to catch there (plan.md).
+ *
+ * Line handling shared with the rehearsal shop agent (first-clause streaming,
+ * sentence capping, the DONE token) lives in ./lines.ts.
  */
 
 import { canStream, type Runner } from '@callbench/judge';
+import {
+	capAtSentence,
+	type ExchangeTurn,
+	firstLine,
+	renderExchange,
+	splitDoneTail,
+	streamWithFirstClause,
+} from './lines.ts';
 import type { CallerTurn, Scenario } from './scenario.ts';
 
 export interface Persona {
@@ -38,19 +49,13 @@ export interface Persona {
 	readonly maxFreeTurns: number;
 }
 
-/** The caller-side view of the exchange so far. */
-export interface ExchangeTurn {
-	readonly speaker: 'caller' | 'agent';
-	readonly text: string;
-}
-
 export type PersonaDecision =
 	| { readonly kind: 'say'; readonly text: string }
 	| { readonly kind: 'done' };
 
 const REPLY_CHAR_CAP = 300;
 
-export function personaPrompt(
+function personaPrompt(
 	persona: Persona,
 	exchange: readonly ExchangeTurn[],
 	remainingProbes: number,
@@ -84,7 +89,7 @@ export function personaPrompt(
 			: '',
 		'',
 		'The call so far:',
-		...exchange.map((t) => `${t.speaker === 'caller' ? 'CALLER' : 'AGENT'}: ${t.text}`),
+		...renderExchange(exchange),
 		'',
 		'CALLER:',
 	]
@@ -102,18 +107,7 @@ export async function nextLine(
 ): Promise<{ decision: PersonaDecision; prompt: string; raw: string; alsoDone: boolean }> {
 	const prompt = personaPrompt(persona, exchange, remainingProbes);
 	const raw = await runner.run(prompt);
-	const text = raw.trim().split('\n')[0]?.trim() ?? '';
-	// A runaway reply is truncated at a sentence boundary inside the cap — a
-	// caller line, not an essay — and the raw stays in the record untrimmed.
-	let line = text;
-	if (line.length > REPLY_CHAR_CAP) {
-		const cut = line.slice(0, REPLY_CHAR_CAP);
-		line = cut.slice(
-			0,
-			Math.max(cut.lastIndexOf('.'), cut.lastIndexOf('?'), cut.lastIndexOf('!')) + 1 ||
-				REPLY_CHAR_CAP,
-		);
-	}
+	const line = capAtSentence(firstLine(raw), REPLY_CHAR_CAP);
 	const { speak, done } = splitDoneTail(line);
 	if (speak.length === 0) {
 		return {
@@ -124,52 +118,6 @@ export async function nextLine(
 		};
 	}
 	return { decision: { kind: 'say', text: speak }, prompt, raw, alsoDone: done };
-}
-
-/** The first complete clause in `text`, or null if no confirmed boundary yet.
- * A boundary is `.?!` FOLLOWED BY whitespace (or a quote) — punctuation alone
- * is not enough, because in a live stream a trailing `.` may be the middle of
- * `3.5` or `$249.99` with the next digit still in flight. The clause must also
- * contain a space (two+ words): a one-word "clause" is either an abbreviation
- * (`Mr.`) or a control token (`DONE.`), and speaking either aloud is worse
- * than waiting for the full line. The cost of the stricter rule is that a
- * single-clause reply never fires early — where early fire saves ~nothing,
- * since the clause finishing IS the reply finishing. */
-export function firstClause(text: string): string | null {
-	const s = text.trimStart();
-	const boundary = /[.?!]+["']?(?=\s)/g;
-	for (let m = boundary.exec(s); m !== null; m = boundary.exec(s)) {
-		const clause = s.slice(0, m.index + m[0].length).trim();
-		// A one-word candidate extends to the next boundary instead of firing —
-		// or never fires, which is safe. This single rule covers abbreviations
-		// (`Mr.`) AND the DONE control token: every DONE shape is one word, so
-		// nothing DONE-like can ever reach TTS through here.
-		if (!clause.includes(' ')) continue;
-		return clause;
-	}
-	return null;
-}
-
-/** The DONE convention, tolerantly: the bare token optionally wrapped in
- * quotes and/or trailed by sentence punctuation. Used to keep the control
- * token out of anything spoken aloud. */
-export function isDoneToken(text: string): boolean {
-	return /^["']?DONE["']?[.?!]?$/.test(text.trim());
-}
-
-/** A DONE the model appended to prose ("Thanks, that's all. DONE.") — the
- * observed failure mode (take 1784211829214: the token was synthesized and
- * spoken three times). Stripped before anything reaches TTS; the remaining
- * prose is the farewell, and the turn still ends the persona's part. */
-const DONE_TAIL = /\s*\bDONE\b["']?[.?!]*\s*$/;
-
-/** Split a reply line into what may be SPOKEN and whether it ended the
- * persona's part: a bare DONE speaks nothing; prose + DONE speaks the prose
- * and ends; plain prose speaks and continues. */
-export function splitDoneTail(line: string): { speak: string; done: boolean } {
-	if (isDoneToken(line)) return { speak: '', done: true };
-	if (DONE_TAIL.test(line)) return { speak: line.replace(DONE_TAIL, '').trim(), done: true };
-	return { speak: line, done: false };
 }
 
 /**
@@ -205,34 +153,11 @@ export async function nextLineStreaming(
 		return { ...r, firstClauseMs: null, rest: r.decision.kind === 'say' ? r.decision.text : '' };
 	}
 	const prompt = personaPrompt(persona, exchange, remainingProbes);
-	const started = performance.now();
-	let acc = '';
-	let firstClauseMs: number | null = null;
-	let firedClause: string | null = null;
-	for await (const delta of runner.stream(prompt)) {
-		acc += delta;
-		if (firedClause === null && onFirstClause) {
-			// firstClause() refuses one-word clauses (which covers every DONE
-			// shape) and unconfirmed boundaries (mid-decimal dots), so a control
-			// token or a number fragment can never be spoken early.
-			const clause = firstClause(acc);
-			if (clause) {
-				firedClause = clause;
-				firstClauseMs = performance.now() - started;
-				onFirstClause(clause);
-			}
-		}
-	}
-	const text = acc.trim().split('\n')[0]?.trim() ?? '';
-	let line = text;
-	if (line.length > REPLY_CHAR_CAP) {
-		const cut = line.slice(0, REPLY_CHAR_CAP);
-		line = cut.slice(
-			0,
-			Math.max(cut.lastIndexOf('.'), cut.lastIndexOf('?'), cut.lastIndexOf('!')) + 1 ||
-				REPLY_CHAR_CAP,
-		);
-	}
+	const { acc, firedClause, firstClauseMs } = await streamWithFirstClause(
+		runner.stream(prompt),
+		onFirstClause,
+	);
+	const line = capAtSentence(firstLine(acc), REPLY_CHAR_CAP);
 	// The DONE tail never reaches TTS — bare DONE speaks nothing; prose+DONE
 	// speaks the prose and ends the persona's part. A fired clause cannot be
 	// DONE-shaped (firstClause refuses one-word clauses).

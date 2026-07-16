@@ -1,5 +1,4 @@
 export {
-	buildPrompt,
 	cacheKey,
 	type JudgeInput,
 	judge,
